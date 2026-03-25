@@ -1,0 +1,1053 @@
+/*
+  GLOBAL STYLESHEET
+  -----------------
+  This file controls the overall look and feel of the app.
+
+  Reordered using a more standard CSS structure so related rules are grouped together.
+  The styling behaviour is unchanged as much as possible; the main improvement is readability
+  and maintainability.
+
+  Recommended order used here:
+  1. Theme variables
+  2. Base / reset styles
+  3. Generic layout helpers
+  4. Typography and utility helpers
+  5. Form elements
+  6. Buttons
+  7. Tables
+  8. Reusable components
+  9. Quote / print-specific screen helpers
+  10. Print overrides
+*/
+
+/* =========================================================
+   1. THEME VARIABLES
+   ========================================================= */
+:root {
+  --gp-red: #e31b23;                   /* GigPower red */
+  --gp-gold: #f5a623;                  /* GigPower gold */
+  --gp-black: #0b0b0b;                 /* Very dark black */
+  --gp-ink: #111827;                   /* Dark text / ink colour */
+  --gp-muted: #6b7280;                 /* Softer grey text */
+  --gp-bg: #0a0a0a;                    /* Main dark background */
+  --gp-card: rgba(255,255,255,0.06);   /* Semi-transparent card background */
+  --gp-border: rgba(255,255,255,0.10); /* Soft border colour */
+  --gp-focus: rgba(245,166,35,0.55);   /* Focus highlight for inputs */
+
+  /* General UI colours */
+  --bg: #0b0f14;
+  --card: #121925;
+  --muted: #97a3b6;
+  --text: #e8eef8;
+  --accent: #fcb900;
+  --line: rgba(255,255,255,0.08);
+}
+
+/* =========================================================
+   2. BASE / RESET STYLES
+   ========================================================= */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  background:
+    radial-gradient(1200px 600px at 20% 0%, rgba(245,166,35,0.18), transparent 55%),
+    radial-gradient(900px 500px at 80% 10%, rgba(227,27,35,0.12), transparent 55%),
+    var(--gp-bg);
+  color: white;
+}
+
+/* =========================================================
+   3. GENERIC LAYOUT HELPERS
+   ========================================================= */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.col {
+  flex: 1;
+  min-width: 180px;
+}
+
+.center {
+  text-align: center;
+}
+
+.numeric {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.text-right {
+  text-align: right;
+}
+
+/* =========================================================
+   4. TYPOGRAPHY AND UTILITY HELPERS
+   ========================================================= */
+label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+small.muted,
+.muted {
+  color: var(--muted);
+}
+
+.hr {
+  height: 1px;
+  background: var(--line);
+  margin: 18px 0;
+}
+
+/* =========================================================
+   5. FORM ELEMENTS
+   ========================================================= */
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.25);
+  color: var(--text);
+  outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--gp-focus);
+  border-color: rgba(245,166,35,0.55);
+}
+
+/* =========================================================
+   6. BUTTONS
+   ========================================================= */
+button {
+  cursor: pointer;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: linear-gradient(180deg, rgba(245,166,35,0.95), rgba(245,166,35,0.75));
+  color: #111;
+  font-weight: 800;
+}
+
+button:hover {
+  filter: brightness(1.03);
+}
+
+button.primary {
+  background: rgba(252,185,0,0.9);
+  color: #1a1400;
+  border-color: rgba(252,185,0,0.9);
+  font-weight: 700;
+}
+
+button.ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.btn,
+.btn-print,
+.btn-secondary {
+  border-radius: 14px;
+  font-weight: 800;
+}
+
+.btn-print {
+  background: linear-gradient(180deg, #f5a623, #d48a00);
+  color: #000;
+  border: none;
+  box-shadow: 0 4px 14px rgba(245,166,35,0.4);
+}
+
+.btn-print:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(245,166,35,0.5);
+}
+
+.btn-secondary {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.18);
+  font-weight: 700;
+}
+
+.btn-secondary:hover {
+  background: rgba(255,255,255,0.14);
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(255,255,255,0.12);
+  transform: scale(1.05);
+}
+
+.icon-btn.danger {
+  color: #ff6b6b;
+  border-color: rgba(255,107,107,0.4);
+}
+
+.icon-btn.danger:hover {
+  background: rgba(255,107,107,0.15);
+}
+
+/* =========================================================
+   7. TABLES
+   ========================================================= */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 8px;
+  font-size: 14px;
+  vertical-align: top;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+th {
+  text-align: left;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.labour-table th,
+.labour-table td,
+.entry-table th,
+.entry-table td {
+  vertical-align: middle;
+}
+
+.entry-table td > div {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.entry-table input,
+.entry-table select {
+  margin: 0;
+  vertical-align: middle;
+}
+
+.entry-table td:last-child > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =========================================================
+   8. REUSABLE COMPONENTS
+   ========================================================= */
+.card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+  border: 1px solid var(--gp-border);
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.card + .card {
+  margin-top: 16px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+
+.badge.good {
+  background: rgba(245,166,35,0.18);
+  border: 1px solid rgba(245,166,35,0.45);
+  color: #ffd27a;
+}
+
+.badge.bad {
+  background: rgba(227,27,35,0.16);
+  border: 1px solid rgba(227,27,35,0.45);
+  color: #ff8a8f;
+}
+
+.gp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--gp-border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  border-radius: 18px;
+}
+
+.gp-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gp-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+
+.gp-tagline {
+  margin-top: 2px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.72);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.tcs-box {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+}
+
+.tcs-title {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tcs-body {
+  font-size: 10px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  color: var(--muted);
+}
+
+/* =========================================================
+   9. QUOTE / PRINT HELPERS FOR SCREEN MODE
+   ========================================================= */
+.print-container {
+  width: 100%;
+  max-width: 190mm;
+  margin: 0 auto;
+}
+
+.print-section,
+.total-section,
+.quote-summary,
+.quote-header,
+.quote-footer {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.print-only {
+  display: none !important;
+}
+
+
+.print-header {
+  display: none;
+}
+
+.print-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.print-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.print-abn {
+  font-size: 11px;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.estimate-name {
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.estimate-name strong {
+  margin-right: 4px;
+}
+
+/* Labour table input sizing */
+.labour-qty-input {
+  width: 60px;
+  font-size: 15px;
+  padding: 6px 6px;
+  text-align: center;
+}
+
+.labour-time-input {
+  width: 100px;
+  font-size: 16px;
+  padding: 8px 10px;
+  font-family: monospace;
+}
+
+.labour-table-wrap {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+
+.labour-header-row {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.labour-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Non-labour section layout */
+.non-labour-header-row {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.non-labour-table-wrap {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+
+.non-labour-qty-input {
+  width: 6.5ch;
+  font-size: 15px;
+  padding: 6px 6px;
+  text-align: center;
+}
+
+.non-labour-col-description {
+  width: 36%;
+}
+
+.non-labour-col-qty {
+  width: 8%;
+}
+
+.non-labour-col-unit {
+  width: 14%;
+}
+
+.non-labour-col-line {
+  width: 16%;
+}
+
+.non-labour-col-total {
+  width: 16%;
+}
+
+.non-labour-col-actions {
+  width: 56px;
+}
+
+.non-labour-unit-input {
+  width: 100%;
+  max-width: 110px;
+}
+
+.non-labour-table td:last-child,
+.non-labour-table th:last-child {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.quote-end-spacer {
+  height: 30px;
+}
+
+.toolbar-section {
+  margin-top: 18px;
+}
+
+.totals-grid {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.totals-row {
+  display: grid;
+  grid-template-columns: 1fr 140px; /* fixed amount column */
+  align-items: baseline;
+}
+
+.totals-label {
+  font-weight: 600;
+}
+
+.totals-value {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Grand total styling */
+.totals-grand {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.totals-grand .totals-label,
+.totals-grand .totals-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+
+  
+
+/* =========================================================
+   10. ADMIN CONSOLE
+   ========================================================= */
+.admin-shell {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 32px 28px 40px;
+}
+
+.admin-login-shell {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 48px 28px;
+}
+
+.admin-page-title {
+  margin: 0 0 6px 0;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.admin-page-subtitle {
+  margin: 0 0 22px 0;
+  font-size: 14px;
+  color: rgba(255,255,255,0.68);
+}
+
+.admin-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  padding: 22px 22px 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.22);
+}
+
+.admin-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.admin-section-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.admin-section-note {
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255,255,255,0.62);
+}
+
+.admin-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.admin-rates-head {
+  display: grid;
+  grid-template-columns: 1.7fr repeat(6, 1fr) 110px;
+  gap: 10px;
+  padding: 0 2px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.5);
+}
+
+.admin-rate-row {
+  display: grid;
+  grid-template-columns: 1.7fr repeat(6, 1fr) 110px;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  background: rgba(0,0,0,0.18);
+  margin-bottom: 12px;
+}
+
+.admin-role-input {
+  font-weight: 800;
+}
+
+.admin-inline-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-danger-btn {
+  background: rgba(227,27,35,0.16);
+  color: #ffd8da;
+  border: 1px solid rgba(227,27,35,0.38);
+  font-weight: 700;
+}
+
+.admin-danger-btn:hover {
+  background: rgba(227,27,35,0.24);
+}
+
+.admin-muted-btn {
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.16);
+  font-weight: 700;
+}
+
+.admin-muted-btn:hover {
+  background: rgba(255,255,255,0.11);
+}
+
+.admin-textarea {
+  min-height: 240px;
+}
+
+.admin-autosave-note {
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+}
+
+.admin-action-row {
+  margin-bottom: 20px;
+}
+
+.admin-login-action {
+  margin-top: 16px;
+}
+
+@media (max-width: 900px) {
+  .admin-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-rates-head {
+    display: none;
+  }
+
+  .admin-rate-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-shell,
+  .admin-login-shell {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+
+/* =========================================================
+   ADMIN – PUBLIC HOLIDAYS
+   ========================================================= */
+
+.admin-holiday-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 110px;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.admin-holiday-head {
+  display: grid;
+  grid-template-columns: 180px 1fr 110px;
+  gap: 10px;
+  padding: 0 2px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.5);
+}
+
+/* Mobile fallback */
+@media (max-width: 900px) {
+  .admin-holiday-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-holiday-head {
+    display: none;
+  }
+}
+
+/* =========================================================
+   11. PRINT PAGE SETUP
+   ========================================================= */
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+
+/* =========================================================
+   12. PRINT OVERRIDES
+   ========================================================= */
+@media print {
+  html,
+  body {
+    width: 210mm;
+    min-height: 297mm;
+    background: #fff !important;
+    color: #111 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    font-size: 10.5pt;
+    line-height: 1.3;
+  }
+
+  .container,
+  .print-container {
+    max-width: 190mm !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+  }
+
+  .no-print,
+  button,
+  .btn,
+  .btn-print,
+  .btn-secondary,
+  .icon-btn {
+    display: none !important;
+  }
+
+  .print-only {
+    display: inline !important;
+    color: #111 !important;
+  }
+
+  .print-header {
+    display: block !important;
+    margin-bottom: 16px;
+  }
+
+  .print-header-top {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+
+  .print-title-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+  }
+
+  .print-abn {
+    font-size: 9pt !important;
+    color: #444 !important;
+    white-space: nowrap !important;
+    text-align: right !important;
+  }
+  
+  
+  .text-right {
+    text-align: right !important;
+  }
+
+
+  .card,
+  .gp-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  border-radius: 16px;
+  margin-bottom: 14px;
+}
+
+.gp-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.gp-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.gp-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  line-height: 1.1;
+}
+
+.gp-tagline {
+  margin-top: 2px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.72);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.gp-subnote {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.78);
+  line-height: 1.35;
+}
+
+
+
+  .card {
+    border-radius: 8px !important;
+    padding: 10px 12px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .card + .card {
+    margin-top: 10px !important;
+  }
+
+  .totals-value {
+    text-align: right !important;
+  }
+
+  input,
+  select,
+  textarea {
+    border: 1px solid #d9d9d9 !important;
+    color: #111 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    padding: 6px 8px !important;
+  }
+
+  table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+    font-size: 12px !important;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  tr,
+  img,
+  .card,
+  .print-section,
+  .total-section,
+  .quote-summary,
+  .quote-header,
+  .quote-footer {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  th,
+  td {
+    border: 1px solid #d9d9d9 !important;
+    color: #111 !important;
+    padding: 6px 6px !important;
+    font-size: 9.5pt !important;
+    line-height: 1.25 !important;
+    vertical-align: top !important;
+  }
+
+  th {
+    font-size: 8.5pt !important;
+    font-weight: 700 !important;
+    color: #444 !important;
+    background: #f5f5f5 !important;
+    text-align: left !important;
+  }
+
+  td:last-child,
+  th:last-child {
+    text-align: right;
+  }
+
+  tr[data-blank="true"] {
+    display: none !important;
+  }
+
+  .badge,
+  .badge.good,
+  .badge.bad {
+    color: #111 !important;
+    background: #fff !important;
+    border: 1px solid #bbb !important;
+  }
+
+  .hr {
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p {
+    margin-top: 0 !important;
+    margin-bottom: 6px !important;
+    color: #111 !important;
+  }
+
+  h1 { font-size: 16pt !important; }
+  h2 { font-size: 13pt !important; }
+  h3 { font-size: 11pt !important; }
+
+  a,
+  a:visited {
+    color: #111 !important;
+    text-decoration: none !important;
+  }
+
+  .totals {
+    margin-top: 16px;
+  }
+
+  .totals div {
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+
+  .totals .grand {
+    margin-top: 12px;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .tcs-box.print-only {
+    display: block !important;
+  }
+
+  .tcs-box {
+    margin-top: 10px !important;
+    padding: 8px 10px !important;
+    border: 1px solid #d9d9d9 !important;
+    border-radius: 6px !important;
+    background: #fff !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tcs-title {
+    display: block !important;
+    font-size: 9pt !important;
+    font-weight: 700 !important;
+    margin-bottom: 4px !important;
+    color: #444 !important;
+  }
+
+  .tcs-body {
+    display: block !important;
+    font-size: 8.5pt !important;
+    line-height: 1.25 !important;
+    color: #333 !important;
+    white-space: pre-wrap !important;
+  }
+}

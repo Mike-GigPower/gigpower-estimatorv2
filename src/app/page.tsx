@@ -1,0 +1,799 @@
+ "use client";
+
+/**
+ * Main page-level UI components
+ */
+import AppHeader from "./components/AppHeader";
+import DraftToolbar from "./components/DraftToolbar";
+import ClientDetailsCard from "./components/ClientDetailsCard";
+import LabourTable from "./components/LabourTable";
+import NonLabourTable from "./components/NonLabourTable";
+import QuoteTotalsCard from "./components/QuoteTotalsCard";
+import TermsConditionsBox from "./components/TermsConditionsBox";
+
+/**
+ * React hooks
+ */
+import { useEffect, useMemo, useState } from "react";
+
+
+/**
+ * Quote calculation engine and app configuration hook
+ */
+import { estimateQuote } from "@/src/lib/calc";
+import { useAppConfig } from "@/src/lib/useAppConfig";
+
+/**
+ * Shared app types
+ */
+import type {
+  QuoteInput,
+  LabourLine,
+  NonLabourLine,
+  QuoteResult,
+} from "@/src/lib/types";
+
+/**
+ * Create a simple unique id for new rows.
+ * Example output: lab_ab12xyz
+ */
+function uid(prefix: string) {
+  return prefix + "_" + Math.random().toString(36).slice(2, 9);
+}
+
+/**
+ * Format a number as currency using the app's configured currency.
+ * Falls back to AUD if no currency is supplied.
+ */
+function money(n: number, currency: string) {
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: currency || "AUD",
+  }).format(n || 0);
+}
+
+/**
+ * Structure for a saved quote draft stored in localStorage.
+ */
+type SavedDraft = {
+  id: string;
+  name: string;
+  savedAt: string;
+  input: QuoteInput;
+};
+
+/**
+ * Browser storage key for saved drafts.
+ */
+const DRAFTS_KEY = "gigpower-estimator-drafts";
+const QUOTE_COUNTER_KEY = "gigpower-quote-counter";
+const SELECTED_DRAFT_KEY = `${DRAFTS_KEY}-selected`;
+
+/**
+ * Create a new blank labour line with sensible defaults.
+ */
+function emptyLabourLine(defaultRole = "", minBillableHours = 4, shiftDate = ""): LabourLine {
+  return {
+    id: "",
+    role: defaultRole,
+    qty: 1,
+    shiftDate,
+    startTime: "08:00",
+    durationHours: minBillableHours,
+  };
+}
+
+/**
+ * Create a new blank non-labour line.
+ */
+function emptyNonLabourLine(): NonLabourLine {
+  return {
+    id: "",
+    description: "",
+    qty: 1,
+    amountExGst: 0,
+  };
+}
+
+/**
+ * Read saved drafts from localStorage.
+ * Returns an empty array if nothing is stored or parsing fails.
+ */
+function readDrafts(): SavedDraft[] {
+  try {
+    const raw = localStorage.getItem(DRAFTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Persist the full draft list back to localStorage.
+ */
+function writeDrafts(drafts: SavedDraft[]) {
+  localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+}
+
+/**
+ * Generate the quote number.
+ * Example: GP-12345
+ */
+function generateQuoteNumber(): string {
+  try {
+    const raw = localStorage.getItem(QUOTE_COUNTER_KEY);
+    const current = raw ? Number(raw) : 0;
+
+    const next = current + 1;
+
+    localStorage.setItem(QUOTE_COUNTER_KEY, String(next));
+
+    return `GP-${String(next).padStart(6, "0")}`;
+  } catch {
+    // fallback (very unlikely, but safe)
+    return `GP-${Date.now().toString().slice(-6)}`;
+  }
+}
+
+const defaultInput: QuoteInput = {
+  companyName: "",
+  contactName: "",
+  contactEmail: "",
+  contactPhone: "",
+  venue: "",
+  notes: "",
+  quoteNumber: "",
+  quoteDate: "",
+  validUntil: "",
+  labour: [emptyLabourLine("", 4, "")],
+  nonLabour: [emptyNonLabourLine()],
+};
+
+/**
+ * Main page component.
+ */
+export default function Page() {
+  
+  
+
+  /**
+   * Load configuration such as rates, GST, min hours, quote text, currency, etc.
+   */
+  const { config, ready } = useAppConfig();
+
+  /**
+   * Convenience function to format money using the configured currency.
+   */
+  const moneyFmt = (n: number) => money(n, config.currency);
+
+
+  /**
+   * Main quote input state.
+   * This is what the user edits on the screen.
+   */
+  const [input, setInput] = useState<QuoteInput>(defaultInput);
+const [draftName, setDraftName] = useState("Untitled Estimate");
+const [savedDrafts, setSavedDrafts] = useState<SavedDraft[]>([]);
+const [selectedDraftId, setSelectedDraftId] = useState("");
+const [isMounted, setIsMounted] = useState(false);
+
+useEffect(() => {
+  setIsMounted(true);
+
+  const drafts = readDrafts();
+  setSavedDrafts(drafts);
+
+  // only restore browser state here
+  const lastSelectedId = localStorage.getItem(SELECTED_DRAFT_KEY) || "";
+  if (lastSelectedId) {
+    const draft = drafts.find(d => d.id === lastSelectedId);
+    if (draft) {
+      setSelectedDraftId(draft.id);
+      setDraftName(draft.name);
+      setInput(draft.input);
+    }
+  }
+}, []);
+
+  /**
+   * Once config is ready, ensure there is at least one labour line.
+   * This helps when the page loads before rates/config are available.
+   */
+  useEffect(() => {
+    if (!ready) return;
+
+    setInput((prev) => {
+      if (prev.labour.length > 0) return prev;
+
+      return {
+        ...prev,
+        labour: [
+          emptyLabourLine(
+            config.rates[0]?.role ?? "",
+            config.minBillableHours
+          ),
+        ],
+      };
+    });
+  }, [ready, config]);
+  
+  useEffect(() => {
+  if (!ready) return;
+
+  
+  const today = new Date();
+const todayIso = today.toISOString().slice(0, 10);
+
+const valid = new Date();
+valid.setDate(today.getDate() + 14);
+
+  
+
+  setInput((prev) => ({
+    ...prev,
+    quoteNumber: prev.quoteNumber || "",
+    quoteDate: prev.quoteDate || formatDateDDMMYYYY(today),
+    validUntil: prev.validUntil || formatDateDDMMYYYY(valid),
+    labour: prev.labour.map((line) => ({
+      ...line,
+      id: line.id || uid("lab"),
+      shiftDate: line.shiftDate || todayIso,
+    })),
+    nonLabour: prev.nonLabour.map((line) => ({
+      ...line,
+      id: line.id || uid("nl"),
+    })),
+  }));
+}, [ready]);
+
+  /**
+   * Holds the calculated result of the quote engine.
+   */
+  const [result, setResult] = useState<QuoteResult | null>(null);
+
+  /**
+   * Simple busy flag used by toolbar/UI.
+   */
+  const [busy, setBusy] = useState(false);
+
+  /**
+   * Temporary text state for duration and start time inputs.
+   * These allow the UI to hold user typing before values are normalised.
+   */
+  const [durationText, setDurationText] = useState<Record<string, string>>({});
+  const [startTimeText, setStartTimeText] = useState<Record<string, string>>({});
+
+
+  /**
+   * Build role dropdown options from configured rates.
+   */
+  const roleOptions = useMemo(
+    () => config.rates.map((r) => r.role),
+    [config.rates]
+  );
+
+  /**
+   * Search text used to filter saved quotes.
+   */
+  const [quoteSearch, setQuoteSearch] = useState("");
+
+  
+  /**
+   * Central update function.
+   * Normalises roles first once config is ready, then updates input state.
+   */
+  function recalc(next: QuoteInput) {
+    const normalised = ready ? normaliseInputRoles(next) : next;
+    setInput(normalised);
+  }
+
+  /**
+   * When config changes, make sure all labour rows still reference valid configured roles.
+   */
+  useEffect(() => {
+    if (!ready) return;
+
+    setInput((prev) => normaliseInputRoles(prev));
+  }, [ready, config]);
+
+  /**
+   * Recalculate quote whenever input or config changes.
+   * Also toggles the busy flag around the calculation.
+   */
+  useEffect(() => {
+    if (!ready) return;
+
+    setBusy(true);
+    try {
+      setResult(estimateQuote(input, config));
+    } finally {
+      setBusy(false);
+    }
+  }, [input, config, ready]);
+
+  /**
+   * Original file also includes this second recalculation effect.
+   * It directly recalculates result whenever config/input/ready changes.
+   * This is preserved exactly to avoid changing behaviour.
+   */
+  useEffect(() => {
+    if (!ready) return;
+    setResult(estimateQuote(input, config));
+  }, [config, input, ready]);
+
+  /**
+   * Remember the currently selected draft id between refreshes.
+   */
+  useEffect(() => {
+  if (selectedDraftId) {
+    localStorage.setItem(SELECTED_DRAFT_KEY, selectedDraftId);
+  } else {
+    localStorage.removeItem(SELECTED_DRAFT_KEY);
+  }
+}, [selectedDraftId]);
+
+  /**
+   * Update one labour row by id.
+   */
+  function updateLabour(id: string, patch: Partial<LabourLine>) {
+    const next = {
+      ...input,
+      labour: input.labour.map((l) =>
+        l.id === id ? { ...l, ...patch } : l
+      ),
+    };
+    recalc(next);
+  }
+
+  /**
+   * Update one non-labour row by id.
+   */
+  function updateNonLabour(id: string, patch: Partial<NonLabourLine>) {
+    const next = {
+      ...input,
+      nonLabour: input.nonLabour.map((l) =>
+        l.id === id ? { ...l, ...patch } : l
+      ),
+    };
+    recalc(next);
+  }
+
+  /**
+   * Add a new labour row.
+   * Uses the first configured role as the default role if available.
+   */
+  function addLabour() {
+    const next = {
+      ...input,
+      labour: [
+        ...input.labour,
+        emptyLabourLine(config.rates[0]?.role ?? "", config.minBillableHours),
+      ],
+    };
+    recalc(next);
+  }
+
+  /**
+   * Remove a labour row by id.
+   */
+  function removeLabour(id: string) {
+    const next = { ...input, labour: input.labour.filter((l) => l.id !== id) };
+    recalc(next);
+  }
+
+  /**
+   * Duplicate a labour row and insert the copy immediately after the original.
+   */
+  function duplicateLabour(id: string) {
+    const idx = input.labour.findIndex((l) => l.id === id);
+    if (idx === -1) return;
+
+    const original = input.labour[idx];
+    const copy = { ...original, id: uid("lab") };
+
+    const updated = [...input.labour];
+    updated.splice(idx + 1, 0, copy);
+
+    const next = { ...input, labour: updated };
+    recalc(next);
+  }
+
+  /**
+   * Sort labour rows by shift date, then start time, then role name.
+   */
+  function sortLabourByDate() {
+    const sorted = [...input.labour].sort((a, b) => {
+      const dateA = a.shiftDate || "";
+      const dateB = b.shiftDate || "";
+
+      if (dateA !== dateB) {
+        return dateA.localeCompare(dateB);
+      }
+
+      const timeA = normaliseHHMM(a.startTime) ?? a.startTime ?? "";
+      const timeB = normaliseHHMM(b.startTime) ?? b.startTime ?? "";
+
+      if (timeA !== timeB) {
+        return timeA.localeCompare(timeB);
+      }
+
+      return a.role.localeCompare(b.role);
+    });
+
+    const next = { ...input, labour: sorted };
+    recalc(next);
+  }
+
+  /**
+   * Ensure all labour roles are still valid against the current config.
+   * If a role is no longer valid, fall back to the first configured role.
+   */
+  function normaliseInputRoles(next: QuoteInput): QuoteInput {
+    const validRoles = config.rates.map((r) => r.role);
+    const fallbackRole = validRoles[0] ?? "";
+
+    return {
+      ...next,
+      labour: next.labour.map((line) => ({
+        ...line,
+        role: validRoles.includes(line.role) ? line.role : fallbackRole,
+      })),
+    };
+  }
+
+  /**
+   * Convert decimal hours into HH:MM format.
+   * Example: 4.5 -> 04:30
+   */
+  function hoursToHHMM(hours: number): string {
+    if (!Number.isFinite(hours)) return "00:00";
+    const totalMinutes = Math.round(hours * 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  }
+
+  /**
+   * Automatically insert a colon while the user types time values.
+   * Example: 0830 -> 08:30
+   */
+  function autoColonHHMM(value: string): string {
+    const digits = value.replace(/\D/g, "").slice(0, 4);
+    if (digits.length <= 2) return digits;
+    return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+  }
+
+  /**
+   * Convert HH:MM text into decimal hours.
+   * Example: 04:30 -> 4.5
+   */
+  function hhmmToHours(value: string): number {
+    const match = value.match(/^(\d{1,2}):([0-5]\d)$/);
+    if (!match) return 0;
+    const h = Number(match[1]);
+    const m = Number(match[2]);
+    return h + m / 60;
+  }
+
+  /**
+   * Add a new non-labour row.
+   */
+  function addNonLabour() {
+    const next = { ...input, nonLabour: [...input.nonLabour, emptyNonLabourLine()] };
+    recalc(next);
+  }
+
+  /**
+   * Remove a non-labour row by id.
+   */
+  function removeNonLabour(id: string) {
+    const next = { ...input, nonLabour: input.nonLabour.filter((l) => l.id !== id) };
+    recalc(next);
+  }
+
+  /**
+   * Update the quote header/client details section.
+   */
+  function updateHeader(
+    patch: Partial<
+      Pick<
+        QuoteInput,
+        "companyName" | "contactName" | "contactEmail" | "contactPhone" | "venue" | "notes"
+      >
+    >
+  ) {
+    const next = { ...input, ...patch };
+    recalc(next);
+  }
+
+  /**
+   * Save a draft.
+   * If overwriteId matches an existing draft, update that draft.
+   * Otherwise create a new draft.
+   */
+  function saveDraft(overwriteId?: string) {
+    const drafts = readDrafts();
+    const now = new Date().toISOString();
+    const name = (draftName || "Untitled Estimate").trim();
+
+    const isOverwrite = !!(overwriteId && drafts.some((d) => d.id === overwriteId));
+
+    const ensuredInput: QuoteInput = {
+      ...input,
+      quoteNumber: isOverwrite
+        ? (input.quoteNumber || generateQuoteNumber())
+        : generateQuoteNumber(),
+      quoteDate: input.quoteDate || formatDateDDMMYYYY(new Date()),
+      validUntil: input.validUntil || (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 14);
+        return formatDateDDMMYYYY(d);
+      })(),
+    };
+
+    let nextDrafts: SavedDraft[];
+    let targetId = overwriteId;
+
+    if (isOverwrite && targetId) {
+      nextDrafts = drafts.map((d) =>
+        d.id === targetId
+          ? { ...d, name, savedAt: now, input: ensuredInput }
+          : d
+      );
+    } else {
+      targetId = `draft_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      nextDrafts = [
+        {
+          id: targetId,
+          name,
+          savedAt: now,
+          input: ensuredInput,
+        },
+        ...drafts,
+      ];
+    }
+
+    writeDrafts(nextDrafts);
+    setSavedDrafts(nextDrafts);
+    setInput(ensuredInput);
+
+    if (!isOverwrite && targetId) {
+      setSelectedDraftId(targetId);
+    }
+
+    if (isOverwrite && targetId) {
+      setSelectedDraftId(targetId);
+    }
+
+    alert(isOverwrite ? "Estimate updated." : "New estimate saved.");
+  }
+
+  /**
+   * Load a saved draft by id into the current form.
+   */
+  function loadDraftById(id: string) {
+    const drafts = readDrafts();
+    const draft = drafts.find((d) => d.id === id);
+
+    if (!draft) {
+      alert("Saved estimate not found.");
+      return;
+    }
+
+    const hydrated: QuoteInput = {
+      ...draft.input,
+      quoteNumber: draft.input.quoteNumber || generateQuoteNumber(),
+      quoteDate: draft.input.quoteDate || formatDateDDMMYYYY(new Date()),
+      validUntil: draft.input.validUntil || (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 14);
+        return formatDateDDMMYYYY(d);
+      })(),
+    };
+
+    setDraftName(draft.name || "Untitled Estimate");
+    setSelectedDraftId(draft.id);
+    setInput(hydrated);
+    recalc(hydrated);
+  }
+
+  /**
+   * Delete one saved draft by id.
+   */
+  function deleteDraft(id: string) {
+    const drafts = readDrafts();
+    const nextDrafts = drafts.filter((d) => d.id !== id);
+    writeDrafts(nextDrafts);
+    setSavedDrafts(nextDrafts);
+    if (selectedDraftId === id) {
+      setSelectedDraftId("");
+    }
+    alert("Saved estimate deleted.");
+  }
+
+  /**
+   * Clear all saved drafts from localStorage.
+   */
+  function clearAllDrafts() {
+    localStorage.removeItem(DRAFTS_KEY);
+    setSavedDrafts([]);
+    setSelectedDraftId("");
+    alert("All saved estimates cleared.");
+  }
+
+  /**
+   * Validate and normalise a HH:MM string.
+   * Returns null if invalid.
+   */
+  function normaliseHHMM(value: string): string | null {
+    const raw = value.trim();
+    const m = raw.match(/^(\d{1,2}):([0-5]\d)$/);
+    if (!m) return null;
+    const h = Number(m[1]);
+    const mins = Number(m[2]);
+    if (!Number.isFinite(h) || h < 0 || h > 23) return null;
+    return `${String(h).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+  }
+
+  /**
+   * Format a Date object as DD/MM/YYYY.
+   */
+  function formatDateDDMMYYYY(date: Date): string {
+    const dd = String(date.getDate()).padStart(2, "0");
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  /**
+   * Frequently used shortcut for totals.
+   */
+  const totals = result?.totals;
+
+  /**
+   * Used to decide whether the non-labour section contains meaningful data.
+   */
+  const hasNonLabourData = input.nonLabour.some(
+    (l) =>
+      (l.description || "").trim() !== "" ||
+      (l.amountExGst ?? 0) !== 0 ||
+      (l.qty ?? 1) !== 1
+  );
+
+  /**
+   * Filter saved drafts using the toolbar search box.
+   * Matches quote number, draft name, company name, or contact name.
+   */
+  const filteredDrafts = savedDrafts.filter((d) => {
+    const needle = quoteSearch.trim().toLowerCase();
+    if (!needle) return true;
+
+    const quoteNumber = (d.input.quoteNumber ?? "").toLowerCase();
+    const draftLabel = (d.name ?? "").toLowerCase();
+    const companyName = (d.input.companyName ?? "").toLowerCase();
+    const contactName = (d.input.contactName ?? "").toLowerCase();
+
+    return (
+      quoteNumber.includes(needle) ||
+      draftLabel.includes(needle) ||
+      companyName.includes(needle) ||
+      contactName.includes(needle)
+    );
+  });
+
+ if (!isMounted) {
+  return <div className="container">Loading...</div>;
+}
+
+  /**
+   * Render page UI.
+   */
+  return (
+    <div className="container">
+      
+  <AppHeader
+  draftName={draftName}
+  quoteNumber={input.quoteNumber}
+  quoteDate={input.quoteDate}
+  validUntil={input.validUntil}
+  companyName={input.companyName}
+  contactName={input.contactName}
+  contactEmail={input.contactEmail}
+  contactPhone={input.contactPhone}
+  venue={input.venue}
+/>
+
+      <div className="toolbar-section">
+        <DraftToolbar
+          draftName={draftName}
+          setDraftName={setDraftName}
+          quoteSearch={quoteSearch}
+          setQuoteSearch={setQuoteSearch}
+          selectedDraftId={selectedDraftId}
+          setSelectedDraftId={setSelectedDraftId}
+          filteredDrafts={filteredDrafts.map((d) => ({
+            id: d.id,
+            name: d.name,
+            companyName: d.input.companyName,
+            quoteNumber: d.input.quoteNumber,
+          }))}
+          onSaveNew={() => saveDraft()}
+          onUpdateSaved={() => saveDraft(selectedDraftId)}
+          onLoadSelected={() => selectedDraftId && loadDraftById(selectedDraftId)}
+          onDeleteSelected={() => selectedDraftId && deleteDraft(selectedDraftId)}
+          onClearAll={clearAllDrafts}
+          onPrint={() => window.print()}
+          onRecalculate={() => recalc(input)}
+          busy={busy}
+        />
+      </div>
+
+      <div className="hr" />
+
+      <ClientDetailsCard input={input} onUpdateHeader={updateHeader} />
+
+      <div className="hr" />
+
+      <LabourTable
+        labour={input.labour}
+        result={
+          result
+            ? {
+                isValid: result.isValid,
+                validationErrors: result.validationErrors,
+                labourLines: result.labourLines,
+              }
+            : null
+        }
+        roleOptions={roleOptions}
+        startTimeText={startTimeText}
+        setStartTimeText={setStartTimeText}
+        durationText={durationText}
+        setDurationText={setDurationText}
+        updateLabour={updateLabour}
+        addLabour={addLabour}
+        duplicateLabour={duplicateLabour}
+        removeLabour={removeLabour}
+        sortLabourByDate={sortLabourByDate}
+        formatDateDDMMYYYY={formatDateDDMMYYYY}
+        normaliseHHMM={normaliseHHMM}
+        hoursToHHMM={hoursToHHMM}
+        autoColonHHMM={autoColonHHMM}
+        money={moneyFmt}
+        minBillableHours={config.minBillableHours}
+      />
+
+      <div className="hr" />
+
+      <NonLabourTable
+        nonLabour={input.nonLabour}
+        result={
+          result
+            ? {
+                nonLabourLines: result.nonLabourLines,
+              }
+            : null
+        }
+        hasNonLabourData={hasNonLabourData}
+        addNonLabour={addNonLabour}
+        updateNonLabour={updateNonLabour}
+        removeNonLabour={removeNonLabour}
+        money={moneyFmt}
+        gstRate={config.gstRate}
+      />
+
+      <div className="hr" />
+
+      <QuoteTotalsCard
+        totals={totals ?? null}
+        money={moneyFmt}
+      />
+
+      <TermsConditionsBox body={config.quoteText.termsAndConditions} />
+
+      <div className="quote-end-spacer" />
+    </div>
+  );
+}
