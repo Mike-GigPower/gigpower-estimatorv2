@@ -66,9 +66,8 @@ type SavedDraft = {
 /**
  * Browser storage key for saved drafts.
  */
-const DRAFTS_KEY = "gigpower-estimator-drafts";
-const QUOTE_COUNTER_KEY = "gigpower-quote-counter";
-const SELECTED_DRAFT_KEY = `${DRAFTS_KEY}-selected`;
+
+const SELECTED_DRAFT_KEY = "gigpower-selected-estimate";
 
 /**
  * Create a new blank labour line with sensible defaults.
@@ -96,27 +95,8 @@ function emptyNonLabourLine(): NonLabourLine {
   };
 }
 
-/**
- * Read saved drafts from localStorage.
- * Returns an empty array if nothing is stored or parsing fails.
- */
-function readDrafts(): SavedDraft[] {
-  try {
-    const raw = localStorage.getItem(DRAFTS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
-/**
- * Persist the full draft list back to localStorage.
- */
-function writeDrafts(drafts: SavedDraft[]) {
-  localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
-}
+
 
 /**
  * Generate the quote number.
@@ -151,8 +131,6 @@ const defaultInput: QuoteInput = {
  */
 export default function Page() {
   
-  console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-console.log("SUPABASE KEY EXISTS:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   /**
    * Load configuration such as rates, GST, min hours, quote text, currency, etc.
@@ -502,37 +480,36 @@ valid.setDate(today.getDate() + 14);
    * If overwriteId matches an existing draft, update that draft.
    * Otherwise create a new draft.
    */
-  async function saveDraft(overwriteId?: string) {
+ async function saveDraft(overwriteId?: string) {
   const now = new Date().toISOString();
   const name = (draftName || "Untitled Estimate").trim();
 
-  const quoteNumber =
-  input.quoteNumber && input.quoteNumber.trim() !== ""
-    ? input.quoteNumber
+  const quoteNumber = overwriteId
+    ? input.quoteNumber || await generateQuoteNumber()
     : await generateQuoteNumber();
 
-const ensuredInput: QuoteInput = {
-  ...input,
-  quoteNumber,
-  quoteDate: input.quoteDate || formatDateDDMMYYYY(new Date()),
-  validUntil: input.validUntil || (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 14);
-    return formatDateDDMMYYYY(d);
-  })(),
-};
+  const ensuredInput: QuoteInput = {
+    ...input,
+    quoteNumber,
+    quoteDate: input.quoteDate || formatDateDDMMYYYY(new Date()),
+    validUntil: input.validUntil || (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 14);
+      return formatDateDDMMYYYY(d);
+    })(),
+  };
 
   if (overwriteId) {
     const { error } = await supabase
       .from("quotes")
       .update({
-  name,
-  quote_number: ensuredInput.quoteNumber,
-  quote_date: ddmmyyyyToIso(ensuredInput.quoteDate),
-  valid_until: ddmmyyyyToIso(ensuredInput.validUntil),
-  payload: ensuredInput,
-  updated_at: now,
-})
+        name,
+        quote_number: ensuredInput.quoteNumber,
+        quote_date: ddmmyyyyToIso(ensuredInput.quoteDate),
+        valid_until: ddmmyyyyToIso(ensuredInput.validUntil),
+        payload: ensuredInput,
+        updated_at: now,
+      })
       .eq("id", overwriteId);
 
     if (error) {
@@ -548,21 +525,22 @@ const ensuredInput: QuoteInput = {
   const { error } = await supabase
     .from("quotes")
     .insert([
-  {
-    name,
-    quote_number: ensuredInput.quoteNumber,
-    quote_date: ddmmyyyyToIso(ensuredInput.quoteDate),
-    valid_until: ddmmyyyyToIso(ensuredInput.validUntil),
-    payload: ensuredInput,
-    updated_at: now,
-  },
-])
+      {
+        name,
+        quote_number: ensuredInput.quoteNumber,
+        quote_date: ddmmyyyyToIso(ensuredInput.quoteDate),
+        valid_until: ddmmyyyyToIso(ensuredInput.validUntil),
+        payload: ensuredInput,
+        updated_at: now,
+      },
+    ]);
 
   if (error) {
     alert("Error saving estimate: " + error.message);
     return;
   }
 
+  setInput(ensuredInput);
   alert("Estimate saved (shared across users).");
   await loadAllDrafts();
 }
