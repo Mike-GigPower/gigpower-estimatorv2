@@ -122,20 +122,14 @@ function writeDrafts(drafts: SavedDraft[]) {
  * Generate the quote number.
  * Example: GP-12345
  */
-function generateQuoteNumber(): string {
-  try {
-    const raw = localStorage.getItem(QUOTE_COUNTER_KEY);
-    const current = raw ? Number(raw) : 0;
+async function generateQuoteNumber(): Promise<string> {
+  const { data, error } = await supabase.rpc("next_quote_number");
 
-    const next = current + 1;
-
-    localStorage.setItem(QUOTE_COUNTER_KEY, String(next));
-
-    return `GP-${String(next).padStart(6, "0")}`;
-  } catch {
-    // fallback (very unlikely, but safe)
-    return `GP-${Date.now().toString().slice(-6)}`;
+  if (error || !data) {
+    throw new Error(error?.message || "Failed to generate quote number");
   }
+
+  return data;
 }
 
 const defaultInput: QuoteInput = {
@@ -512,16 +506,21 @@ valid.setDate(today.getDate() + 14);
   const now = new Date().toISOString();
   const name = (draftName || "Untitled Estimate").trim();
 
-  const ensuredInput: QuoteInput = {
-    ...input,
-    quoteNumber: input.quoteNumber || generateQuoteNumber(),
-    quoteDate: input.quoteDate || formatDateDDMMYYYY(new Date()),
-    validUntil: input.validUntil || (() => {
-      const d = new Date();
-      d.setDate(d.getDate() + 14);
-      return formatDateDDMMYYYY(d);
-    })(),
-  };
+  const quoteNumber =
+  input.quoteNumber && input.quoteNumber.trim() !== ""
+    ? input.quoteNumber
+    : await generateQuoteNumber();
+
+const ensuredInput: QuoteInput = {
+  ...input,
+  quoteNumber,
+  quoteDate: input.quoteDate || formatDateDDMMYYYY(new Date()),
+  validUntil: input.validUntil || (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    return formatDateDDMMYYYY(d);
+  })(),
+};
 
   if (overwriteId) {
     const { error } = await supabase
@@ -581,7 +580,7 @@ valid.setDate(today.getDate() + 14);
 
   const hydrated: QuoteInput = {
     ...draft.input,
-    quoteNumber: draft.input.quoteNumber || generateQuoteNumber(),
+    quoteNumber: draft.input.quoteNumber || "",
     quoteDate: draft.input.quoteDate || formatDateDDMMYYYY(new Date()),
     validUntil: draft.input.validUntil || (() => {
       const d = new Date();
