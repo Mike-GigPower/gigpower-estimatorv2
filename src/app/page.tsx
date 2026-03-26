@@ -10,6 +10,7 @@ import LabourTable from "./components/LabourTable";
 import NonLabourTable from "./components/NonLabourTable";
 import QuoteTotalsCard from "./components/QuoteTotalsCard";
 import TermsConditionsBox from "./components/TermsConditionsBox";
+import { supabase } from "@/src/lib/supabase";
 
 /**
  * React hooks
@@ -156,7 +157,8 @@ const defaultInput: QuoteInput = {
  */
 export default function Page() {
   
-  
+  console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+console.log("SUPABASE KEY EXISTS:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   /**
    * Load configuration such as rates, GST, min hours, quote text, currency, etc.
@@ -181,21 +183,14 @@ const [isMounted, setIsMounted] = useState(false);
 
 useEffect(() => {
   setIsMounted(true);
-
-  const drafts = readDrafts();
-  setSavedDrafts(drafts);
-
-  // only restore browser state here
-  const lastSelectedId = localStorage.getItem(SELECTED_DRAFT_KEY) || "";
-  if (lastSelectedId) {
-    const draft = drafts.find(d => d.id === lastSelectedId);
-    if (draft) {
-      setSelectedDraftId(draft.id);
-      setDraftName(draft.name);
-      setInput(draft.input);
-    }
-  }
+  loadAllDrafts();
 }, []);
+
+ function ddmmyyyyToIso(value: string): string | null {
+  const m = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
 
   /**
    * Once config is ready, ensure there is at least one labour line.
@@ -513,115 +508,134 @@ valid.setDate(today.getDate() + 14);
    * If overwriteId matches an existing draft, update that draft.
    * Otherwise create a new draft.
    */
-  function saveDraft(overwriteId?: string) {
-    const drafts = readDrafts();
-    const now = new Date().toISOString();
-    const name = (draftName || "Untitled Estimate").trim();
+  async function saveDraft(overwriteId?: string) {
+  const now = new Date().toISOString();
+  const name = (draftName || "Untitled Estimate").trim();
 
-    const isOverwrite = !!(overwriteId && drafts.some((d) => d.id === overwriteId));
+  const ensuredInput: QuoteInput = {
+    ...input,
+    quoteNumber: input.quoteNumber || generateQuoteNumber(),
+    quoteDate: input.quoteDate || formatDateDDMMYYYY(new Date()),
+    validUntil: input.validUntil || (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 14);
+      return formatDateDDMMYYYY(d);
+    })(),
+  };
 
-    const ensuredInput: QuoteInput = {
-      ...input,
-      quoteNumber: isOverwrite
-        ? (input.quoteNumber || generateQuoteNumber())
-        : generateQuoteNumber(),
-      quoteDate: input.quoteDate || formatDateDDMMYYYY(new Date()),
-      validUntil: input.validUntil || (() => {
-        const d = new Date();
-        d.setDate(d.getDate() + 14);
-        return formatDateDDMMYYYY(d);
-      })(),
-    };
+  if (overwriteId) {
+    const { error } = await supabase
+      .from("quotes")
+      .update({
+  name,
+  quote_number: ensuredInput.quoteNumber,
+  quote_date: ddmmyyyyToIso(ensuredInput.quoteDate),
+  valid_until: ddmmyyyyToIso(ensuredInput.validUntil),
+  payload: ensuredInput,
+  updated_at: now,
+})
+      .eq("id", overwriteId);
 
-    let nextDrafts: SavedDraft[];
-    let targetId = overwriteId;
-
-    if (isOverwrite && targetId) {
-      nextDrafts = drafts.map((d) =>
-        d.id === targetId
-          ? { ...d, name, savedAt: now, input: ensuredInput }
-          : d
-      );
-    } else {
-      targetId = `draft_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-      nextDrafts = [
-        {
-          id: targetId,
-          name,
-          savedAt: now,
-          input: ensuredInput,
-        },
-        ...drafts,
-      ];
+    if (error) {
+      alert("Error updating estimate: " + error.message);
+      return;
     }
 
-    writeDrafts(nextDrafts);
-    setSavedDrafts(nextDrafts);
-    setInput(ensuredInput);
-
-    if (!isOverwrite && targetId) {
-      setSelectedDraftId(targetId);
-    }
-
-    if (isOverwrite && targetId) {
-      setSelectedDraftId(targetId);
-    }
-
-    alert(isOverwrite ? "Estimate updated." : "New estimate saved.");
+    alert("Estimate updated.");
+    await loadAllDrafts();
+    return;
   }
+
+  const { error } = await supabase
+    .from("quotes")
+    .insert([
+  {
+    name,
+    quote_number: ensuredInput.quoteNumber,
+    quote_date: ddmmyyyyToIso(ensuredInput.quoteDate),
+    valid_until: ddmmyyyyToIso(ensuredInput.validUntil),
+    payload: ensuredInput,
+    updated_at: now,
+  },
+])
+
+  if (error) {
+    alert("Error saving estimate: " + error.message);
+    return;
+  }
+
+  alert("Estimate saved (shared across users).");
+  await loadAllDrafts();
+}
 
   /**
    * Load a saved draft by id into the current form.
    */
   function loadDraftById(id: string) {
-    const drafts = readDrafts();
-    const draft = drafts.find((d) => d.id === id);
+  const draft = savedDrafts.find((d) => d.id === id);
 
-    if (!draft) {
-      alert("Saved estimate not found.");
-      return;
-    }
-
-    const hydrated: QuoteInput = {
-      ...draft.input,
-      quoteNumber: draft.input.quoteNumber || generateQuoteNumber(),
-      quoteDate: draft.input.quoteDate || formatDateDDMMYYYY(new Date()),
-      validUntil: draft.input.validUntil || (() => {
-        const d = new Date();
-        d.setDate(d.getDate() + 14);
-        return formatDateDDMMYYYY(d);
-      })(),
-    };
-
-    setDraftName(draft.name || "Untitled Estimate");
-    setSelectedDraftId(draft.id);
-    setInput(hydrated);
-    recalc(hydrated);
+  if (!draft) {
+    alert("Saved estimate not found.");
+    return;
   }
+
+  const hydrated: QuoteInput = {
+    ...draft.input,
+    quoteNumber: draft.input.quoteNumber || generateQuoteNumber(),
+    quoteDate: draft.input.quoteDate || formatDateDDMMYYYY(new Date()),
+    validUntil: draft.input.validUntil || (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 14);
+      return formatDateDDMMYYYY(d);
+    })(),
+  };
+
+  setDraftName(draft.name || "Untitled Estimate");
+  setSelectedDraftId(draft.id);
+  setInput(hydrated);
+  recalc(hydrated);
+}
 
   /**
    * Delete one saved draft by id.
    */
-  function deleteDraft(id: string) {
-    const drafts = readDrafts();
-    const nextDrafts = drafts.filter((d) => d.id !== id);
-    writeDrafts(nextDrafts);
-    setSavedDrafts(nextDrafts);
-    if (selectedDraftId === id) {
-      setSelectedDraftId("");
-    }
-    alert("Saved estimate deleted.");
+  async function deleteDraft(id: string) {
+  const { error } = await supabase
+    .from("quotes")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    alert("Error deleting estimate: " + error.message);
+    return;
   }
+
+  if (selectedDraftId === id) {
+    setSelectedDraftId("");
+  }
+
+  alert("Saved estimate deleted.");
+  loadAllDrafts();
+}
 
   /**
    * Clear all saved drafts from localStorage.
    */
-  function clearAllDrafts() {
-    localStorage.removeItem(DRAFTS_KEY);
-    setSavedDrafts([]);
-    setSelectedDraftId("");
-    alert("All saved estimates cleared.");
+  async function clearAllDrafts() {
+  const { error } = await supabase
+    .from("quotes")
+    .delete()
+    .not("id", "is", null);
+
+  if (error) {
+    alert("Error clearing estimates: " + error.message);
+    return;
   }
+
+  setSavedDrafts([]);
+  setSelectedDraftId("");
+  alert("All saved estimates cleared.");
+}
 
   /**
    * Validate and normalise a HH:MM string.
@@ -661,6 +675,33 @@ valid.setDate(today.getDate() + 14);
       (l.amountExGst ?? 0) !== 0 ||
       (l.qty ?? 1) !== 1
   );
+
+async function loadAllDrafts() {
+  const { data, error } = await supabase
+    .from("quotes")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  const drafts: SavedDraft[] = (data || []).map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    savedAt: row.created_at,
+    input: {
+      ...defaultInput,
+      ...(row.payload || {}),
+      quoteNumber: row.payload?.quoteNumber || row.quote_number || "",
+      quoteDate: row.payload?.quoteDate || "",
+      validUntil: row.payload?.validUntil || "",
+    },
+  }));
+
+  setSavedDrafts(drafts);
+}
 
   /**
    * Filter saved drafts using the toolbar search box.
