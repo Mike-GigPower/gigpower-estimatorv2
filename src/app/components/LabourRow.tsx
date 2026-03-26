@@ -55,9 +55,9 @@ export default function LabourRow({
       <td>
         <span className="print-only">{line.role}</span>
         <select
-          className="no-print"
-          value={line.role}
-          onChange={(e) => updateLabour(line.id, { role: e.target.value })}
+  			className="no-print labour-role-select"
+  			value={line.role}
+          	onChange={(e) => updateLabour(line.id, { role: e.target.value })}
         >
           {roleOptions.map((role) => (
             <option key={role} value={role}>
@@ -81,19 +81,51 @@ export default function LabourRow({
       </td>
 
       <td>
-        <span className="print-only">
-          {(() => {
-            const d = new Date(line.shiftDate);
-            return Number.isNaN(d.getTime()) ? line.shiftDate : formatDateDDMMYYYY(d);
-          })()}
-        </span>
-        <input
-          className="no-print"
-          type="date"
-          value={line.shiftDate}
-          onChange={(e) => updateLabour(line.id, { shiftDate: e.target.value })}
-        />
-      </td>
+  <span className="print-only">
+    {(() => {
+      const d = new Date(line.shiftDate);
+      return Number.isNaN(d.getTime()) ? line.shiftDate : formatDateDDMMYYYY(d);
+    })()}
+  </span>
+
+  <input
+    className="no-print labour-field labour-date-input"
+    type="text"
+    inputMode="numeric"
+    placeholder="DD/MM/YYYY"
+    value={
+      (() => {
+        if (!line.shiftDate) return "";
+        const d = new Date(line.shiftDate);
+        return Number.isNaN(d.getTime()) ? line.shiftDate : formatDateDDMMYYYY(d);
+      })()
+    }
+    onChange={(e) => {
+      const raw = e.target.value;
+
+      const m = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (m) {
+        const dd = m[1];
+        const mm = m[2];
+        const yyyy = m[3];
+        updateLabour(line.id, { shiftDate: `${yyyy}-${mm}-${dd}` });
+      } else {
+        updateLabour(line.id, { shiftDate: raw });
+      }
+    }}
+    onBlur={(e) => {
+      const raw = e.target.value.trim();
+      const m = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+
+      if (m) {
+        const dd = m[1];
+        const mm = m[2];
+        const yyyy = m[3];
+        updateLabour(line.id, { shiftDate: `${yyyy}-${mm}-${dd}` });
+      }
+    }}
+  />
+</td>
 
       <td>
         <span className="print-only">{normaliseHHMM(line.startTime) ?? line.startTime}</span>
@@ -127,7 +159,7 @@ export default function LabourRow({
       <td>
         <span className="print-only">{hoursToHHMM(line.durationHours)}</span>
         <input
-          className="no-print labour-time-input"
+          className="no-print labour-field labour-time-input"
           type="text"
           inputMode="numeric"
           placeholder="HH:MM"

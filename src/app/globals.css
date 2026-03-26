@@ -286,6 +286,55 @@ th {
   justify-content: center;
 }
 
+
+.labour-table {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+
+.labour-table th,
+.labour-table td {
+  vertical-align: middle;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.labour-field,
+.labour-role-select,
+.labour-qty-input,
+.labour-date-input,
+.labour-time-input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.labour-role-select {
+  width: 100%;
+}
+
+.labour-qty-input {
+  max-width: 72px;
+  text-align: center;
+}
+
+.labour-date-input {
+  max-width: 140px;
+}
+
+.labour-time-input {
+  max-width: 110px;
+}
+
+.labour-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
 /* =========================================================
    8. REUSABLE COMPONENTS
    ========================================================= */
