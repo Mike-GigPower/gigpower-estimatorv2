@@ -48,7 +48,18 @@ export default function AdminPage() {
     });
   }
 
-  function updateHoliday(
+function sortHolidays(
+  holidays: { date: string; label: string }[]
+) {
+  return [...holidays].sort((a, b) => {
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return a.date.localeCompare(b.date);
+  });
+}
+
+function updateHoliday(
   index: number,
   field: "date" | "label",
   value: string
@@ -61,42 +72,25 @@ export default function AdminPage() {
   });
 }
 
-  function addHoliday() {
+function sortPublicHolidays() {
+  updateConfig({
+    ...config,
+    publicHolidays: sortHolidays(config.publicHolidays),
+  });
+}
+
+function addHoliday() {
   updateConfig({
     ...config,
     publicHolidays: [...config.publicHolidays, { date: "", label: "" }],
   });
 }
 
-  function removeHoliday(index: number) {
-    updateConfig({
-      ...config,
-      publicHolidays: config.publicHolidays.filter((_, i) => i !== index),
-    });
-  }
-  
-  function isoToAU(date: string): string {
-  if (!date) return "";
-  const [y, m, d] = date.split("-");
-  if (!y || !m || !d) return date;
-  return `${d}-${m}-${y}`;
-}
-
-function auToISO(date: string): string {
-  if (!date) return "";
-
-  const clean = date.replace(/\//g, "-").trim();
-  const parts = clean.split("-");
-
-  if (parts.length !== 3) return date;
-
-  const [d, m, y] = parts;
-
-  if (y.length === 4) {
-    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-  }
-
-  return date;
+function removeHoliday(index: number) {
+  updateConfig({
+    ...config,
+    publicHolidays: config.publicHolidays.filter((_, i) => i !== index),
+  });
 }
 
   const cardClass =
@@ -370,12 +364,11 @@ function auToISO(date: string): string {
   {config.publicHolidays.map((h, index) => (
     <div key={index} className="admin-holiday-row">
       <input
+  type="date"
   className={inputClass}
-  placeholder="DD-MM-YYYY"
-  value={isoToAU(h.date)}
-  onChange={(e) =>
-    updateHoliday(index, "date", auToISO(e.target.value))
-  }
+  value={h.date || ""}
+  onChange={(e) => updateHoliday(index, "date", e.target.value)}
+  onBlur={sortPublicHolidays}
 />
 
       <input

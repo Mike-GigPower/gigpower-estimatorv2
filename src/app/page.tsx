@@ -74,7 +74,7 @@ const SELECTED_DRAFT_KEY = "gigpower-selected-estimate";
  */
 function emptyLabourLine(defaultRole = "", minBillableHours = 4, shiftDate = ""): LabourLine {
   return {
-    id: "",
+    id: uid("lab"),
     role: defaultRole,
     qty: 1,
     shiftDate,
@@ -88,7 +88,7 @@ function emptyLabourLine(defaultRole = "", minBillableHours = 4, shiftDate = "")
  */
 function emptyNonLabourLine(): NonLabourLine {
   return {
-    id: "",
+    id: uid("nl"),
     description: "",
     qty: 1,
     amountExGst: 0,
@@ -557,15 +557,23 @@ valid.setDate(today.getDate() + 14);
   }
 
   const hydrated: QuoteInput = {
-    ...draft.input,
-    quoteNumber: draft.input.quoteNumber || "",
-    quoteDate: draft.input.quoteDate || formatDateDDMMYYYY(new Date()),
-    validUntil: draft.input.validUntil || (() => {
-      const d = new Date();
-      d.setDate(d.getDate() + 14);
-      return formatDateDDMMYYYY(d);
-    })(),
-  };
+  ...draft.input,
+  quoteNumber: draft.input.quoteNumber || "",
+  quoteDate: draft.input.quoteDate || formatDateDDMMYYYY(new Date()),
+  validUntil: draft.input.validUntil || (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    return formatDateDDMMYYYY(d);
+  })(),
+  labour: (draft.input.labour || []).map((line) => ({
+    ...line,
+    id: line.id || uid("lab"),
+  })),
+  nonLabour: (draft.input.nonLabour || []).map((line) => ({
+    ...line,
+    id: line.id || uid("nl"),
+  })),
+};
 
   setDraftName(draft.name || "Untitled Estimate");
   setSelectedDraftId(draft.id);
@@ -669,12 +677,20 @@ async function loadAllDrafts() {
     name: row.name,
     savedAt: row.created_at,
     input: {
-      ...defaultInput,
-      ...(row.payload || {}),
-      quoteNumber: row.payload?.quoteNumber || row.quote_number || "",
-      quoteDate: row.payload?.quoteDate || "",
-      validUntil: row.payload?.validUntil || "",
-    },
+  ...defaultInput,
+  ...(row.payload || {}),
+  quoteNumber: row.payload?.quoteNumber || row.quote_number || "",
+  quoteDate: row.payload?.quoteDate || "",
+  validUntil: row.payload?.validUntil || "",
+  labour: (row.payload?.labour || []).map((line: any) => ({
+    ...line,
+    id: line.id || uid("lab"),
+  })),
+  nonLabour: (row.payload?.nonLabour || []).map((line: any) => ({
+    ...line,
+    id: line.id || uid("nl"),
+  })),
+},
   }));
 
   setSavedDrafts(drafts);
