@@ -80,6 +80,7 @@ function emptyLabourLine(defaultRole = "", minBillableHours = 4, shiftDate = "")
     shiftDate,
     startTime: "08:00",
     durationHours: minBillableHours,
+    notes: "",
   };
 }
 
@@ -568,6 +569,7 @@ valid.setDate(today.getDate() + 14);
   labour: (draft.input.labour || []).map((line) => ({
     ...line,
     id: line.id || uid("lab"),
+    notes: line.notes || "",
   })),
   nonLabour: (draft.input.nonLabour || []).map((line) => ({
     ...line,
@@ -685,6 +687,7 @@ async function loadAllDrafts() {
   labour: (row.payload?.labour || []).map((line: any) => ({
     ...line,
     id: line.id || uid("lab"),
+    notes: line.notes || "",
   })),
   nonLabour: (row.payload?.nonLabour || []).map((line: any) => ({
     ...line,

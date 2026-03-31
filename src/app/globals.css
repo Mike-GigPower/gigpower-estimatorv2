@@ -286,6 +286,44 @@ th {
   justify-content: center;
 }
 
+/* Allow header wrapping and better spacing */
+.entry-table th {
+  white-space: normal;
+  line-height: 1.2;
+  vertical-align: middle;
+  text-align: center;
+  padding-top: 12px;
+  padding-bottom: 8px;
+}
+
+.entry-table th.text-right {
+  text-align: right;
+}
+
+.th-top,
+.th-sub {
+  text-align: center;
+}
+
+
+/* Top line (main label) */
+.th-top {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Bottom line (sub label) */
+.th-sub {
+  display: block;
+  font-size: 11px;
+  opacity: 0.7;
+  margin-top: 1px;
+}
+
+.entry-table th br {
+  line-height: 1.1;
+}
 
 .labour-table {
   width: 100%;
@@ -293,11 +331,16 @@ th {
   border-collapse: collapse;
 }
 
-.labour-table th,
 .labour-table td {
   vertical-align: middle;
   overflow: visible;
   white-space: nowrap;
+}
+
+.labour-table th {
+  vertical-align: middle;
+  overflow: visible;
+  white-space: normal;
 }
 
 .labour-field,
@@ -321,11 +364,11 @@ th {
 }
 
 .labour-date-input {
-  max-width: 140px;
+  max-width: 130px;
 }
 
 .labour-time-input {
-  max-width: 110px;
+  max-width: 80px;
 }
 
 .labour-row-actions {
@@ -428,6 +471,33 @@ th {
   color: var(--muted);
 }
 
+.labour-role-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-height: auto;
+}
+
+.labour-notes-input {
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.labour-notes-print {
+  margin-top: 2px;
+  color: #555;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+
+
 /* =========================================================
    9. QUOTE / PRINT HELPERS FOR SCREEN MODE
    ========================================================= */
@@ -492,9 +562,10 @@ th {
 }
 
 .labour-time-input {
-  width: 100px;
-  font-size: 16px;
-  padding: 8px 10px;
+  width: 80px;
+  max-width: 80px;
+  font-size: 14px;
+  padding: 6px 8px;
   font-family: monospace;
 }
 
@@ -969,9 +1040,12 @@ th {
   font-size: 12px !important;
 }
 
-.labour-table th,
 .labour-table td {
   white-space: nowrap !important;
+}
+
+.labour-table th {
+  white-space: normal !important;
 }
 
 .labour-table th:nth-child(1),
@@ -1021,6 +1095,11 @@ th {
   overflow: visible !important;
 }
 
+.labour-notes-print {
+    color: #333 !important;
+    font-size: 8.5pt !important;
+  }
+
   thead {
     display: table-header-group;
   }
@@ -1056,6 +1135,13 @@ th {
   vertical-align: middle !important;
 }
 
+
+  .th-sub {
+    font-size: 10px;
+    opacity: 1; /* clearer in print */
+  }
+
+
   th {
     font-size: 8.5pt !important;
     font-weight: 700 !important;
@@ -1063,11 +1149,15 @@ th {
     background: #f5f5f5 !important;
     text-align: left !important;
   }
+  
+  .entry-table th {
+  text-align: center !important;
+}
 
-  td:last-child,
-  th:last-child {
-    text-align: right;
-  }
+.entry-table th.text-right {
+  text-align: right !important;
+}
+
 
   tr[data-blank="true"] {
     display: none !important;

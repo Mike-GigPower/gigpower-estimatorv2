@@ -7,6 +7,7 @@ type LabourLine = {
   shiftDate: string;
   startTime: string;
   durationHours: number;
+  notes?: string;
 };
 
 type LabourResultLine = {
@@ -53,19 +54,34 @@ export default function LabourRow({
   return (
     <tr>
       <td>
-        <span className="print-only">{line.role}</span>
-        <select
-  			className="no-print labour-role-select"
-  			value={line.role}
-          	onChange={(e) => updateLabour(line.id, { role: e.target.value })}
-        >
-          {roleOptions.map((role) => (
-            <option key={role} value={role}>
-              {role}
-            </option>
-          ))}
-        </select>
-      </td>
+  <div className="labour-role-cell">
+    <span className="print-only">
+      {line.role}
+      {line.notes ? ` — ${line.notes}` : ""}
+    </span>
+
+    <select
+      className="no-print labour-role-select"
+      value={line.role}
+      onChange={(e) => updateLabour(line.id, { role: e.target.value })}
+    >
+      {roleOptions.map((role) => (
+        <option key={role} value={role}>
+          {role}
+        </option>
+      ))}
+    </select>
+
+    <input
+      className="no-print labour-notes-input"
+      type="text"
+      placeholder="Notes (optional)"
+      maxLength={100}
+      value={line.notes || ""}
+      onChange={(e) => updateLabour(line.id, { notes: e.target.value })}
+    />
+  </div>
+</td>
 
       <td>
         <span className="print-only">{line.qty}</span>

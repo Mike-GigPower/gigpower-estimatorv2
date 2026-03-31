@@ -5,6 +5,7 @@ export type LabourLine = {
   shiftDate: string;
   startTime: string;
   durationHours: number;
+  notes?: string; 
 };
 
 export type NonLabourLine = {

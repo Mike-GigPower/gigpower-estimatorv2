@@ -88,12 +88,29 @@ export default function LabourTable({
             <tr>
               	<th style={{ minWidth: 200 }}>Role</th>
 <th style={{ minWidth: 70 }}>Qty</th>
-<th style={{ minWidth: 130 }}>Shift date</th>
-<th style={{ minWidth: 110 }}>Start (24h)</th>
-<th style={{ minWidth: 130 }}>Duration (HH:MM)</th>
-<th style={{ minWidth: 120 }} className="text-right">Cost (ex GST)</th>
-<th style={{ minWidth: 120 }} className="text-right">Total (inc GST)</th>
-<th style={{ minWidth: 88 }}></th>
+<th style={{ minWidth: 110 }}>
+  <span className="th-top">Shift</span>
+  <span className="th-sub">Date</span>
+</th>
+<th style={{ minWidth: 80 }}>
+  <span className="th-top">Start</span>
+  <span className="th-sub">24h</span>
+</th>
+
+<th style={{ minWidth: 90 }}>
+  <span className="th-top">Duration</span>
+  <span className="th-sub">HH:MM</span>
+</th>
+<th style={{ minWidth: 100 }} className="text-right">
+  <span className="th-top">Cost</span>
+  <span className="th-sub">ex GST</span>
+</th>
+
+<th style={{ minWidth: 110 }} className="text-right">
+  <span className="th-top">Total</span>
+  <span className="th-sub">inc GST</span>
+</th>
+<th style={{ minWidth: 60 }}></th>
             </tr>
           </thead>
 
