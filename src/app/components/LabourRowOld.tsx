@@ -79,7 +79,8 @@ export default function LabourRow({
           onChange={(e) => updateLabour(line.id, { qty: Number(e.target.value) })}
         />
       </td>
-<td>
+
+      <td>
   <span className="print-only">
     {(() => {
       const d = new Date(line.shiftDate);
@@ -89,12 +90,40 @@ export default function LabourRow({
 
   <input
     className="no-print labour-field labour-date-input"
-    type="date"
-    value={line.shiftDate || ""}
+    type="text"
+    inputMode="numeric"
+    placeholder="DD/MM/YYYY"
+    value={
+      (() => {
+        if (!line.shiftDate) return "";
+        const d = new Date(line.shiftDate);
+        return Number.isNaN(d.getTime()) ? line.shiftDate : formatDateDDMMYYYY(d);
+      })()
+    }
     onChange={(e) => {
-      updateLabour(line.id, { shiftDate: e.target.value });
+      const raw = e.target.value;
+
+      const m = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (m) {
+        const dd = m[1];
+        const mm = m[2];
+        const yyyy = m[3];
+        updateLabour(line.id, { shiftDate: `${yyyy}-${mm}-${dd}` });
+      } else {
+        updateLabour(line.id, { shiftDate: raw });
+      }
     }}
-    onFocus={(e) => e.currentTarget.showPicker?.()}
+    onBlur={(e) => {
+      const raw = e.target.value.trim();
+      const m = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+
+      if (m) {
+        const dd = m[1];
+        const mm = m[2];
+        const yyyy = m[3];
+        updateLabour(line.id, { shiftDate: `${yyyy}-${mm}-${dd}` });
+      }
+    }}
   />
 </td>
 

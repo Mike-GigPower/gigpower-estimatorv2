@@ -541,6 +541,7 @@ th {
 
 .non-labour-col-unit {
   width: 14%;
+  text-align: right;
 }
 
 .non-labour-col-line {
@@ -886,7 +887,6 @@ th {
   }
 
 
-  .card,
   .gp-header {
   display: flex;
   align-items: center;
@@ -963,11 +963,63 @@ th {
   }
 
   table {
-    width: 100% !important;
-    table-layout: fixed !important;
-    border-collapse: collapse !important;
-    font-size: 12px !important;
-  }
+  width: 100% !important;
+  table-layout: auto !important;
+  border-collapse: collapse !important;
+  font-size: 12px !important;
+}
+
+.labour-table th,
+.labour-table td {
+  white-space: nowrap !important;
+}
+
+.labour-table th:nth-child(1),
+.labour-table td:nth-child(1) {
+  width: 23% !important;
+}
+
+.labour-table th:nth-child(2),
+.labour-table td:nth-child(2) {
+  width: 6% !important;
+}
+
+.labour-table th:nth-child(3),
+.labour-table td:nth-child(3) {
+  width: 12% !important;
+}
+
+.labour-table th:nth-child(4),
+.labour-table td:nth-child(4) {
+  width: 10% !important;
+}
+
+.labour-table th:nth-child(5),
+.labour-table td:nth-child(5) {
+  width: 13% !important;
+}
+
+.labour-table th:nth-child(6),
+.labour-table td:nth-child(6) {
+  width: 13% !important;
+  text-align: right !important;
+}
+
+.labour-table th:nth-child(7),
+.labour-table td:nth-child(7) {
+  width: 13% !important;
+  text-align: right !important;
+}
+
+.labour-table th:nth-child(8),
+.labour-table td:nth-child(8) {
+  display: none !important;
+}
+
+.labour-table-wrap,
+.non-labour-table-wrap {
+  overflow: visible !important;
+}
 
   thead {
     display: table-header-group;
@@ -998,6 +1050,11 @@ th {
     line-height: 1.25 !important;
     vertical-align: top !important;
   }
+  
+  .labour-table th,
+.labour-table td {
+  vertical-align: middle !important;
+}
 
   th {
     font-size: 8.5pt !important;
@@ -1100,3 +1157,4 @@ th {
     white-space: pre-wrap !important;
   }
 }
+

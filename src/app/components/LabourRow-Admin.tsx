@@ -79,24 +79,16 @@ export default function LabourRow({
           onChange={(e) => updateLabour(line.id, { qty: Number(e.target.value) })}
         />
       </td>
-<td>
-  <span className="print-only">
-    {(() => {
-      const d = new Date(line.shiftDate);
-      return Number.isNaN(d.getTime()) ? line.shiftDate : formatDateDDMMYYYY(d);
-    })()}
-  </span>
 
-  <input
-    className="no-print labour-field labour-date-input"
-    type="date"
-    value={line.shiftDate || ""}
-    onChange={(e) => {
-      updateLabour(line.id, { shiftDate: e.target.value });
-    }}
-    onFocus={(e) => e.currentTarget.showPicker?.()}
-  />
-</td>
+      <input
+  className="no-print labour-field labour-date-input"
+  type="date"
+  value={line.shiftDate || ""}
+  onChange={(e) => {
+    updateLabour(line.id, { shiftDate: e.target.value });
+  }}
+  onFocus={(e) => e.currentTarget.showPicker?.()}
+/>
 
       <td>
         <span className="print-only">{normaliseHHMM(line.startTime) ?? line.startTime}</span>
