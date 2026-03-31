@@ -331,10 +331,21 @@ th {
   border-collapse: collapse;
 }
 
-.labour-table td {
+.labour-table td:not(:nth-child(1)) {
   vertical-align: middle;
   overflow: visible;
   white-space: nowrap;
+}
+
+.labour-table td:nth-child(1) {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.labour-table td:nth-child(1) .labour-role-cell {
+  width: 100%;
+  max-width: 40ch;
 }
 
 .labour-table th {
@@ -477,16 +488,23 @@ th {
   align-items: stretch;
   gap: 4px;
   min-height: auto;
+  width: 100%;
 }
 
 .labour-notes-input {
+  display: block;
   font-size: 12px;
-  padding: 4px 6px;
+  opacity: 0.85;
+  padding: 6px 8px;
   border-radius: 6px;
   border: 1px solid var(--line);
   width: 100%;
+  max-width: 40ch;
   min-width: 0;
   box-sizing: border-box;
+  resize: vertical;
+  overflow-y: auto;
+  line-height: 1.25;
 }
 
 .labour-notes-print {
@@ -1040,9 +1058,11 @@ th {
   font-size: 12px !important;
 }
 
-.labour-table td {
+.labour-table td:not(:nth-child(1)) {
   white-space: nowrap !important;
 }
+
+
 
 .labour-table th {
   white-space: normal !important;
@@ -1050,7 +1070,10 @@ th {
 
 .labour-table th:nth-child(1),
 .labour-table td:nth-child(1) {
-  width: 23% !important;
+  width: 20% !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
 }
 
 .labour-table th:nth-child(2),
@@ -1065,29 +1088,46 @@ th {
 
 .labour-table th:nth-child(4),
 .labour-table td:nth-child(4) {
-  width: 10% !important;
+  width: 9% !important;
 }
 
 .labour-table th:nth-child(5),
 .labour-table td:nth-child(5) {
-  width: 13% !important;
+  width: 10% !important;
 }
 
 .labour-table th:nth-child(6),
 .labour-table td:nth-child(6) {
-  width: 13% !important;
+  width: 16% !important;
   text-align: right !important;
 }
 
 .labour-table th:nth-child(7),
 .labour-table td:nth-child(7) {
-  width: 13% !important;
+  width: 16% !important;
   text-align: right !important;
 }
 
 .labour-table th:nth-child(8),
 .labour-table td:nth-child(8) {
   display: none !important;
+}
+
+.labour-table td:nth-child(1) .print-only {
+  display: block !important;
+  max-width: 40ch !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+.labour-table td:nth-child(1) .labour-notes-print {
+  display: block !important;
+  max-width: 40ch !important;
+  margin-top: 2px;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
 }
 
 .labour-table-wrap,

@@ -72,14 +72,14 @@ export default function LabourRow({
       ))}
     </select>
 
-    <input
-      className="no-print labour-notes-input"
-      type="text"
-      placeholder="Notes (optional)"
-      maxLength={100}
-      value={line.notes || ""}
-      onChange={(e) => updateLabour(line.id, { notes: e.target.value })}
-    />
+    <textarea
+  className="no-print labour-notes-input"
+  placeholder="Notes (optional)"
+  maxLength={100}
+  rows={2}
+  value={line.notes || ""}
+  onChange={(e) => updateLabour(line.id, { notes: e.target.value })}
+/>
   </div>
 </td>
 
