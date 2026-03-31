@@ -155,25 +155,39 @@ export default function LabourRow({
             setDurationText((prev) => ({ ...prev, [line.id]: e.target.value }))
           }
           onBlur={() => {
-            const raw = (durationText[line.id] ?? hoursToHHMM(line.durationHours)).trim();
-            const m = raw.match(/^(\d{1,2}):([0-5]\d)$/);
+  const raw = (durationText[line.id] ?? hoursToHHMM(line.durationHours)).trim();
 
-            if (m) {
-              const h = Number(m[1]);
-              const mins = Number(m[2]);
-              const hours = h + mins / 60;
+  let hours: number | null = null;
 
-              if (hours > 0) {
-                updateLabour(line.id, { durationHours: hours });
-              }
-            }
+  // ✅ Case 1: HH:MM format
+  const hhmm = raw.match(/^(\d{1,2}):([0-5]\d)$/);
+  if (hhmm) {
+    const h = Number(hhmm[1]);
+    const mins = Number(hhmm[2]);
+    hours = h + mins / 60;
+  }
 
-            setDurationText((prev) => {
-              const next = { ...prev };
-              delete next[line.id];
-              return next;
-            });
-          }}
+  // ✅ Case 2: Decimal format (e.g. 4.5, 2.25)
+  else if (/^\d+(\.\d+)?$/.test(raw)) {
+    const decimal = Number(raw);
+
+    if (!Number.isNaN(decimal) && decimal > 0) {
+      hours = decimal;
+    }
+  }
+
+  // ✅ Apply update if valid
+  if (hours !== null && hours > 0) {
+    updateLabour(line.id, { durationHours: hours });
+  }
+
+  // Clear temp text state
+  setDurationText((prev) => {
+    const next = { ...prev };
+    delete next[line.id];
+    return next;
+  });
+}}
         />
       </td>
 
