@@ -96,8 +96,91 @@ export default function LabourRow({
       const parsed = parseDurationHours(durationDraft);
       return parsed !== null && parsed < minBillableHours;
     })();
+  
+  function parseStartTime(value: string): string | null {
+  const raw = value.trim().toLowerCase();
+
+  let normalized: string | null = null;
+
+  const compact = raw.replace(/\s+/g, "");
+  const isAM = compact.includes("am");
+  const isPM = compact.includes("pm");
+  const cleaned = compact.replace(/am|pm/g, "");
+
+  let match = cleaned.match(/^(\d{1,2})[:\.](\d{2})$/);
+  if (match) {
+    let hours = Number(match[1]);
+    const minutes = Number(match[2]);
+
+    if (minutes >= 0 && minutes < 60) {
+      if (isPM && hours < 12) hours += 12;
+      if (isAM && hours === 12) hours = 0;
+
+      if (hours >= 0 && hours <= 23) {
+        normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+      }
+    }
+  }
+
+  if (!normalized) {
+    match = cleaned.match(/^(\d{3,4})$/);
+    if (match) {
+      const digits = match[1].padStart(4, "0");
+      let hours = Number(digits.slice(0, 2));
+      const minutes = Number(digits.slice(2, 4));
+
+      if (minutes >= 0 && minutes < 60) {
+        if (isPM && hours < 12) hours += 12;
+        if (isAM && hours === 12) hours = 0;
+
+        if (hours >= 0 && hours <= 23) {
+          normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+        }
+      }
+    }
+  }
+
+  if (!normalized) {
+    match = cleaned.match(/^(\d{1,2})$/);
+    if (match) {
+      let hours = Number(match[1]);
+      const minutes = 0;
+
+      if (isPM && hours < 12) hours += 12;
+      if (isAM && hours === 12) hours = 0;
+
+      if (hours >= 0 && hours <= 23) {
+        normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+      }
+    }
+  }
+
+  return normalized;
+}
+
+const shiftDateInvalid = (() => {
+  if (!line.shiftDate || !/^\d{4}-\d{2}-\d{2}$/.test(line.shiftDate)) return true;
+
+  const d = new Date(`${line.shiftDate}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return true;
+
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+
+  return `${yyyy}-${mm}-${dd}` !== line.shiftDate;
+})();
+
+const startTimeDraft = startTimeText[line.id];
+const startTimeInvalid =
+  typeof startTimeDraft === "string" &&
+  startTimeDraft.trim() !== "" &&
+  parseStartTime(startTimeDraft) === null;
+
+const rowInvalid = shiftDateInvalid || startTimeInvalid || durationDraftInvalid;
 
   return (
+  
     <tr>
       <td>
         <div className="labour-role-cell">
@@ -172,20 +255,20 @@ export default function LabourRow({
           })()}
         </span>
 
-        <input
-          className="no-print labour-field labour-date-input"
-          type="date"
-          value={line.shiftDate || ""}
-          onChange={(e) => {
-            updateLabour(line.id, { shiftDate: e.target.value });
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              focusNext(e.currentTarget);
-            }
-          }}
-        />
+       <input
+  className={`no-print labour-field labour-date-input${shiftDateInvalid ? " field-error" : ""}`}
+  type="date"
+  value={line.shiftDate || ""}
+  onChange={(e) => {
+    updateLabour(line.id, { shiftDate: e.target.value });
+  }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      focusNext(e.currentTarget);
+    }
+  }}
+/>
       </td>
 
       <td>
@@ -194,66 +277,7 @@ export default function LabourRow({
         </span>
 
         {(() => {
-          function parseStartTime(value: string): string | null {
-            const raw = value.trim().toLowerCase();
 
-            let normalized: string | null = null;
-
-            const compact = raw.replace(/\s+/g, "");
-            const isAM = compact.includes("am");
-            const isPM = compact.includes("pm");
-            const cleaned = compact.replace(/am|pm/g, "");
-
-            let match = cleaned.match(/^(\d{1,2})[:\.](\d{2})$/);
-            if (match) {
-              let hours = Number(match[1]);
-              const minutes = Number(match[2]);
-
-              if (minutes >= 0 && minutes < 60) {
-                if (isPM && hours < 12) hours += 12;
-                if (isAM && hours === 12) hours = 0;
-
-                if (hours >= 0 && hours <= 23) {
-                  normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-                }
-              }
-            }
-
-            if (!normalized) {
-              match = cleaned.match(/^(\d{3,4})$/);
-              if (match) {
-                const digits = match[1].padStart(4, "0");
-                let hours = Number(digits.slice(0, 2));
-                const minutes = Number(digits.slice(2, 4));
-
-                if (minutes >= 0 && minutes < 60) {
-                  if (isPM && hours < 12) hours += 12;
-                  if (isAM && hours === 12) hours = 0;
-
-                  if (hours >= 0 && hours <= 23) {
-                    normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-                  }
-                }
-              }
-            }
-
-            if (!normalized) {
-              match = cleaned.match(/^(\d{1,2})$/);
-              if (match) {
-                let hours = Number(match[1]);
-                const minutes = 0;
-
-                if (isPM && hours < 12) hours += 12;
-                if (isAM && hours === 12) hours = 0;
-
-                if (hours >= 0 && hours <= 23) {
-                  normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-                }
-              }
-            }
-
-            return normalized;
-          }
 
           function commitStartTime() {
             const raw = startTimeText[line.id] ?? line.startTime;
@@ -384,11 +408,20 @@ export default function LabourRow({
       </td>
 
       <td className="text-right">
-        {resultLine && !durationDraftInvalid ? money(resultLine.costExGst) : <span className="muted">—</span>}
-      </td>
-      <td className="text-right">
-        {resultLine && !durationDraftInvalid ? money(resultLine.totalIncGst) : <span className="muted">—</span>}
-      </td>
+  {resultLine && !rowInvalid ? (
+    money(resultLine.costExGst)
+  ) : (
+    <span className="muted">—</span>
+  )}
+</td>
+
+<td className="text-right">
+  {resultLine && !rowInvalid ? (
+    money(resultLine.totalIncGst)
+  ) : (
+    <span className="muted">—</span>
+  )}
+</td>
 
       <td className="no-print">
         <div className="labour-row-actions">
