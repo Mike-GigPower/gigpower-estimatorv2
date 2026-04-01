@@ -180,7 +180,6 @@ const startTimeInvalid =
 const rowInvalid = shiftDateInvalid || startTimeInvalid || durationDraftInvalid;
 
   return (
-  
     <tr>
       <td>
         <div className="labour-role-cell">
