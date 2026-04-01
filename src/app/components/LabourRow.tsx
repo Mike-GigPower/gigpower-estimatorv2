@@ -27,6 +27,8 @@ type LabourRowProps = {
   updateLabour: (id: string, patch: Partial<LabourLine>) => void;
   duplicateLabour: (id: string) => void;
   removeLabour: (id: string) => void;
+  addLabour: () => void;
+  isLastRow: boolean;
   formatDateDDMMYYYY: (date: Date) => string;
   normaliseHHMM: (value: string) => string | null;
   hoursToHHMM: (hours: number) => string;
@@ -45,12 +47,29 @@ export default function LabourRow({
   updateLabour,
   duplicateLabour,
   removeLabour,
+  addLabour,
+  isLastRow,
   formatDateDDMMYYYY,
   normaliseHHMM,
   hoursToHHMM,
   autoColonHHMM,
   money,
 }: LabourRowProps) {
+
+function focusNext(current: HTMLElement) {
+  const focusable = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      'select:not([disabled]), input:not([disabled]), textarea:not([disabled]), button:not([disabled])'
+    )
+  ).filter((el) => el.offsetParent !== null);
+
+  const index = focusable.indexOf(current);
+  if (index >= 0 && index < focusable.length - 1) {
+    focusable[index + 1].focus();
+  }
+}
+
+
   return (
     <tr>
       <td>
@@ -61,10 +80,18 @@ export default function LabourRow({
     </span>
 
     <select
-      className="no-print labour-role-select"
-      value={line.role}
-      onChange={(e) => updateLabour(line.id, { role: e.target.value })}
-    >
+  className="no-print labour-role-select"
+  data-row-id={line.id}
+  data-col="role"
+  value={line.role}
+  onChange={(e) => updateLabour(line.id, { role: e.target.value })}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      focusNext(e.currentTarget);
+    }
+  }}
+>
       {roleOptions.map((role) => (
         <option key={role} value={role}>
           {role}
@@ -74,11 +101,18 @@ export default function LabourRow({
 
     <textarea
   className="no-print labour-notes-input"
+  onFocus={(e) => e.currentTarget.select()}
   placeholder="Notes (optional)"
   maxLength={100}
   rows={2}
   value={line.notes || ""}
   onChange={(e) => updateLabour(line.id, { notes: e.target.value })}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      focusNext(e.currentTarget);
+    }
+  }}
 />
   </div>
 </td>
@@ -88,11 +122,18 @@ export default function LabourRow({
         <input
           className="no-print labour-qty-input"
           type="number"
+          onFocus={(e) => e.currentTarget.select()}
           inputMode="numeric"
           min={1}
           max={999}
           value={line.qty}
           onChange={(e) => updateLabour(line.id, { qty: Number(e.target.value) })}
+          onKeyDown={(e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    focusNext(e.currentTarget);
+  }
+}}
         />
       </td>
 <td>
@@ -104,93 +145,201 @@ export default function LabourRow({
   </span>
 
   <input
-    className="no-print labour-field labour-date-input"
-    type="date"
-    value={line.shiftDate || ""}
-    onChange={(e) => {
-      updateLabour(line.id, { shiftDate: e.target.value });
-    }}
-    onFocus={(e) => e.currentTarget.showPicker?.()}
-  />
+  className="no-print labour-field labour-date-input"
+  type="date"
+  value={line.shiftDate || ""}
+  onChange={(e) => {
+    updateLabour(line.id, { shiftDate: e.target.value });
+  }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      focusNext(e.currentTarget);
+    }
+  }}
+/>
 </td>
 
       <td>
-        <span className="print-only">{normaliseHHMM(line.startTime) ?? line.startTime}</span>
-        <input
-          className="no-print labour-time-input"
-          type="text"
-          inputMode="numeric"
-          placeholder="HH:MM"
-          value={startTimeText[line.id] ?? line.startTime}
-          onChange={(e) => {
-            const v = autoColonHHMM(e.target.value);
-            setStartTimeText((prev) => ({ ...prev, [line.id]: v }));
-          }}
-          onBlur={() => {
-            const raw = startTimeText[line.id] ?? line.startTime;
-            const normalized = normaliseHHMM(raw);
+  <span className="print-only">
+    {normaliseHHMM(line.startTime) ?? line.startTime}
+  </span>
 
-            if (normalized) {
-              updateLabour(line.id, { startTime: normalized });
-            }
+  {(() => {
+    function commitStartTime() {
+  const raw = (startTimeText[line.id] ?? line.startTime).trim().toLowerCase();
 
-            setStartTimeText((prev) => {
-              const next = { ...prev };
-              delete next[line.id];
-              return next;
-            });
-          }}
-        />
-      </td>
+  let normalized: string | null = null;
 
-      <td>
-        <span className="print-only">{hoursToHHMM(line.durationHours)}</span>
-        <input
-          className="no-print labour-field labour-time-input"
-          type="text"
-          inputMode="numeric"
-          placeholder="HH:MM"
-          value={durationText[line.id] ?? hoursToHHMM(line.durationHours)}
-          onChange={(e) =>
-            setDurationText((prev) => ({ ...prev, [line.id]: e.target.value }))
-          }
-          onBlur={() => {
-  const raw = (durationText[line.id] ?? hoursToHHMM(line.durationHours)).trim();
+  // Remove spaces first
+  const compact = raw.replace(/\s+/g, "");
 
-  let hours: number | null = null;
+  // Detect am/pm
+  const isAM = compact.includes("am");
+  const isPM = compact.includes("pm");
 
-  // ✅ Case 1: HH:MM format
-  const hhmm = raw.match(/^(\d{1,2}):([0-5]\d)$/);
-  if (hhmm) {
-    const h = Number(hhmm[1]);
-    const mins = Number(hhmm[2]);
-    hours = h + mins / 60;
-  }
+  // Remove am/pm markers for parsing
+  const cleaned = compact.replace(/am|pm/g, "");
 
-  // ✅ Case 2: Decimal format (e.g. 4.5, 2.25)
-  else if (/^\d+(\.\d+)?$/.test(raw)) {
-    const decimal = Number(raw);
+  // Case 1: HH:MM or H:MM or H.MM
+  let match = cleaned.match(/^(\d{1,2})[:\.](\d{2})$/);
+  if (match) {
+    let hours = Number(match[1]);
+    const minutes = Number(match[2]);
 
-    if (!Number.isNaN(decimal) && decimal > 0) {
-      hours = decimal;
+    if (minutes >= 0 && minutes < 60) {
+      if (isPM && hours < 12) hours += 12;
+      if (isAM && hours === 12) hours = 0;
+
+      if (hours >= 0 && hours <= 23) {
+        normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+      }
     }
   }
 
-  // ✅ Apply update if valid
-  if (hours !== null && hours > 0) {
-    updateLabour(line.id, { durationHours: hours });
+  // Case 2: 3 or 4 digits, e.g. 930, 2130, 0900
+  if (!normalized) {
+  match = cleaned.match(/^(\d{3,4})$/);
+  if (match) {
+    const digits = match[1].padStart(4, "0");
+    let hours = Number(digits.slice(0, 2));
+    const minutes = Number(digits.slice(2, 4));
+
+    if (hours > 23 && !isAM && !isPM) return;
+
+    if (minutes >= 0 && minutes < 60) {
+      if (isPM && hours < 12) hours += 12;
+      if (isAM && hours === 12) hours = 0;
+
+      if (hours >= 0 && hours <= 23) {
+        normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+      }
+    }
+  }
+}
+
+  // Case 3: hour only, e.g. 9, 9am, 9pm
+  if (!normalized) {
+    match = cleaned.match(/^(\d{1,2})$/);
+    if (match) {
+      let hours = Number(match[1]);
+      const minutes = 0;
+
+      if (isPM && hours < 12) hours += 12;
+      if (isAM && hours === 12) hours = 0;
+
+      if (hours >= 0 && hours <= 23) {
+        normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+      }
+    }
   }
 
-  // Clear temp text state
-  setDurationText((prev) => {
+  if (normalized) {
+    updateLabour(line.id, { startTime: normalized });
+  }
+
+  setStartTimeText((prev) => {
     const next = { ...prev };
     delete next[line.id];
     return next;
   });
-}}
-        />
-      </td>
+}
+    return (
+      <input
+  className="no-print labour-time-input"
+  type="text"
+  inputMode="text"
+  placeholder="HH:MM"
+  value={startTimeText[line.id] ?? line.startTime}
+  onFocus={(e) => e.currentTarget.select()}
+  onChange={(e) => {
+    setStartTimeText((prev) => ({ ...prev, [line.id]: e.target.value }));
+  }}
+  onBlur={commitStartTime}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commitStartTime();
+      focusNext(e.currentTarget);
+    }
+  }}
+/>
+    );
+  })()}
+</td>
 
+      <td>
+  <span className="print-only">{hoursToHHMM(line.durationHours)}</span>
+
+  {(() => {
+    function commitDuration() {
+      const raw = (durationText[line.id] ?? hoursToHHMM(line.durationHours)).trim();
+
+      let hours: number | null = null;
+
+      const hhmm = raw.match(/^(\d{1,2}):([0-5]\d)$/);
+      if (hhmm) {
+        const h = Number(hhmm[1]);
+        const mins = Number(hhmm[2]);
+        hours = h + mins / 60;
+      } else if (/^\d+(\.\d+)?$/.test(raw)) {
+        const decimal = Number(raw);
+        if (!Number.isNaN(decimal) && decimal > 0) {
+          hours = decimal;
+        }
+      }
+
+      if (hours !== null && hours > 0) {
+        updateLabour(line.id, { durationHours: hours });
+      }
+
+      setDurationText((prev) => {
+        const next = { ...prev };
+        delete next[line.id];
+        return next;
+      });
+    }
+
+    return (
+      <input
+        className="no-print labour-field labour-time-input"
+        type="text"
+        inputMode="numeric"
+        placeholder="HH:MM"
+        value={durationText[line.id] ?? hoursToHHMM(line.durationHours)}
+        onFocus={(e) => e.currentTarget.select()}
+        onChange={(e) =>
+          setDurationText((prev) => ({
+            ...prev,
+            [line.id]: e.target.value,
+          }))
+        }
+        onBlur={commitDuration}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commitDuration();
+
+            if (isLastRow) {
+              addLabour();
+
+              requestAnimationFrame(() => {
+                const roleFields = Array.from(
+                  document.querySelectorAll<HTMLElement>('[data-col="role"]')
+                ).filter((el) => el.offsetParent !== null);
+
+                const lastRoleField = roleFields[roleFields.length - 1];
+                lastRoleField?.focus();
+              });
+            } else {
+              focusNext(e.currentTarget);
+            }
+          }
+        }}
+      />
+    );
+  })()}
+</td>
       <td className="text-right">
   		{resultLine ? money(resultLine.costExGst) : <span className="muted">—</span>}
 	  </td>

@@ -115,7 +115,7 @@ export default function LabourTable({
           </thead>
 
           <tbody>
-            {labour.map((line) => (
+            {labour.map((line, idx) => (
   <LabourRow
     key={line.id}
     line={line}
@@ -128,6 +128,8 @@ export default function LabourTable({
     updateLabour={updateLabour}
     duplicateLabour={duplicateLabour}
     removeLabour={removeLabour}
+    addLabour={addLabour}
+    isLastRow={idx === labour.length - 1}
     formatDateDDMMYYYY={formatDateDDMMYYYY}
     normaliseHHMM={normaliseHHMM}
     hoursToHHMM={hoursToHHMM}
