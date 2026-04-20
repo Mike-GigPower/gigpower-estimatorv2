@@ -162,21 +162,26 @@ export default function LabourTable({
     (result && !result.isValid) || hasInvalidStartTimeDraft || hasInvalidDurationDraft;
 
   return (
-    <div className="card">
-      <div className="row labour-header-row">
-        <h2 style={{ margin: 0, fontSize: 16 }}>Labour</h2>
-        <div className="no-print labour-actions">
-          <button type="button" className="btn-secondary" onClick={sortLabourByDate}>
-            Sort by date
-          </button>
-          <button type="button" onClick={addLabour}>
-            + Add labour line
-          </button>
-        </div>
-      </div>
+   <div className="card labour-card">
+  <div className="row labour-header-row">
+    <h2 style={{ margin: 0, fontSize: 16 }}>Labour</h2>
+    <div className="no-print labour-actions">
+      <button type="button" className="btn-secondary" onClick={sortLabourByDate}>
+        Sort by date
+      </button>
+      <button type="button" onClick={addLabour}>
+        + Add labour line
+      </button>
+    </div>
+  </div>
+
+  <p className="print-labour-note print-only">
+    Large estimates may continue onto subsequent pages.
+  </p>
+
 
       <div className="labour-table-wrap">
-        <table className="entry-table labour-table">
+        <table className="entry-table labour-table print-labour-table">
           <thead>
             <tr>
               <th style={{ minWidth: 200 }}>Role</th>

@@ -12,10 +12,12 @@ import QuoteTotalsCard from "./components/QuoteTotalsCard";
 import TermsConditionsBox from "./components/TermsConditionsBox";
 import { supabase } from "@/src/lib/supabase";
 
+
 /**
  * React hooks
  */
 import { useEffect, useMemo, useState } from "react";
+
 
 
 /**
@@ -34,6 +36,14 @@ import type {
   QuoteResult,
 } from "@/src/lib/types";
 
+type SavedDraft = {
+  id: string;
+  name: string;
+  savedAt?: string | null;
+  updatedAt?: string | null;
+  currentVersion?: number;
+  input: QuoteInput;
+};
 
 
 /**
@@ -562,8 +572,9 @@ function handleCancelStartNew() {
    * If overwriteId matches an existing draft, update that draft.
    * Otherwise create a new draft.
    */
- async function saveDraft(overwriteId?: string) {
+async function saveDraft(overwriteId?: string) {
   const now = new Date().toISOString();
+  const actor = "admin"; // Replace later with actual logged-in user if auth is added
   const name = (draftName || "Untitled Estimate").trim();
 
   const quoteNumber = overwriteId
@@ -581,8 +592,22 @@ function handleCancelStartNew() {
     })(),
   };
 
+  // Update an existing quote and create a new history version
   if (overwriteId) {
-    const { error } = await supabase
+    const { data: existingQuote, error: fetchError } = await supabase
+      .from("quotes")
+      .select("id, current_version")
+      .eq("id", overwriteId)
+      .single();
+
+    if (fetchError) {
+      alert("Error loading existing estimate version: " + fetchError.message);
+      return;
+    }
+
+    const nextVersion = (existingQuote?.current_version || 1) + 1;
+
+    const { error: updateError } = await supabase
       .from("quotes")
       .update({
         name,
@@ -591,20 +616,42 @@ function handleCancelStartNew() {
         valid_until: ddmmyyyyToIso(ensuredInput.validUntil),
         payload: ensuredInput,
         updated_at: now,
+        updated_by: actor,
+        current_version: nextVersion,
       })
       .eq("id", overwriteId);
 
-    if (error) {
-      alert("Error updating estimate: " + error.message);
+    if (updateError) {
+      alert("Error updating estimate: " + updateError.message);
       return;
     }
 
-    alert("Estimate updated.");
+    const { error: versionError } = await supabase
+      .from("quote_versions")
+      .insert([
+        {
+          quote_id: overwriteId,
+          version_number: nextVersion,
+          saved_at: now,
+          saved_by: actor,
+          input: ensuredInput,
+          change_summary: "Updated estimate",
+        },
+      ]);
+
+    if (versionError) {
+      alert("Estimate updated, but failed to write version history: " + versionError.message);
+      return;
+    }
+
+    setInput(ensuredInput);
+    alert(`Estimate updated. Version ${nextVersion} saved.`);
     await loadAllDrafts();
     return;
   }
 
-  const { error } = await supabase
+  // Save a new quote and create version 1 history
+  const { data: insertedQuote, error: insertError } = await supabase
     .from("quotes")
     .insert([
       {
@@ -613,18 +660,44 @@ function handleCancelStartNew() {
         quote_date: ddmmyyyyToIso(ensuredInput.quoteDate),
         valid_until: ddmmyyyyToIso(ensuredInput.validUntil),
         payload: ensuredInput,
+        created_at: now,
         updated_at: now,
+        created_by: actor,
+        updated_by: actor,
+        current_version: 1,
+        is_deleted: false,
       },
-    ]);
+    ])
+    .select("id")
+    .single();
 
-  if (error) {
-    alert("Error saving estimate: " + error.message);
-    return;
-  }
+    if (insertError) {
+      alert("Error saving estimate: " + insertError.message);
+      return;
+    }
 
-  setInput(ensuredInput);
-  alert("Estimate saved (shared across users).");
-  await loadAllDrafts();
+    const { error: versionError } = await supabase
+      .from("quote_versions")
+      .insert([
+        {
+          quote_id: insertedQuote.id,
+          version_number: 1,
+          saved_at: now,
+          saved_by: actor,
+          input: ensuredInput,
+          change_summary: "Initial version",
+        },
+      ]);
+
+    if (versionError) {
+      alert("Estimate saved, but failed to write version history: " + versionError.message);
+      return;
+    }
+
+    setInput(ensuredInput);
+    setSelectedDraftId(insertedQuote.id);
+    alert("Estimate saved (shared across users). Version 1 created.");
+    await loadAllDrafts();
 }
 
   /**
@@ -743,6 +816,21 @@ function handleCancelStartNew() {
       (l.amountExGst ?? 0) !== 0 ||
       (l.qty ?? 1) !== 1
   );
+  
+  function formatSavedDate(value?: string | null) {
+  if (!value) return "Not yet saved";
+
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "Unknown";
+
+  return d.toLocaleString("en-AU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 async function loadAllDrafts() {
   const { data, error } = await supabase
@@ -759,22 +847,24 @@ async function loadAllDrafts() {
     id: row.id,
     name: row.name,
     savedAt: row.created_at,
+    updatedAt: row.updated_at || null,
+    currentVersion: row.current_version ?? 1,
     input: {
-  ...defaultInput,
-  ...(row.payload || {}),
-  quoteNumber: row.payload?.quoteNumber || row.quote_number || "",
-  quoteDate: row.payload?.quoteDate || "",
-  validUntil: row.payload?.validUntil || "",
-  labour: (row.payload?.labour || []).map((line: any) => ({
-    ...line,
-    id: line.id || uid("lab"),
-    notes: line.notes || "",
-  })),
-  nonLabour: (row.payload?.nonLabour || []).map((line: any) => ({
-    ...line,
-    id: line.id || uid("nl"),
-  })),
-},
+      ...defaultInput,
+      ...(row.payload || {}),
+      quoteNumber: row.payload?.quoteNumber || row.quote_number || "",
+      quoteDate: row.payload?.quoteDate || "",
+      validUntil: row.payload?.validUntil || "",
+      labour: (row.payload?.labour || []).map((line: any) => ({
+        ...line,
+        id: line.id || uid("lab"),
+        notes: line.notes || "",
+      })),
+      nonLabour: (row.payload?.nonLabour || []).map((line: any) => ({
+        ...line,
+        id: line.id || uid("nl"),
+      })),
+    },
   }));
 
   setSavedDrafts(drafts);
@@ -800,6 +890,9 @@ async function loadAllDrafts() {
       contactName.includes(needle)
     );
   });
+
+const selectedDraftMeta =
+  savedDrafts.find((d) => d.id === selectedDraftId) || null;
 
  if (!isMounted) {
   return <div className="container">Loading...</div>;
@@ -850,6 +943,21 @@ async function loadAllDrafts() {
           busy={busy}
         />
       </div>
+      
+      <div
+  style={{
+    marginTop: "8px",
+    marginBottom: "12px",
+    fontSize: "12px",
+    color: "rgba(255,255,255,0.65)",
+  }}
+>
+  {selectedDraftMeta
+    ? `Version ${selectedDraftMeta.currentVersion ?? 1} · Last saved ${formatSavedDate(
+        selectedDraftMeta.updatedAt || selectedDraftMeta.savedAt
+      )}`
+    : "New unsaved estimate"}
+</div>
 
       <div className="hr" />
 
