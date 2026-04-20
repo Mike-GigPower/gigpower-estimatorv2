@@ -3,13 +3,94 @@
 import { useAppConfig } from "@/src/lib/useAppConfig";
 import type { RateRow } from "@/src/lib/types";
 import { useState } from "react";
+import { supabase } from "@/src/lib/supabase";
+
 
 export default function AdminPage() {
   const { config, updateConfig, restoreDefaults, ready } = useAppConfig();
   const [authorised, setAuthorised] = useState(false);
   const [password, setPassword] = useState("");
+  const [showClearQuotesConfirm, setShowClearQuotesConfirm] = useState(false);
+const [showFinalClearQuotesConfirm, setShowFinalClearQuotesConfirm] = useState(false);
+const [clearConfirmText, setClearConfirmText] = useState("");
+const [quoteCount, setQuoteCount] = useState<number>(0);
 
   if (!ready) return <main className="max-w-5xl mx-auto px-6 py-8">Loading...</main>;
+  
+  // --- Begin Clear All Quotes flow ---
+async function handleBeginClearAllQuotes() {
+  await fetchQuoteCount(); // get fresh count from Supabase
+  setShowClearQuotesConfirm(true);
+}
+
+function handleCancelClearAllQuotes() {
+  setShowClearQuotesConfirm(false);
+  setShowFinalClearQuotesConfirm(false);
+  setClearConfirmText("");
+}
+
+function handleContinueClearAllQuotes() {
+  setShowClearQuotesConfirm(false);
+  setShowFinalClearQuotesConfirm(true);
+}
+
+/**
+ * Final confirmation handler for clearing all saved quotes.
+ * Requires the admin to type DELETE before proceeding.
+ */
+async function handleConfirmClearAllQuotes() {
+  if (clearConfirmText !== "DELETE") {
+    alert("Please type DELETE to confirm.");
+    return;
+  }
+
+  await clearAllSavedQuotes();
+
+  // Reset local admin UI state after successful deletion.
+  setQuoteCount(0);
+  setClearConfirmText("");
+  setShowFinalClearQuotesConfirm(false);
+  setShowClearQuotesConfirm(false);
+
+  alert("All saved quotes have been removed.");
+}
+  
+  async function fetchQuoteCount() {
+  try {
+    const { count, error } = await supabase
+      .from("quotes")
+      .select("*", { count: "exact", head: true });
+
+    if (error) throw error;
+
+    setQuoteCount(count || 0);
+  } catch (err) {
+    console.error("Failed to fetch quote count", err);
+  }
+}
+
+
+  
+  // Admin-only destructive action.
+// This deletes all saved quotes from the connected Supabase environment.
+// Be careful: local testing will affect whichever Supabase project your env points to.
+async function clearAllSavedQuotes() {
+  try {
+    const { error } = await supabase
+      .from("quotes")
+      .delete()
+      .neq("id", "");
+
+    if (error) throw error;
+  } catch (err) {
+    console.error("Failed to clear saved quotes", err);
+    alert("Failed to clear saved quotes.");
+    throw err;
+  }
+}
+  
+  
+  
 
   function updateRate(index: number, field: keyof RateRow, value: string) {
     const parsed =
@@ -413,6 +494,104 @@ function removeHoliday(index: number) {
           />
         </div>
       </section>
+      
+      
+      <section className="admin-card">
+  <div className="space-y-4">
+    <div>
+      <h2 className={sectionTitleClass}>Quote Administration</h2>
+      <p className="text-sm text-white/60">
+        Destructive quote management actions.
+      </p>
+    </div>
+
+    <div className="rounded-xl border border-red-500/20 bg-red-950/20 p-4 space-y-3">
+      <p className="text-sm text-red-200">
+        Permanently remove all saved quotes. This action cannot be undone.
+      </p>
+
+      {/* Step 1 button */}
+      {!showClearQuotesConfirm && !showFinalClearQuotesConfirm && (
+        <button
+          type="button"
+          onClick={handleBeginClearAllQuotes}
+          className="admin-danger-btn"
+        >
+          Remove All Saved Quotes
+        </button>
+      )}
+
+      {/* Step 2 confirm */}
+      {showClearQuotesConfirm && !showFinalClearQuotesConfirm && (
+        <div className="space-y-3">
+          <p className="text-sm text-white/85">
+  This will permanently delete{" "}
+  <span className="font-semibold text-red-300">
+    {quoteCount} saved quote{quoteCount === 1 ? "" : "s"}
+  </span>.
+</p>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={handleContinueClearAllQuotes}
+              className="admin-danger-btn"
+            >
+              Yes, continue
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCancelClearAllQuotes}
+              className="admin-muted-btn"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3 final confirmation */}
+      {showFinalClearQuotesConfirm && (
+        <div className="space-y-3">
+          <p className="text-sm text-white/85">
+  Final confirmation: you are about to delete{" "}
+  <span className="font-semibold text-red-300">
+    {quoteCount} saved quote{quoteCount === 1 ? "" : "s"}
+  </span>.  
+  Type <span className="font-semibold text-red-300">DELETE</span> to proceed.
+</p>
+
+          <input
+            type="text"
+            value={clearConfirmText}
+            onChange={(e) => setClearConfirmText(e.target.value)}
+            placeholder="Type DELETE to confirm"
+            className={inputClass}
+          />
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={handleConfirmClearAllQuotes}
+              className="admin-danger-btn"
+            >
+              Remove All Quotes
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCancelClearAllQuotes}
+              className="admin-muted-btn"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+</section>
 
       <div className="px-1 md:px-2">
         <button

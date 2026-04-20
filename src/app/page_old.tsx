@@ -534,13 +534,11 @@ function resetToBlankQuote() {
 }
 
 function handleStartNew() {
-  if (isQuoteEmpty()) {
-    resetToBlankQuote();
-    return;
-  }
-
+  alert("Start New clicked");
   setShowStartNewConfirm(true);
 }
+
+  
 
 async function handleSaveAndStartNew() {
   await saveDraft(selectedDraftId || undefined);
@@ -806,7 +804,40 @@ async function loadAllDrafts() {
 }
 
 
+{showStartNewConfirm && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    <div className="bg-[#111] border border-white/10 rounded-xl p-6 w-full max-w-md space-y-4">
+      <h3 className="text-lg font-semibold">Unsaved Changes</h3>
 
+      <p className="text-sm text-white/70">
+        You have unsaved changes. What would you like to do?
+      </p>
+
+      <div className="flex flex-col gap-3">
+        <button
+          onClick={handleSaveAndStartNew}
+          className="bg-[var(--gp-gold)] text-black font-semibold py-2 px-4 rounded"
+        >
+          Save and Start New
+        </button>
+
+        <button
+          onClick={handleDiscardAndStartNew}
+          className="bg-white/10 text-white py-2 px-4 rounded"
+        >
+          Discard and Start New
+        </button>
+
+        <button
+          onClick={handleCancelStartNew}
+          className="text-white/50 text-sm"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
   /**
    * Render page UI.
@@ -915,80 +946,38 @@ async function loadAllDrafts() {
       <TermsConditionsBox body={config.quoteText.termsAndConditions} />
       
       {showStartNewConfirm && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(0, 0, 0, 0.6)",
-            padding: 16,
-          }}
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    <div className="w-full max-w-md space-y-4 rounded-xl border border-white/10 bg-[#111] p-6">
+      <h3 className="text-lg font-semibold">Unsaved Changes</h3>
+      <p className="text-sm text-white/70">
+        You have unsaved changes. What would you like to do?
+      </p>
+
+      <div className="flex flex-col gap-3">
+        <button
+          onClick={handleSaveAndStartNew}
+          className="rounded bg-[var(--gp-gold)] px-4 py-2 font-semibold text-black"
         >
-          <div
-            style={{
-              width: "100%",
-              maxWidth: 460,
-              background: "#111",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 16,
-              padding: 24,
-              boxShadow: "0 20px 50px rgba(0,0,0,0.45)",
-            }}
-          >
-            <h3 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Unsaved Changes</h3>
-            <p style={{ margin: "12px 0 20px", color: "rgba(255,255,255,0.75)", lineHeight: 1.5 }}>
-              You have unsaved changes. Starting a new quote will discard them unless you save first.
-            </p>
+          Save and Start New
+        </button>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <button
-                onClick={handleSaveAndStartNew}
-                style={{
-                  borderRadius: 10,
-                  padding: "12px 16px",
-                  fontWeight: 700,
-                  background: "var(--gp-gold)",
-                  color: "#111",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                Save and Start New
-              </button>
+        <button
+          onClick={handleDiscardAndStartNew}
+          className="rounded bg-white/10 px-4 py-2 text-white"
+        >
+          Discard and Start New
+        </button>
 
-              <button
-                onClick={handleDiscardAndStartNew}
-                style={{
-                  borderRadius: 10,
-                  padding: "12px 16px",
-                  background: "rgba(255,255,255,0.08)",
-                  color: "#fff",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  cursor: "pointer",
-                }}
-              >
-                Discard and Start New
-              </button>
-
-              <button
-                onClick={handleCancelStartNew}
-                style={{
-                  background: "transparent",
-                  color: "rgba(255,255,255,0.55)",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "6px 0 0",
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        <button
+          onClick={handleCancelStartNew}
+          className="text-sm text-white/50"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       <div className="quote-end-spacer" />
     </div>

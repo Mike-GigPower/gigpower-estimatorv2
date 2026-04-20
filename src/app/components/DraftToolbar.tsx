@@ -104,7 +104,7 @@ export default function DraftToolbar({
       </button>
 
       <button className="btn-danger" onClick={onClearAll}>
-        Clear All
+        Start New
       </button>
 
       <button className="btn-print" onClick={onPrint}>
