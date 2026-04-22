@@ -65,15 +65,7 @@ function money(n: number, currency: string) {
   }).format(n || 0);
 }
 
-/**
- * Structure for a saved quote draft stored in localStorage.
- */
-type SavedDraft = {
-  id: string;
-  name: string;
-  savedAt: string;
-  input: QuoteInput;
-};
+
 
 /**
  * Browser storage key for saved drafts.
