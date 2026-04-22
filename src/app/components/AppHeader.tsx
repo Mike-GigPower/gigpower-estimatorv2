@@ -6,6 +6,7 @@ type AppHeaderProps = {
   quoteNumber: string;
   quoteDate: string;
   validUntil: string;
+  version?: number;
   companyName?: string;
   contactName?: string;
   contactEmail?: string;
@@ -18,6 +19,7 @@ export default function AppHeader({
   quoteNumber,
   quoteDate,
   validUntil,
+  version,
   companyName,
   contactName,
   contactEmail,
@@ -52,7 +54,7 @@ export default function AppHeader({
     </div>
   )}
   <div>
-    <strong>Quote #:</strong> {quoteNumber || "—"}
+    <strong>Quote #:</strong> {quoteNumber || "—"} · Version {version ?? 1}
   </div>
   <div>
     <strong>Date:</strong> {quoteDate || "—"}

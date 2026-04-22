@@ -799,6 +799,10 @@ async function saveDraft(overwriteId?: string) {
    */
   const totals = result?.totals;
 
+  const hasLabourData = input.labour?.some(
+  (l) => l.role || l.startTime || l.duration
+);
+  
   /**
    * Used to decide whether the non-labour section contains meaningful data.
    */
@@ -808,6 +812,8 @@ async function saveDraft(overwriteId?: string) {
       (l.amountExGst ?? 0) !== 0 ||
       (l.qty ?? 1) !== 1
   );
+  
+  
   
   function formatSavedDate(value?: string | null) {
   if (!value) return "Not yet saved";
@@ -893,6 +899,8 @@ const selectedDraftMeta =
 
 
 
+const hasAnyData = hasLabourData || hasNonLabourData;
+
   /**
    * Render page UI.
    */
@@ -904,6 +912,7 @@ const selectedDraftMeta =
   quoteNumber={input.quoteNumber}
   quoteDate={input.quoteDate}
   validUntil={input.validUntil}
+  version={selectedDraftMeta?.currentVersion ?? 1}
   companyName={input.companyName}
   contactName={input.contactName}
   contactEmail={input.contactEmail}
@@ -957,62 +966,70 @@ const selectedDraftMeta =
 
       <div className="hr" />
 
-      <LabourTable
-        labour={input.labour}
-        result={
-          result
-            ? {
-                isValid: result.isValid,
-                validationErrors: result.validationErrors,
-                labourLines: result.labourLines,
-              }
-            : null
-        }
-        roleOptions={roleOptions}
-        startTimeText={startTimeText}
-        setStartTimeText={setStartTimeText}
-        durationText={durationText}
-        setDurationText={setDurationText}
-        updateLabour={updateLabour}
-        addLabour={addLabour}
-        duplicateLabour={duplicateLabour}
-        removeLabour={removeLabour}
-        sortLabourByDate={sortLabourByDate}
-        formatDateDDMMYYYY={formatDateDDMMYYYY}
-        normaliseHHMM={normaliseHHMM}
-        hoursToHHMM={hoursToHHMM}
-        autoColonHHMM={autoColonHHMM}
-        money={moneyFmt}
-        minBillableHours={config.minBillableHours}
-      />
+      <div className={!hasLabourData ? "print-hide" : ""}>
+  <LabourTable
+    labour={input.labour}
+    result={
+      result
+        ? {
+            isValid: result.isValid,
+            validationErrors: result.validationErrors,
+            labourLines: result.labourLines,
+          }
+        : null
+    }
+    roleOptions={roleOptions}
+    startTimeText={startTimeText}
+    setStartTimeText={setStartTimeText}
+    durationText={durationText}
+    setDurationText={setDurationText}
+    updateLabour={updateLabour}
+    addLabour={addLabour}
+    duplicateLabour={duplicateLabour}
+    removeLabour={removeLabour}
+    sortLabourByDate={sortLabourByDate}
+    formatDateDDMMYYYY={formatDateDDMMYYYY}
+    normaliseHHMM={normaliseHHMM}
+    hoursToHHMM={hoursToHHMM}
+    autoColonHHMM={autoColonHHMM}
+    money={moneyFmt}
+    minBillableHours={config.minBillableHours}
+  />
+</div>
 
-      <div className="hr" />
+{hasLabourData && hasNonLabourData && <div className="hr" />}
 
-      <NonLabourTable
-        nonLabour={input.nonLabour}
-        result={
-          result
-            ? {
-                nonLabourLines: result.nonLabourLines,
-              }
-            : null
-        }
-        hasNonLabourData={hasNonLabourData}
-        addNonLabour={addNonLabour}
-        updateNonLabour={updateNonLabour}
-        removeNonLabour={removeNonLabour}
-        money={moneyFmt}
-        gstRate={config.gstRate}
-      />
+<div className={!hasNonLabourData ? "print-hide" : ""}>
+  <NonLabourTable
+    nonLabour={input.nonLabour}
+    result={
+      result
+        ? {
+            nonLabourLines: result.nonLabourLines,
+          }
+        : null
+    }
+    hasNonLabourData={hasNonLabourData}
+    addNonLabour={addNonLabour}
+    updateNonLabour={updateNonLabour}
+    removeNonLabour={removeNonLabour}
+    money={moneyFmt}
+    gstRate={config.gstRate}
+  />
+</div>
 
-      <div className="hr" />
+{hasAnyData && (
+  <>
+    <div className="hr" />
 
-      <QuoteTotalsCard
-        totals={totals ?? null}
-        money={moneyFmt}
-      />
+    <QuoteTotalsCard
+      totals={totals ?? null}
+      money={moneyFmt}
+    />
 
-      <TermsConditionsBox body={config.quoteText.termsAndConditions} />
+    <TermsConditionsBox body={config.quoteText.termsAndConditions} />
+  </>
+)}
       
       {showStartNewConfirm && (
         <div
