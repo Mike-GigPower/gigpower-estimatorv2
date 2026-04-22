@@ -39,7 +39,7 @@ export default function AppHeader({
               height={44}
               priority
             />
-            <h1 style={{ margin: 0 }}>GigPower Quote</h1>
+            <h1 style={{ margin: 0 }}>GigPower Estimate</h1>
           </div>
 
           <div className="print-abn">ABN 92 052 306 706</div>
