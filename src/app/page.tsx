@@ -799,8 +799,11 @@ async function saveDraft(overwriteId?: string) {
    */
   const totals = result?.totals;
 
-  const hasLabourData = input.labour?.some(
-  (l) => l.role || l.startTime || l.duration
+  const hasLabourData = input.labour.some(
+  (l) =>
+    (l.role || "").trim() !== "" ||
+    (l.startTime || "").trim() !== "" ||
+    (l.durationHours ?? 0) !== 0
 );
   
   /**
