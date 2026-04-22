@@ -42,7 +42,10 @@ export default function AppHeader({
             <h1 style={{ margin: 0 }}>GigPower Estimate</h1>
           </div>
 
-          <div className="print-abn">ABN 92 052 306 706</div>
+          <div className="print-abn-block">
+  			<div className="print-company-name">Gig Power Pty Ltd</div>
+  			<div className="print-abn">ABN 92 052 306 706</div>
+		  </div>
         </div>
 
         

@@ -555,6 +555,7 @@ th {
 
 .print-abn {
   font-size: 11px;
+  line-height: 1.2:
   white-space: nowrap;
   text-align: right;
 }
@@ -567,6 +568,16 @@ th {
 .estimate-name strong {
   margin-right: 4px;
 }
+
+.print-abn-block {
+  text-align: right;
+}
+
+.print-company-name {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 
 /* Labour table input sizing */
 .labour-qty-input {
@@ -973,6 +984,10 @@ th {
     display: flex !important;
     align-items: center !important;
     gap: 10px !important;
+  }
+
+.print-company-name {
+    font-size: 13px;
   }
 
   .print-abn {
