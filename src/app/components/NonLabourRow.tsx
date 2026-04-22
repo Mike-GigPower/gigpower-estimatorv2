@@ -48,7 +48,7 @@ export default function NonLabourRow({
           onChange={(e) =>
             updateNonLabour(line.id, { description: e.target.value })
           }
-          placeholder="e.g., Truck parking, Equipment hire"
+          placeholder="e.g., Truck hire, Harness hire"
         />
       </td>
 
