@@ -10,13 +10,14 @@ import LabourTable from "./components/LabourTable";
 import NonLabourTable from "./components/NonLabourTable";
 import QuoteTotalsCard from "./components/QuoteTotalsCard";
 import TermsConditionsBox from "./components/TermsConditionsBox";
-import { supabase } from "@/src/lib/supabase";
-
+import { supabaseData } from "@/src/lib/supabase";
+import { createClient } from "../lib/supabase/client";
 
 /**
  * React hooks
  */
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 
 
@@ -108,7 +109,7 @@ function emptyNonLabourLine(): NonLabourLine {
  * Example: GP-12345
  */
 async function generateQuoteNumber(): Promise<string> {
-  const { data, error } = await supabase.rpc("next_quote_number");
+  const { data, error } = await supabaseData.rpc("next_quote_number");
 
   if (error || !data) {
     throw new Error(error?.message || "Failed to generate quote number");
@@ -136,7 +137,8 @@ const defaultInput: QuoteInput = {
  */
 export default function Page() {
   
-
+  const router = useRouter();
+  const authClient = createClient();
   /**
    * Load configuration such as rates, GST, min hours, quote text, currency, etc.
    */
@@ -158,11 +160,46 @@ const [savedDrafts, setSavedDrafts] = useState<SavedDraft[]>([]);
 const [selectedDraftId, setSelectedDraftId] = useState("");
 const [isMounted, setIsMounted] = useState(false);
 const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
+const [preparedBy, setPreparedBy] = useState("");
 
 useEffect(() => {
-  setIsMounted(true);
-  loadAllDrafts();
-}, []);
+  let isActive = true;
+
+  async function initPage() {
+    const { data, error } = await authClient.auth.getSession();
+
+    if (!isActive) return;
+
+    if (error || !data.session) {
+      router.replace("/login");
+      return;
+    }
+
+const user = data.session.user;
+
+const { data: profile } = await authClient
+  .from("profiles")
+  .select("full_name, email")
+  .eq("id", user.id)
+  .single();
+
+setPreparedBy(
+  profile?.full_name ||
+  profile?.email ||
+  user.email ||
+  "GigPower"
+);
+
+    setIsMounted(true);
+    loadAllDrafts();
+  }
+
+  initPage();
+
+  return () => {
+    isActive = false;
+  };
+}, [router, authClient]);
 
  function ddmmyyyyToIso(value: string): string | null {
   const m = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
@@ -566,8 +603,18 @@ function handleCancelStartNew() {
    */
 async function saveDraft(overwriteId?: string) {
   const now = new Date().toISOString();
-  const actor = "admin"; // Replace later with actual logged-in user if auth is added
-  const name = (draftName || "Untitled Estimate").trim();
+const name = (draftName || "Untitled Estimate").trim();
+
+const { data: sessionData, error: sessionError } = await authClient.auth.getSession();
+
+if (sessionError || !sessionData.session) {
+  alert("Your session has expired. Please log in again.");
+  router.replace("/login");
+  return;
+}
+
+const actorId = sessionData.session.user.id;
+const actorLabel = sessionData.session.user.email || "unknown user";
 
   const quoteNumber = overwriteId
     ? input.quoteNumber || await generateQuoteNumber()
@@ -586,20 +633,21 @@ async function saveDraft(overwriteId?: string) {
 
   // Update an existing quote and create a new history version
   if (overwriteId) {
-    const { data: existingQuote, error: fetchError } = await supabase
+    const { data: existingQuote, error: fetchError } = await supabaseData
       .from("quotes")
       .select("id, current_version")
       .eq("id", overwriteId)
       .single();
 
     if (fetchError) {
-      alert("Error loading existing estimate version: " + fetchError.message);
-      return;
+      console.error("Error loading estimate:", fetchError);
+  alert("Error loading estimate: " + fetchError.message);
+  return;
     }
 
     const nextVersion = (existingQuote?.current_version || 1) + 1;
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseData
       .from("quotes")
       .update({
         name,
@@ -608,24 +656,25 @@ async function saveDraft(overwriteId?: string) {
         valid_until: ddmmyyyyToIso(ensuredInput.validUntil),
         payload: ensuredInput,
         updated_at: now,
-        updated_by: actor,
+        updated_by: actorId,
         current_version: nextVersion,
       })
       .eq("id", overwriteId);
 
     if (updateError) {
-      alert("Error updating estimate: " + updateError.message);
-      return;
-    }
+  console.error("Error updating estimate:", updateError);
+  alert("Error updating estimate: " + updateError.message);
+  return;
+}
 
-    const { error: versionError } = await supabase
+    const { error: versionError } = await supabaseData
       .from("quote_versions")
       .insert([
         {
           quote_id: overwriteId,
           version_number: nextVersion,
           saved_at: now,
-          saved_by: actor,
+          saved_by: actorLabel,
           input: ensuredInput,
           change_summary: "Updated estimate",
         },
@@ -643,7 +692,7 @@ async function saveDraft(overwriteId?: string) {
   }
 
   // Save a new quote and create version 1 history
-  const { data: insertedQuote, error: insertError } = await supabase
+  const { data: insertedQuote, error: insertError } = await supabaseData
     .from("quotes")
     .insert([
       {
@@ -654,8 +703,8 @@ async function saveDraft(overwriteId?: string) {
         payload: ensuredInput,
         created_at: now,
         updated_at: now,
-        created_by: actor,
-        updated_by: actor,
+        created_by: actorId,
+        updated_by: actorId,
         current_version: 1,
         is_deleted: false,
       },
@@ -664,26 +713,29 @@ async function saveDraft(overwriteId?: string) {
     .single();
 
     if (insertError) {
-      alert("Error saving estimate: " + insertError.message);
-      return;
+      console.error("Error saving estimate:", insertError);
+  alert("Error saving estimate: " + insertError.message);
+  return;
     }
 
-    const { error: versionError } = await supabase
+    const { error: versionError } = await supabaseData
       .from("quote_versions")
       .insert([
         {
           quote_id: insertedQuote.id,
           version_number: 1,
           saved_at: now,
-          saved_by: actor,
+          saved_by: actorLabel,
           input: ensuredInput,
           change_summary: "Initial version",
         },
       ]);
 
     if (versionError) {
-      alert("Estimate saved, but failed to write version history: " + versionError.message);
-      return;
+    console.error("Estimate saved, but failed to write version history:", versionError);
+  alert("Estimate saved, but failed to write version history: " + versionError.message);
+  return;
+      
     }
 
     setInput(ensuredInput);
@@ -733,12 +785,41 @@ async function saveDraft(overwriteId?: string) {
    * Delete one saved draft by id.
    */
   async function deleteDraft(id: string) {
-  const { error } = await supabase
+  const now = new Date().toISOString();
+
+  const { data: sessionData, error: sessionError } =
+    await authClient.auth.getSession();
+
+  if (sessionError || !sessionData.session) {
+    alert("Your session has expired. Please log in again.");
+    router.replace("/login");
+    return;
+  }
+  
+  const { data: profile } = await authClient
+  .from("profiles")
+  .select("role")
+  .eq("id", actorId)
+  .single();
+
+if (!profile || profile.role !== "admin") {
+  alert("Only admins can delete estimates.");
+  return;
+}
+
+  const actorId = sessionData.session.user.id;
+
+  const { error } = await supabaseData
     .from("quotes")
-    .delete()
+    .update({
+      is_deleted: true,
+      updated_at: now,
+      updated_by: actorId,
+    })
     .eq("id", id);
 
   if (error) {
+    console.error("Error deleting estimate:", error);
     alert("Error deleting estimate: " + error.message);
     return;
   }
@@ -748,19 +829,48 @@ async function saveDraft(overwriteId?: string) {
   }
 
   alert("Saved estimate deleted.");
-  loadAllDrafts();
+  await loadAllDrafts();
 }
 
   /**
    * Clear all saved drafts from localStorage.
    */
-  async function clearAllDrafts() {
-  const { error } = await supabase
+ async function clearAllDrafts() {
+  const now = new Date().toISOString();
+
+  const { data: sessionData, error: sessionError } =
+    await authClient.auth.getSession();
+
+  if (sessionError || !sessionData.session) {
+    alert("Your session has expired. Please log in again.");
+    router.replace("/login");
+    return;
+  }
+
+  const actorId = sessionData.session.user.id;
+  
+  const { data: profile } = await authClient
+  .from("profiles")
+  .select("role")
+  .eq("id", actorId)
+  .single();
+
+if (!profile || profile.role !== "admin") {
+  alert("Only admins can delete estimates.");
+  return;
+}
+
+  const { error } = await supabaseData
     .from("quotes")
-    .delete()
+    .update({
+      is_deleted: true,
+      updated_at: now,
+      updated_by: actorId,
+    })
     .not("id", "is", null);
 
   if (error) {
+    console.error("Error clearing estimates:", error);
     alert("Error clearing estimates: " + error.message);
     return;
   }
@@ -768,6 +878,7 @@ async function saveDraft(overwriteId?: string) {
   setSavedDrafts([]);
   setSelectedDraftId("");
   alert("All saved estimates cleared.");
+  await loadAllDrafts();
 }
 
   /**
@@ -834,17 +945,19 @@ async function saveDraft(overwriteId?: string) {
 }
 
 async function loadAllDrafts() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseData
     .from("quotes")
-    .select("*")
-    .order("created_at", { ascending: false });
+.select("*")
+.or("is_deleted.eq.false,is_deleted.is.null")
+.order("created_at", { ascending: false });
 
   if (error) {
-    console.error(error);
-    return;
-  }
+  console.error("Failed to load drafts:", error);
+  setSavedDrafts([]); // fail safely instead of stale UI
+  return;
+}
 
-  const drafts: SavedDraft[] = (data || []).map((row: any) => ({
+  const drafts: SavedDraft[] = (data ?? []).map((row: any) => ({
     id: row.id,
     name: row.name,
     savedAt: row.created_at,
@@ -916,6 +1029,7 @@ const hasAnyData = hasLabourData || hasNonLabourData;
   quoteDate={input.quoteDate}
   validUntil={input.validUntil}
   version={selectedDraftMeta?.currentVersion ?? 1}
+    preparedBy={preparedBy}
   companyName={input.companyName}
   contactName={input.contactName}
   contactEmail={input.contactEmail}

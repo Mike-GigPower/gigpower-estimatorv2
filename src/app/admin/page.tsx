@@ -2,20 +2,78 @@
 
 import { useAppConfig } from "@/src/lib/useAppConfig";
 import type { RateRow } from "@/src/lib/types";
-import { useState } from "react";
-import { supabase } from "@/src/lib/supabase";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabaseData } from "@/src/lib/supabase";
+import { createClient } from "@/src/lib/supabase/client";
 
 
 export default function AdminPage() {
   const { config, updateConfig, restoreDefaults, ready } = useAppConfig();
-  const [authorised, setAuthorised] = useState(false);
-  const [password, setPassword] = useState("");
-  const [showClearQuotesConfirm, setShowClearQuotesConfirm] = useState(false);
-const [showFinalClearQuotesConfirm, setShowFinalClearQuotesConfirm] = useState(false);
-const [clearConfirmText, setClearConfirmText] = useState("");
-const [quoteCount, setQuoteCount] = useState<number>(0);
+    const router = useRouter();
+  const [authClient] = useState(() => createClient());
 
-  if (!ready) return <main className="max-w-5xl mx-auto px-6 py-8">Loading...</main>;
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showClearQuotesConfirm, setShowClearQuotesConfirm] = useState(false);
+  const [showFinalClearQuotesConfirm, setShowFinalClearQuotesConfirm] = useState(false);
+  const [clearConfirmText, setClearConfirmText] = useState("");
+  const [quoteCount, setQuoteCount] = useState<number>(0);
+  
+    useEffect(() => {
+  let isActive = true;
+
+  async function checkAccess() {
+    const { data, error } = await authClient.auth.getUser();
+
+    if (!isActive) return;
+
+    if (error || !data.user) {
+      router.replace("/login");
+      return;
+    }
+
+    const user = data.user;
+    const email = user.email?.toLowerCase() || "";
+
+    // Replace this with your actual admin email/s
+    const allowedAdmins = [
+      "mike@gigpower.com",
+    ];
+
+    const adminFromEmail = allowedAdmins.includes(email);
+    const adminFromMetadata = user.user_metadata?.role === "admin";
+
+    const allowed = adminFromEmail || adminFromMetadata;
+
+    if (!allowed) {
+  router.replace("/");
+  return;
+}
+
+    setIsAdmin(true);
+    setIsCheckingAccess(false);
+  }
+
+  checkAccess();
+
+  return () => {
+    isActive = false;
+  };
+}, [router]);
+
+    if (!ready || isCheckingAccess) {
+    return <main className="max-w-5xl mx-auto px-6 py-8">Loading...</main>;
+  }
+
+  if (!isAdmin) {
+    return (
+      <main className="max-w-5xl mx-auto px-6 py-8">
+        <h1 className="text-2xl font-semibold mb-4">Access denied</h1>
+        <p>You do not have permission to view this page.</p>
+      </main>
+    );
+  }
   
   // --- Begin Clear All Quotes flow ---
 async function handleBeginClearAllQuotes() {
@@ -57,7 +115,7 @@ async function handleConfirmClearAllQuotes() {
   
   async function fetchQuoteCount() {
   try {
-    const { count, error } = await supabase
+    const { count, error } = await supabaseData
       .from("quotes")
       .select("*", { count: "exact", head: true });
 
@@ -76,7 +134,7 @@ async function handleConfirmClearAllQuotes() {
 // Be careful: local testing will affect whichever Supabase project your env points to.
 async function clearAllSavedQuotes() {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseData
       .from("quotes")
       .delete()
       .neq("id", "");
@@ -187,40 +245,7 @@ function removeHoliday(index: number) {
   const fieldLabelClass = "block text-sm font-medium text-white/75 mb-1";
   const mobileRateLabelClass = "block md:hidden text-xs mb-1 text-white/55 uppercase tracking-wide";
 
-  if (!authorised) {
-    return (
-      <main className="admin-login-shell">
-        <h1 className="admin-page-title">
-          Admin Console
-        </h1>
-        <p className="admin-page-subtitle">
-          Manage rates, rules, and quote defaults.
-        </p>
-
-        <div className="admin-card">
-  <input
-    type="password"
-    placeholder="Admin password"
-    value={password}
-    onChange={(e) => setPassword(e.target.value)}
-    className={inputClass}
-  />
-
-  <div className="admin-login-action">
-    <button
-      onClick={() => {
-        if (password === "gigpoweradmin") setAuthorised(true);
-        else alert("Incorrect password");
-      }}
-      className="rounded-lg bg-amber-500 px-4 py-2 font-medium text-black transition hover:bg-amber-400"
-    >
-      Login
-    </button>
-  </div>
-</div>
-      </main>
-    );
-  }
+ 
 
   return (
   <div className="min-h-screen bg-slate-950 text-white">

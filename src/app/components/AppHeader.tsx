@@ -6,6 +6,7 @@ type AppHeaderProps = {
   quoteNumber: string;
   quoteDate: string;
   validUntil: string;
+    preparedBy?: string;
   version?: number;
   companyName?: string;
   contactName?: string;
@@ -20,6 +21,7 @@ export default function AppHeader({
   quoteDate,
   validUntil,
   version,
+  preparedBy,
   companyName,
   contactName,
   contactEmail,
@@ -65,6 +67,9 @@ export default function AppHeader({
   <div>
     <strong>Valid Until:</strong> {validUntil || "—"}
   </div>
+  <div>
+  <strong>Prepared by:</strong> {preparedBy || "—"}
+</div>
 </div>
       </div>
 
