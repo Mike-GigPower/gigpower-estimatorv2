@@ -795,7 +795,7 @@ const actorLabel = sessionData.session.user.email || "unknown user";
     router.replace("/login");
     return;
   }
-  
+  const actorId = sessionData.session.user.id;
   const { data: profile } = await authClient
   .from("profiles")
   .select("role")
@@ -807,7 +807,7 @@ if (!profile || profile.role !== "admin") {
   return;
 }
 
-  const actorId = sessionData.session.user.id;
+  
 
   const { error } = await supabaseData
     .from("quotes")
