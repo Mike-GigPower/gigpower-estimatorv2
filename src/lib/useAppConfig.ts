@@ -84,7 +84,8 @@ console.log("Rates loaded from Supabase:", ratesData);
           minBillableHours: next.minBillableHours,
           dayStart: next.dayStart,
           nightStart: next.nightStart,
-          termsAndConditions: next.termsAndConditions,
+          quoteText: { termsAndConditions: next.quoteText.termsAndConditions,
+  },
         },
       },
       { onConflict: "id" }
@@ -112,7 +113,9 @@ console.log("Rates loaded from Supabase:", ratesData);
           minBillableHours: defaultConfig.minBillableHours,
           dayStart: defaultConfig.dayStart,
           nightStart: defaultConfig.nightStart,
-          termsAndConditions: defaultConfig.termsAndConditions,
+          quoteText: {
+  termsAndConditions: defaultConfig.quoteText.termsAndConditions,
+},
         },
       },
       { onConflict: "id" }
