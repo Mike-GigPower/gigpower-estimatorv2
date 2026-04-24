@@ -147,7 +147,34 @@ async function clearAllSavedQuotes() {
   }
 }
   
-  
+  async function saveRateToSupabase(rate: RateRow, index: number) {
+  if (!rate.role.trim()) return;
+
+  const { error } = await authClient
+    .from("rate_cards")
+    .upsert(
+      {
+        role_name: rate.role.trim(),
+        category: "standard",
+        day_rate: rate.day,
+        night_rate: rate.night,
+        sunday_rate: rate.sunday,
+        public_holiday_rate: rate.publicHoliday,
+        ot_8_day_rate: rate.over8,
+        ot_8_night_rate: rate.over8,
+        ot_10_day_rate: rate.over10,
+        ot_10_night_rate: rate.over10,
+        sort_order: (index + 1) * 10,
+        is_active: true,
+      },
+      { onConflict: "role_name" }
+    );
+
+  if (error) {
+    console.error("Error saving rate card:", error);
+    alert("Error saving rate card: " + error.message);
+  }
+}
   
 
   function updateRate(index: number, field: keyof RateRow, value: string) {
@@ -180,12 +207,27 @@ async function clearAllSavedQuotes() {
     });
   }
 
-  function removeRate(index: number) {
-    updateConfig({
-      ...config,
-      rates: config.rates.filter((_, i) => i !== index),
-    });
+  async function removeRate(index: number) {
+  const rate = config.rates[index];
+
+  if (rate?.role) {
+    const { error } = await authClient
+      .from("rate_cards")
+      .update({ is_active: false })
+      .eq("role_name", rate.role);
+
+    if (error) {
+      console.error("Error deleting rate card:", error);
+      alert("Error deleting rate card: " + error.message);
+      return;
+    }
   }
+
+  updateConfig({
+    ...config,
+    rates: config.rates.filter((_, i) => i !== index),
+  });
+}
 
 function sortHolidays(
   holidays: { date: string; label: string }[]
@@ -415,6 +457,7 @@ async function removeHoliday(index: number) {
                   placeholder="Role"
                   value={rate.role}
                   onChange={(e) => updateRate(index, "role", e.target.value)}
+                  onBlur={() => saveRateToSupabase(config.rates[index], index)}
                 />
               </div>
 
@@ -426,6 +469,7 @@ async function removeHoliday(index: number) {
                   className={numberInputClass}
                   value={rate.day}
                   onChange={(e) => updateRate(index, "day", e.target.value)}
+                  onBlur={() => saveRateToSupabase(config.rates[index], index)}
                 />
               </div>
 
@@ -437,6 +481,7 @@ async function removeHoliday(index: number) {
                   className={numberInputClass}
                   value={rate.night}
                   onChange={(e) => updateRate(index, "night", e.target.value)}
+                  onBlur={() => saveRateToSupabase(config.rates[index], index)}
                 />
               </div>
 
@@ -448,6 +493,7 @@ async function removeHoliday(index: number) {
                   className={numberInputClass}
                   value={rate.sunday}
                   onChange={(e) => updateRate(index, "sunday", e.target.value)}
+                  onBlur={() => saveRateToSupabase(config.rates[index], index)}
                 />
               </div>
 
@@ -459,6 +505,7 @@ async function removeHoliday(index: number) {
                   className={numberInputClass}
                   value={rate.publicHoliday}
                   onChange={(e) => updateRate(index, "publicHoliday", e.target.value)}
+                  onBlur={() => saveRateToSupabase(config.rates[index], index)}
                 />
               </div>
 
@@ -470,6 +517,7 @@ async function removeHoliday(index: number) {
                   className={numberInputClass}
                   value={rate.over8}
                   onChange={(e) => updateRate(index, "over8", e.target.value)}
+                  onBlur={() => saveRateToSupabase(config.rates[index], index)}
                 />
               </div>
 
@@ -481,6 +529,7 @@ async function removeHoliday(index: number) {
                   className={numberInputClass}
                   value={rate.over10}
                   onChange={(e) => updateRate(index, "over10", e.target.value)}
+                  onBlur={() => saveRateToSupabase(config.rates[index], index)}
                 />
               </div>
 

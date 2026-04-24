@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { defaultConfig } from "./config";
 import { loadAppConfig, resetAppConfig, saveAppConfig } from "./config-store";
 import { supabaseData } from "./supabase";
+import { createClient } from "./supabase/client";
 import type { AppConfig } from "./types";
 
 export function useAppConfig() {
@@ -13,25 +14,46 @@ export function useAppConfig() {
   useEffect(() => {
     async function loadConfig() {
       const localConfig = loadAppConfig();
-
-      const { data, error } = await supabaseData
+const authClient = createClient();
+      const { data: holidaysData, error: holidaysError } = await supabaseData
         .from("public_holidays")
         .select("holiday_date, name")
         .eq("is_active", true)
         .order("holiday_date", { ascending: true });
 
-      if (error) {
-        console.error("Failed to load public holidays from Supabase:", error);
+      const { data: ratesData, error: ratesError } = await authClient
+  .from("rate_cards")
+        .select(
+          "role_name, day_rate, night_rate, sunday_rate, public_holiday_rate, ot_8_day_rate, ot_10_day_rate"
+        )
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+
+      if (holidaysError || ratesError) {
+        console.error("Failed to load config from Supabase:", {
+          holidaysError,
+          ratesError,
+        });
+
         setConfig(localConfig);
         setReady(true);
         return;
       }
-
+console.log("Rates loaded from Supabase:", ratesData);
       setConfig({
         ...localConfig,
-        publicHolidays: (data || []).map((row) => ({
+        publicHolidays: (holidaysData || []).map((row) => ({
           date: row.holiday_date,
           label: row.name,
+        })),
+        rates: (ratesData || []).map((row) => ({
+          role: row.role_name,
+          day: row.day_rate,
+          night: row.night_rate,
+          sunday: row.sunday_rate,
+          publicHoliday: row.public_holiday_rate,
+          over8: row.ot_8_day_rate,
+          over10: row.ot_10_day_rate,
         })),
       });
 
