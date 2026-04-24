@@ -167,19 +167,6 @@ useEffect(() => {
 
   async function initPage() {
     const { data, error } = await authClient.auth.getSession();
-    
-    const user = data.session.user;
-
-const { data: profile } = await authClient
-  .from("profiles")
-  .select("is_active")
-  .eq("id", user.id)
-  .single();
-
-if (!profile?.is_active) {
-  router.replace("/login");
-  return;
-}
 
     if (!isActive) return;
 
@@ -188,20 +175,27 @@ if (!profile?.is_active) {
       return;
     }
 
-const user = data.session.user;
+    const user = data.session.user;
 
-const { data: profile } = await authClient
-  .from("profiles")
-  .select("full_name, email")
-  .eq("id", user.id)
-  .single();
+    const { data: userProfile, error: profileError } = await authClient
+      .from("profiles")
+      .select("is_active, full_name, email")
+      .eq("id", user.id)
+      .single();
 
-setPreparedBy(
-  profile?.full_name ||
-  profile?.email ||
-  user.email ||
-  "GigPower"
-);
+    if (!isActive) return;
+
+    if (profileError || !userProfile?.is_active) {
+      router.replace("/login");
+      return;
+    }
+
+    setPreparedBy(
+      userProfile.full_name ||
+      userProfile.email ||
+      user.email ||
+      "GigPower"
+    );
 
     setIsMounted(true);
     loadAllDrafts();

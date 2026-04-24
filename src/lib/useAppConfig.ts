@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { defaultConfig } from "./config";
-import { loadAppConfig, resetAppConfig, saveAppConfig } from "./config-store";
 import { supabaseData } from "./supabase";
 import { createClient } from "./supabase/client";
 import type { AppConfig } from "./types";
@@ -13,8 +12,13 @@ export function useAppConfig() {
 
   useEffect(() => {
     async function loadConfig() {
-      const localConfig = loadAppConfig();
+      const baseConfig = defaultConfig;
 const authClient = createClient();
+const { data: settingsData, error: settingsError } = await authClient
+  .from("app_settings")
+  .select("value")
+  .eq("id", "global")
+  .single();
       const { data: holidaysData, error: holidaysError } = await supabaseData
         .from("public_holidays")
         .select("holiday_date, name")
@@ -29,19 +33,20 @@ const authClient = createClient();
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
 
-      if (holidaysError || ratesError) {
+      if (settingsError || holidaysError || ratesError) {
         console.error("Failed to load config from Supabase:", {
           holidaysError,
           ratesError,
         });
 
-        setConfig(localConfig);
+        setConfig(baseConfig);
         setReady(true);
         return;
       }
 console.log("Rates loaded from Supabase:", ratesData);
       setConfig({
-        ...localConfig,
+        ...baseConfig,
+        ...(settingsData?.value || {}),
         publicHolidays: (holidaysData || []).map((row) => ({
           date: row.holiday_date,
           label: row.name,
@@ -63,15 +68,61 @@ console.log("Rates loaded from Supabase:", ratesData);
     loadConfig();
   }, []);
 
-  function updateConfig(next: AppConfig) {
-    setConfig(next);
-    saveAppConfig(next);
-  }
+ async function updateConfig(next: AppConfig) {
+  setConfig(next);
 
-  function restoreDefaults() {
-    resetAppConfig();
-    setConfig(defaultConfig);
+  const authClient = createClient();
+
+  const { error } = await authClient
+    .from("app_settings")
+    .upsert(
+      {
+        id: "global",
+        value: {
+          currency: next.currency,
+          gstRate: next.gstRate,
+          minBillableHours: next.minBillableHours,
+          dayStart: next.dayStart,
+          nightStart: next.nightStart,
+          termsAndConditions: next.termsAndConditions,
+        },
+      },
+      { onConflict: "id" }
+    );
+
+  if (error) {
+    console.error("Failed to save app settings:", error);
+    alert("Failed to save app settings: " + error.message);
   }
+}
+
+  async function restoreDefaults() {
+  setConfig(defaultConfig);
+
+  const authClient = createClient();
+
+  const { error } = await authClient
+    .from("app_settings")
+    .upsert(
+      {
+        id: "global",
+        value: {
+          currency: defaultConfig.currency,
+          gstRate: defaultConfig.gstRate,
+          minBillableHours: defaultConfig.minBillableHours,
+          dayStart: defaultConfig.dayStart,
+          nightStart: defaultConfig.nightStart,
+          termsAndConditions: defaultConfig.termsAndConditions,
+        },
+      },
+      { onConflict: "id" }
+    );
+
+  if (error) {
+    console.error("Failed to restore defaults:", error);
+    alert("Failed to restore defaults: " + error.message);
+  }
+}
 
   return {
     config,
