@@ -6,7 +6,8 @@ type AppHeaderProps = {
   quoteNumber: string;
   quoteDate: string;
   validUntil: string;
-    preparedBy?: string;
+  onValidUntilChange?: (value: string) => void;
+  preparedBy?: string;
   version?: number;
   companyName?: string;
   contactName?: string;
@@ -20,6 +21,7 @@ export default function AppHeader({
   quoteNumber,
   quoteDate,
   validUntil,
+  onValidUntilChange,
   version,
   preparedBy,
   companyName,
@@ -59,14 +61,22 @@ export default function AppHeader({
     </div>
   )}
   <div>
-    <strong>Quote #:</strong> {quoteNumber || "—"} · Version {version ?? 1}
-  </div>
   <div>
-    <strong>Date:</strong> {quoteDate || "—"}
-  </div>
-  <div>
-    <strong>Valid Until:</strong> {validUntil || "—"}
-  </div>
+  <strong>Quote #:</strong> {quoteNumber || "—"} · Version {version ?? 1} ·{" "}
+  <strong>Valid Until:</strong> {validUntil || "—"}
+</div>
+  <input
+    type="text"
+    value={validUntil || ""}
+    onChange={(e) => onValidUntilChange?.(e.target.value)}
+    className="ml-2 border rounded px-2 py-1"
+    style={{ width: "120px" }}
+  />
+</div>
+
+<div>
+  <strong>Date:</strong> {quoteDate || "—"}
+</div>
   <div>
   <strong>Prepared by:</strong> {preparedBy || "—"}
 </div>
@@ -92,6 +102,17 @@ export default function AppHeader({
       </small>
     </div>
   </div>
+  <div style={{ marginTop: "8px", fontSize: "13px" }}>
+  <strong>Quote #:</strong> {quoteNumber || "—"} · Version {version ?? 1} ·{" "}
+  <strong>Valid Until:</strong>{" "}
+  <input
+    type="text"
+    value={validUntil || ""}
+    onChange={(e) => onValidUntilChange?.(e.target.value)}
+    className="ml-2 border rounded px-2 py-1"
+    style={{ width: "120px" }}
+  />
+</div>
 </div>
 
       {/* Print-only customer details */}

@@ -161,6 +161,7 @@ const [selectedDraftId, setSelectedDraftId] = useState("");
 const [isMounted, setIsMounted] = useState(false);
 const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
 const [preparedBy, setPreparedBy] = useState("");
+const [validUntilManuallyEdited, setValidUntilManuallyEdited] = useState(false);
 
 useEffect(() => {
   let isActive = true;
@@ -244,17 +245,15 @@ useEffect(() => {
   
   const today = new Date();
 const todayIso = today.toISOString().slice(0, 10);
-
-const valid = new Date();
-valid.setDate(today.getDate() + 14);
-
   
 
   setInput((prev) => ({
     ...prev,
     quoteNumber: prev.quoteNumber || "",
     quoteDate: prev.quoteDate || formatDateDDMMYYYY(today),
-    validUntil: prev.validUntil || formatDateDDMMYYYY(valid),
+    validUntil:
+    prev.validUntil ||
+    addDaysToDDMMYYYY(prev.quoteDate || formatDateDDMMYYYY(today), 14),
     labour: prev.labour.map((line) => ({
       ...line,
       id: line.id || uid("lab"),
@@ -266,6 +265,8 @@ valid.setDate(today.getDate() + 14);
     })),
   }));
 }, [ready]);
+
+
 
   /**
    * Holds the calculated result of the quote engine.
@@ -584,6 +585,7 @@ function resetToBlankQuote() {
 function handleStartNew() {
   if (isQuoteEmpty()) {
     resetToBlankQuote();
+    setValidUntilManuallyEdited(false);
     return;
   }
 
@@ -628,18 +630,24 @@ const actorLabel = sessionData.session.user.email || "unknown user";
   const quoteNumber = overwriteId
     ? input.quoteNumber || await generateQuoteNumber()
     : await generateQuoteNumber();
+  const quoteDateValue = input.quoteDate || formatDateDDMMYYYY(new Date());
 
-  const ensuredInput: QuoteInput = {
-    ...input,
-    quoteNumber,
-    quoteDate: input.quoteDate || formatDateDDMMYYYY(new Date()),
-    validUntil: input.validUntil || (() => {
-      const d = new Date();
-      d.setDate(d.getDate() + 14);
-      return formatDateDDMMYYYY(d);
-    })(),
-  };
+const validUntilValue =
+  input.validUntil ||
+  (() => {
+    const baseDate = ddmmyyyyToIso(quoteDateValue);
+    const d = baseDate ? new Date(baseDate) : new Date();
 
+    d.setDate(d.getDate() + 14);
+    return formatDateDDMMYYYY(d);
+  })();
+
+const ensuredInput: QuoteInput = {
+  ...input,
+  quoteNumber,
+  quoteDate: quoteDateValue,
+  validUntil: validUntilValue,
+};
   // Update an existing quote and create a new history version
   if (overwriteId) {
     const { data: existingQuote, error: fetchError } = await supabaseData
@@ -768,8 +776,15 @@ const actorLabel = sessionData.session.user.email || "unknown user";
   ...draft.input,
   quoteNumber: draft.input.quoteNumber || "",
   quoteDate: draft.input.quoteDate || formatDateDDMMYYYY(new Date()),
-  validUntil: draft.input.validUntil || (() => {
-    const d = new Date();
+validUntil:
+  draft.input.validUntil ||
+  (() => {
+    const quoteDateValue =
+      draft.input.quoteDate || formatDateDDMMYYYY(new Date());
+
+    const baseDate = ddmmyyyyToIso(quoteDateValue);
+    const d = baseDate ? new Date(baseDate) : new Date();
+
     d.setDate(d.getDate() + 14);
     return formatDateDDMMYYYY(d);
   })(),
@@ -788,6 +803,7 @@ const actorLabel = sessionData.session.user.email || "unknown user";
   setSelectedDraftId(draft.id);
   setInput(hydrated);
   recalc(hydrated);
+  setValidUntilManuallyEdited(!!hydrated.validUntil);
 }
 
   /**
@@ -955,6 +971,14 @@ if (!profile || profile.role !== "admin") {
   });
 }
 
+function addDaysToDDMMYYYY(value: string, days: number): string {
+  const iso = ddmmyyyyToIso(value);
+  const d = iso ? new Date(iso) : new Date();
+
+  d.setDate(d.getDate() + days);
+  return formatDateDDMMYYYY(d);
+}
+
 async function loadAllDrafts() {
   const { data, error } = await authClient
   .from("quotes")
@@ -1039,6 +1063,13 @@ const hasAnyData = hasLabourData || hasNonLabourData;
   quoteNumber={input.quoteNumber}
   quoteDate={input.quoteDate}
   validUntil={input.validUntil}
+  onValidUntilChange={(value) => {
+  setValidUntilManuallyEdited(true);
+  setInput((prev) => ({
+    ...prev,
+    validUntil: value,
+  }));
+}}
   version={selectedDraftMeta?.currentVersion ?? 1}
     preparedBy={preparedBy}
   companyName={input.companyName}
@@ -1072,6 +1103,8 @@ const hasAnyData = hasLabourData || hasNonLabourData;
           busy={busy}
         />
       </div>
+      
+     
       
       <div
   style={{
