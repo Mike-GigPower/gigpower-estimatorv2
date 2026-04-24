@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/estimator";
+  const next = searchParams.get("next") || "/";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,6 +20,7 @@ export default function LoginPage() {
     setErrorMsg("");
 
     const supabase = createClient();
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -70,5 +71,13 @@ export default function LoginPage() {
         </button>
       </form>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<main style={{ padding: 24 }}>Loading...</main>}>
+      <LoginForm />
+    </Suspense>
   );
 }
