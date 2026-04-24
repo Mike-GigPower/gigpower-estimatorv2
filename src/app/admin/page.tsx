@@ -198,6 +198,27 @@ function sortHolidays(
   });
 }
 
+async function saveHolidayToSupabase(holiday: { date: string; label: string }) {
+  if (!holiday.date || !holiday.label.trim()) return;
+
+  const { error } = await authClient
+    .from("public_holidays")
+    .upsert(
+      {
+        holiday_date: holiday.date,
+        name: holiday.label.trim(),
+        state_code: "VIC",
+        is_active: true,
+      },
+      { onConflict: "holiday_date" }
+    );
+
+  if (error) {
+    console.error("Error saving public holiday:", error);
+    alert("Error saving public holiday: " + error.message);
+  }
+}
+
 function updateHoliday(
   index: number,
   field: "date" | "label",
@@ -211,11 +232,17 @@ function updateHoliday(
   });
 }
 
-function sortPublicHolidays() {
+async function sortPublicHolidays() {
+  const sorted = sortHolidays(config.publicHolidays);
+
   updateConfig({
     ...config,
-    publicHolidays: sortHolidays(config.publicHolidays),
+    publicHolidays: sorted,
   });
+
+  for (const holiday of sorted) {
+    await saveHolidayToSupabase(holiday);
+  }
 }
 
 function addHoliday() {
@@ -225,7 +252,22 @@ function addHoliday() {
   });
 }
 
-function removeHoliday(index: number) {
+async function removeHoliday(index: number) {
+  const holiday = config.publicHolidays[index];
+
+  if (holiday?.date) {
+    const { error } = await authClient
+      .from("public_holidays")
+      .update({ is_active: false })
+      .eq("holiday_date", holiday.date);
+
+    if (error) {
+      console.error("Error deleting public holiday:", error);
+      alert("Error deleting public holiday: " + error.message);
+      return;
+    }
+  }
+
   updateConfig({
     ...config,
     publicHolidays: config.publicHolidays.filter((_, i) => i !== index),
@@ -478,11 +520,12 @@ function removeHoliday(index: number) {
 />
 
       <input
-        className={inputClass}
-        placeholder="Holiday description"
-        value={h.label}
-        onChange={(e) => updateHoliday(index, "label", e.target.value)}
-      />
+  className={inputClass}
+  placeholder="Holiday description"
+  value={h.label}
+  onChange={(e) => updateHoliday(index, "label", e.target.value)}
+  onBlur={() => saveHolidayToSupabase(config.publicHolidays[index])}
+/>
 
       <button
         onClick={() => removeHoliday(index)}
