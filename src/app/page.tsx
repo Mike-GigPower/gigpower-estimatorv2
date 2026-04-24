@@ -167,6 +167,19 @@ useEffect(() => {
 
   async function initPage() {
     const { data, error } = await authClient.auth.getSession();
+    
+    const user = data.session.user;
+
+const { data: profile } = await authClient
+  .from("profiles")
+  .select("is_active")
+  .eq("id", user.id)
+  .single();
+
+if (!profile?.is_active) {
+  router.replace("/login");
+  return;
+}
 
     if (!isActive) return;
 
@@ -848,6 +861,8 @@ if (!profile || profile.role !== "admin") {
   }
 
   const actorId = sessionData.session.user.id;
+  
+  
   
   const { data: profile } = await authClient
   .from("profiles")
