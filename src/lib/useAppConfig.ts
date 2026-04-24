@@ -35,6 +35,7 @@ const { data: settingsData, error: settingsError } = await authClient
 
       if (settingsError || holidaysError || ratesError) {
         console.error("Failed to load config from Supabase:", {
+          settingsError,
           holidaysError,
           ratesError,
         });

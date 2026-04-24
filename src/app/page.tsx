@@ -186,9 +186,11 @@ useEffect(() => {
     if (!isActive) return;
 
     if (profileError || !userProfile?.is_active) {
-      router.replace("/login");
-      return;
-    }
+  
+  setIsMounted(true);
+  router.replace("/login");
+  return;
+}
 
     setPreparedBy(
       userProfile.full_name ||
@@ -954,8 +956,8 @@ if (!profile || profile.role !== "admin") {
 }
 
 async function loadAllDrafts() {
-  const { data, error } = await supabaseData
-    .from("quotes")
+  const { data, error } = await authClient
+  .from("quotes")
 .select("*")
 .or("is_deleted.eq.false,is_deleted.is.null")
 .order("created_at", { ascending: false });

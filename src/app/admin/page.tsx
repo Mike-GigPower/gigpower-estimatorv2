@@ -150,11 +150,19 @@ async function clearAllSavedQuotes() {
   async function saveRateToSupabase(rate: RateRow, index: number) {
   if (!rate.role.trim()) return;
 
+  const roleName = rate.role.trim();
+
+  const { data: beforeRate } = await authClient
+    .from("rate_cards")
+    .select("*")
+    .eq("role_name", roleName)
+    .maybeSingle();
+
   const { error } = await authClient
     .from("rate_cards")
     .upsert(
       {
-        role_name: rate.role.trim(),
+        role_name: roleName,
         category: "standard",
         day_rate: rate.day,
         night_rate: rate.night,
@@ -173,7 +181,15 @@ async function clearAllSavedQuotes() {
   if (error) {
     console.error("Error saving rate card:", error);
     alert("Error saving rate card: " + error.message);
+    return;
   }
+
+  await writeConfigAuditLog({
+    changeType: "rate_card",
+    targetKey: roleName,
+    beforeValue: beforeRate,
+    afterValue: rate,
+  });
 }
   
 
@@ -221,6 +237,13 @@ async function clearAllSavedQuotes() {
       alert("Error deleting rate card: " + error.message);
       return;
     }
+
+    await writeConfigAuditLog({
+      changeType: "rate_card_delete",
+      targetKey: rate.role,
+      beforeValue: rate,
+      afterValue: { ...rate, is_active: false },
+    });
   }
 
   updateConfig({
@@ -292,6 +315,37 @@ function addHoliday() {
     ...config,
     publicHolidays: [...config.publicHolidays, { date: "", label: "" }],
   });
+}
+
+async function writeConfigAuditLog({
+  changeType,
+  targetKey,
+  beforeValue,
+  afterValue,
+}: {
+  changeType: string;
+  targetKey: string;
+  beforeValue: unknown;
+  afterValue: unknown;
+}) {
+  const { data: sessionData } = await authClient.auth.getSession();
+
+  const user = sessionData.session?.user;
+
+  const { error } = await authClient.from("config_audit_log").insert([
+    {
+      change_type: changeType,
+      target_key: targetKey,
+      changed_by: user?.id || null,
+      changed_by_email: user?.email || null,
+      before_value: beforeValue,
+      after_value: afterValue,
+    },
+  ]);
+
+  if (error) {
+    console.error("Failed to write config audit log:", error);
+  }
 }
 
 async function removeHoliday(index: number) {
