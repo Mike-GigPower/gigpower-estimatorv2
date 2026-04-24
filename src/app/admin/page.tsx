@@ -12,8 +12,9 @@ export default function AdminPage() {
   const { config, updateConfig, restoreDefaults, ready } = useAppConfig();
     const router = useRouter();
   const [authClient] = useState(() => createClient());
-
-  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+const [users, setUsers] = useState<any[]>([]);
+const [currentUserId, setCurrentUserId] = useState("");
+const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showClearQuotesConfirm, setShowClearQuotesConfirm] = useState(false);
   const [showFinalClearQuotesConfirm, setShowFinalClearQuotesConfirm] = useState(false);
@@ -34,25 +35,29 @@ export default function AdminPage() {
     }
 
     const user = data.user;
-    const email = user.email?.toLowerCase() || "";
+    setCurrentUserId(user.id);
 
-    // Replace this with your actual admin email/s
-    const allowedAdmins = [
-      "mike@gigpower.com",
-    ];
+    const { data: profile, error: profileError } = await authClient
+      .from("profiles")
+      .select("role, is_active")
+      .eq("id", user.id)
+      .single();
 
-    const adminFromEmail = allowedAdmins.includes(email);
-    const adminFromMetadata = user.user_metadata?.role === "admin";
+    if (!isActive) return;
 
-    const allowed = adminFromEmail || adminFromMetadata;
+    if (profileError || !profile?.is_active) {
+      router.replace("/login");
+      return;
+    }
 
-    if (!allowed) {
-  router.replace("/");
-  return;
-}
+    if (profile.role !== "admin") {
+      router.replace("/");
+      return;
+    }
 
     setIsAdmin(true);
     setIsCheckingAccess(false);
+    await loadUsers();
   }
 
   checkAccess();
@@ -60,7 +65,56 @@ export default function AdminPage() {
   return () => {
     isActive = false;
   };
-}, [router]);
+}, [router, authClient]);
+
+async function loadUsers() {
+  const { data, error } = await authClient
+    .from("profiles")
+    .select("id, email, full_name, role, is_active")
+    .order("email", { ascending: true });
+
+  console.log("loadUsers result:", { data, error });
+
+  if (error) {
+    console.error("Error loading users:", error);
+    alert("Error loading users: " + error.message);
+    return;
+  }
+
+  setUsers(data || []);
+}
+
+async function updateUserProfile(
+  userId: string,
+  patch: Partial<{
+    full_name: string;
+    role: string;
+    is_active: boolean;
+  }>
+) {
+  if (userId === currentUserId && patch.is_active === false) {
+    alert("You cannot deactivate your own account.");
+    return;
+  }
+
+  if (userId === currentUserId && patch.role && patch.role !== "admin") {
+    alert("You cannot remove your own admin access.");
+    return;
+  }
+
+  const { error } = await authClient
+    .from("profiles")
+    .update(patch)
+    .eq("id", userId);
+
+  if (error) {
+    console.error("Error updating user:", error);
+    alert("Error updating user: " + error.message);
+    return;
+  }
+
+  await loadUsers();
+}
 
     if (!ready || isCheckingAccess) {
     return <main className="max-w-5xl mx-auto px-6 py-8">Loading...</main>;
@@ -466,6 +520,63 @@ async function removeHoliday(index: number) {
           </label>
         </div>
       </section>
+      
+      <section className="admin-card">
+  <div className="flex items-center justify-between gap-4 px-1 md:px-2 admin-action-row">
+    <h2 className={sectionTitleClass}>User Access Management</h2>
+  </div>
+
+  <div className="space-y-3 px-1 md:px-2">
+  <p className="text-sm text-gray-300">Users loaded: {users.length}</p>
+    {users.map((user) => (
+      <div key={user.id} className="grid grid-cols-1 gap-3 md:grid-cols-4">
+        <input
+          className={inputClass}
+          value={user.email || ""}
+          disabled
+        />
+
+        <input
+          className={inputClass}
+          placeholder="Full name"
+          value={user.full_name || ""}
+          onChange={(e) =>
+            setUsers((prev) =>
+              prev.map((u) =>
+                u.id === user.id ? { ...u, full_name: e.target.value } : u
+              )
+            )
+          }
+          onBlur={() =>
+            updateUserProfile(user.id, { full_name: user.full_name || "" })
+          }
+        />
+
+        <select
+          className={inputClass}
+          value={user.role || "staff"}
+          onChange={(e) =>
+            updateUserProfile(user.id, { role: e.target.value })
+          }
+        >
+          <option value="staff">staff</option>
+          <option value="admin">admin</option>
+        </select>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={!!user.is_active}
+            onChange={(e) =>
+              updateUserProfile(user.id, { is_active: e.target.checked })
+            }
+          />
+          Active
+        </label>
+      </div>
+    ))}
+  </div>
+</section>
 
       <section className="admin-card">
         <div className="flex items-start justify-between gap-4 px-1 md:px-2 admin-action-row">
