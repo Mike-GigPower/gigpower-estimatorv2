@@ -399,6 +399,8 @@ export function calculateQuoteTotals(input: QuoteInput, config: AppConfig) {
       breakdown: r.breakdown,
     };
   });
+  
+  
 
   input.labour.forEach((l) => {
     const r = calculateLabourLine(l, config);
@@ -441,4 +443,83 @@ export function calculateQuoteTotals(input: QuoteInput, config: AppConfig) {
       grandTotalIncGst,
     },
   };
+}
+
+export function parseStartTime(value: string): string | null {
+  const raw = value.trim().toLowerCase();
+
+  let normalized: string | null = null;
+
+  const compact = raw.replace(/\s+/g, "");
+  const isAM = compact.includes("am");
+  const isPM = compact.includes("pm");
+  const cleaned = compact.replace(/am|pm/g, "");
+
+  let match = cleaned.match(/^(\d{1,2})[:\.](\d{2})$/);
+  if (match) {
+    let hours = Number(match[1]);
+    const minutes = Number(match[2]);
+
+    if (minutes >= 0 && minutes < 60) {
+      if (isPM && hours < 12) hours += 12;
+      if (isAM && hours === 12) hours = 0;
+
+      if (hours >= 0 && hours <= 23) {
+        normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+      }
+    }
+  }
+
+  if (!normalized) {
+    match = cleaned.match(/^(\d{3,4})$/);
+    if (match) {
+      const digits = match[1].padStart(4, "0");
+      let hours = Number(digits.slice(0, 2));
+      const minutes = Number(digits.slice(2, 4));
+
+      if (minutes >= 0 && minutes < 60) {
+        if (isPM && hours < 12) hours += 12;
+        if (isAM && hours === 12) hours = 0;
+
+        if (hours >= 0 && hours <= 23) {
+          normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+        }
+      }
+    }
+  }
+
+  if (!normalized) {
+    match = cleaned.match(/^(\d{1,2})$/);
+    if (match) {
+      let hours = Number(match[1]);
+      const minutes = 0;
+
+      if (isPM && hours < 12) hours += 12;
+      if (isAM && hours === 12) hours = 0;
+
+      if (hours >= 0 && hours <= 23) {
+        normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+      }
+    }
+  }
+
+  return normalized;
+}
+
+export function parseDurationHours(value: string): number | null {
+  const raw = value.trim();
+
+  const hhmm = raw.match(/^(\d{1,2}):([0-5]\d)$/);
+  if (hhmm) {
+    const h = Number(hhmm[1]);
+    const mins = Number(hhmm[2]);
+    return h + mins / 60;
+  }
+
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    const hours = Number(raw);
+    if (!Number.isNaN(hours) && hours > 0) return hours;
+  }
+
+  return null;
 }
