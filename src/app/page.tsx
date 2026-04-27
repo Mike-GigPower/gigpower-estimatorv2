@@ -26,6 +26,17 @@ import { useRouter } from "next/navigation";
  */
 import { estimateQuote } from "@/src/lib/calc";
 import { useAppConfig } from "@/src/lib/useAppConfig";
+import {
+  addDaysToDDMMYYYY,
+  autoColonHHMM,
+  ddmmyyyyToIso,
+  formatDateDDMMYYYY,
+  hoursToHHMM,
+  isQuoteEmpty,
+  normaliseHHMM,
+  normaliseInputRoles,
+  sortLabourLinesByDate,
+} from "@/src/lib/estimator/calc";
 
 /**
  * Shared app types
@@ -35,7 +46,7 @@ import type {
   LabourLine,
   NonLabourLine,
   QuoteResult,
-} from "@/src/lib/types";
+} from "@/src/lib/estimator/types";
 
 type SavedDraft = {
   id: string;
@@ -211,12 +222,6 @@ useEffect(() => {
   };
 }, [router, authClient]);
 
- function ddmmyyyyToIso(value: string): string | null {
-  const m = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) return null;
-  return `${m[3]}-${m[2]}-${m[1]}`;
-}
-
   /**
    * Once config is ready, ensure there is at least one labour line.
    * This helps when the page loads before rates/config are available.
@@ -305,7 +310,7 @@ const todayIso = today.toISOString().slice(0, 10);
    * Normalises roles first once config is ready, then updates input state.
    */
   function recalc(next: QuoteInput) {
-    const normalised = ready ? normaliseInputRoles(next) : next;
+    const normalised = ready ? normaliseInputRoles(next, config) : next;
     setInput(normalised);
   }
 
@@ -315,7 +320,7 @@ const todayIso = today.toISOString().slice(0, 10);
   useEffect(() => {
     if (!ready) return;
 
-    setInput((prev) => normaliseInputRoles(prev));
+    setInput((prev) => normaliseInputRoles(prev, config));
   }, [ready, config]);
 
   /**
@@ -424,77 +429,10 @@ const todayIso = today.toISOString().slice(0, 10);
    * Sort labour rows by shift date, then start time, then role name.
    */
   function sortLabourByDate() {
-    const sorted = [...input.labour].sort((a, b) => {
-      const dateA = a.shiftDate || "";
-      const dateB = b.shiftDate || "";
-
-      if (dateA !== dateB) {
-        return dateA.localeCompare(dateB);
-      }
-
-      const timeA = normaliseHHMM(a.startTime) ?? a.startTime ?? "";
-      const timeB = normaliseHHMM(b.startTime) ?? b.startTime ?? "";
-
-      if (timeA !== timeB) {
-        return timeA.localeCompare(timeB);
-      }
-
-      return a.role.localeCompare(b.role);
-    });
+    const sorted = sortLabourLinesByDate(input.labour);
 
     const next = { ...input, labour: sorted };
     recalc(next);
-  }
-
-  /**
-   * Ensure all labour roles are still valid against the current config.
-   * If a role is no longer valid, fall back to the first configured role.
-   */
-  function normaliseInputRoles(next: QuoteInput): QuoteInput {
-    const validRoles = config.rates.map((r) => r.role);
-    const fallbackRole = validRoles[0] ?? "";
-
-    return {
-      ...next,
-      labour: next.labour.map((line) => ({
-        ...line,
-        role: validRoles.includes(line.role) ? line.role : fallbackRole,
-      })),
-    };
-  }
-
-  /**
-   * Convert decimal hours into HH:MM format.
-   * Example: 4.5 -> 04:30
-   */
-  function hoursToHHMM(hours: number): string {
-    if (!Number.isFinite(hours)) return "00:00";
-    const totalMinutes = Math.round(hours * 60);
-    const h = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-  }
-
-  /**
-   * Automatically insert a colon while the user types time values.
-   * Example: 0830 -> 08:30
-   */
-  function autoColonHHMM(value: string): string {
-    const digits = value.replace(/\D/g, "").slice(0, 4);
-    if (digits.length <= 2) return digits;
-    return `${digits.slice(0, 2)}:${digits.slice(2)}`;
-  }
-
-  /**
-   * Convert HH:MM text into decimal hours.
-   * Example: 04:30 -> 4.5
-   */
-  function hhmmToHours(value: string): number {
-    const match = value.match(/^(\d{1,2}):([0-5]\d)$/);
-    if (!match) return 0;
-    const h = Number(match[1]);
-    const m = Number(match[2]);
-    return h + m / 60;
   }
 
   /**
@@ -528,36 +466,6 @@ const todayIso = today.toISOString().slice(0, 10);
     recalc(next);
   }
   
-  function isQuoteEmpty() {
-  const hasHeaderData =
-    (input.companyName || "").trim() !== "" ||
-    (input.contactName || "").trim() !== "" ||
-    (input.contactEmail || "").trim() !== "" ||
-    (input.contactPhone || "").trim() !== "" ||
-    (input.venue || "").trim() !== "" ||
-    (input.notes || "").trim() !== "" ||
-    (draftName || "").trim() !== "" && draftName !== "Untitled Estimate";
-
-  const hasLabourData = input.labour.some(
-    (line) =>
-      (line.role || "").trim() !== "" ||
-      (line.notes || "").trim() !== "" ||
-      (line.qty ?? 1) !== 1 ||
-      (line.startTime || "") !== "08:00" ||
-      (line.durationHours ?? config.minBillableHours) !== config.minBillableHours ||
-      (line.shiftDate || "").trim() !== ""
-  );
-
-  const hasNonLabourData = input.nonLabour.some(
-    (line) =>
-      (line.description || "").trim() !== "" ||
-      (line.amountExGst ?? 0) !== 0 ||
-      (line.qty ?? 1) !== 1
-  );
-
-  return !hasHeaderData && !hasLabourData && !hasNonLabourData;
-}
-
 function resetToBlankQuote() {
   const today = new Date();
   const todayIso = today.toISOString().slice(0, 10);
@@ -583,7 +491,13 @@ function resetToBlankQuote() {
 }
 
 function handleStartNew() {
-  if (isQuoteEmpty()) {
+  if (
+    isQuoteEmpty({
+      input,
+      draftName,
+      minBillableHours: config.minBillableHours,
+    })
+  ) {
     resetToBlankQuote();
     setValidUntilManuallyEdited(false);
     return;
@@ -908,29 +822,6 @@ if (!profile || profile.role !== "admin") {
   await loadAllDrafts();
 }
 
-  /**
-   * Validate and normalise a HH:MM string.
-   * Returns null if invalid.
-   */
-  function normaliseHHMM(value: string): string | null {
-    const raw = value.trim();
-    const m = raw.match(/^(\d{1,2}):([0-5]\d)$/);
-    if (!m) return null;
-    const h = Number(m[1]);
-    const mins = Number(m[2]);
-    if (!Number.isFinite(h) || h < 0 || h > 23) return null;
-    return `${String(h).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
-  }
-
-  /**
-   * Format a Date object as DD/MM/YYYY.
-   */
-  function formatDateDDMMYYYY(date: Date): string {
-    const dd = String(date.getDate()).padStart(2, "0");
-    const mm = String(date.getMonth() + 1).padStart(2, "0");
-    const yyyy = date.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-  }
 
   /**
    * Frequently used shortcut for totals.
@@ -969,14 +860,6 @@ if (!profile || profile.role !== "admin") {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function addDaysToDDMMYYYY(value: string, days: number): string {
-  const iso = ddmmyyyyToIso(value);
-  const d = iso ? new Date(iso) : new Date();
-
-  d.setDate(d.getDate() + days);
-  return formatDateDDMMYYYY(d);
 }
 
 async function loadAllDrafts() {
