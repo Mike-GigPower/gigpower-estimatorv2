@@ -315,6 +315,10 @@ const todayIso = today.toISOString().slice(0, 10);
     setInput(normalised);
   }
 
+  function calculateCurrentQuote(nextInput: QuoteInput) {
+    return calculateQuoteTotals(nextInput, config);
+  }
+
   /**
    * When config changes, make sure all labour rows still reference valid configured roles.
    */
@@ -333,7 +337,7 @@ const todayIso = today.toISOString().slice(0, 10);
 
     setBusy(true);
     try {
-      setResult(calculateQuoteTotals(input, config));
+      setResult(calculateCurrentQuote(input));
     } finally {
       setBusy(false);
     }
@@ -346,7 +350,7 @@ const todayIso = today.toISOString().slice(0, 10);
    */
   useEffect(() => {
     if (!ready) return;
-    setResult(calculateQuoteTotals(input, config));
+    setResult(calculateCurrentQuote(input));
   }, [config, input, ready]);
 
   /**
@@ -486,7 +490,7 @@ function resetToBlankQuote() {
   setDraftName("Untitled Estimate");
   setSelectedDraftId("");
   setInput(freshInput);
-  setResult(calculateQuoteTotals(freshInput, config));
+  setResult(calculateCurrentQuote(freshInput));
   setDurationText({});
   setStartTimeText({});
 }

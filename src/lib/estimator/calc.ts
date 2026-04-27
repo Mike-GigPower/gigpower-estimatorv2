@@ -381,29 +381,31 @@ export function calculateLabourLine(
 }
 
 export function calculateQuoteTotals(input: QuoteInput, config: AppConfig) {
-  const validationErrors: string[] = [];
-
-  const labourLines = input.labour.map((line) => {
+  const labourEvaluations = input.labour.map((line) => {
     const r = calculateLabourLine(line, config);
     return {
-      id: line.id,
-      role: line.role,
-      qty: line.qty,
-      shiftDate: line.shiftDate,
-      startTime: line.startTime,
-      durationHours: line.durationHours,
-      billableHours: r.billableHours,
-      costExGst: r.costExGst,
-      gst: round2(r.costExGst * config.gstRate),
-      totalIncGst: round2(r.costExGst * (1 + config.gstRate)),
-      breakdown: r.breakdown,
+      line,
+      result: r,
     };
   });
 
-  input.labour.forEach((l) => {
-    const r = calculateLabourLine(l, config);
-    if (!r.ok) validationErrors.push(...r.errors);
-  });
+  const labourLines = labourEvaluations.map(({ line, result }) => ({
+    id: line.id,
+    role: line.role,
+    qty: line.qty,
+    shiftDate: line.shiftDate,
+    startTime: line.startTime,
+    durationHours: line.durationHours,
+    billableHours: result.billableHours,
+    costExGst: result.costExGst,
+    gst: round2(result.costExGst * config.gstRate),
+    totalIncGst: round2(result.costExGst * (1 + config.gstRate)),
+    breakdown: result.breakdown,
+  }));
+
+  const validationErrors = labourEvaluations.flatMap(({ result }) =>
+    result.ok ? [] : result.errors
+  );
 
   const nonLabourLines = input.nonLabour
     .filter((x) => (x.description || "").trim() !== "" || x.amountExGst !== 0 || x.qty !== 1)
