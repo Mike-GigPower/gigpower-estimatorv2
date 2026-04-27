@@ -24,7 +24,6 @@ import { useRouter } from "next/navigation";
 /**
  * Quote calculation engine and app configuration hook
  */
-import { estimateQuote } from "@/src/lib/calc";
 import { useAppConfig } from "@/src/lib/useAppConfig";
 import {
   addDaysToDDMMYYYY,
@@ -36,6 +35,7 @@ import {
   normaliseHHMM,
   normaliseInputRoles,
   sortLabourLinesByDate,
+  calculateQuoteTotals,
 } from "@/src/lib/estimator/calc";
 
 /**
@@ -333,7 +333,7 @@ const todayIso = today.toISOString().slice(0, 10);
 
     setBusy(true);
     try {
-      setResult(estimateQuote(input, config));
+      setResult(calculateQuoteTotals(input, config));
     } finally {
       setBusy(false);
     }
@@ -346,7 +346,7 @@ const todayIso = today.toISOString().slice(0, 10);
    */
   useEffect(() => {
     if (!ready) return;
-    setResult(estimateQuote(input, config));
+    setResult(calculateQuoteTotals(input, config));
   }, [config, input, ready]);
 
   /**
@@ -486,7 +486,7 @@ function resetToBlankQuote() {
   setDraftName("Untitled Estimate");
   setSelectedDraftId("");
   setInput(freshInput);
-  setResult(estimateQuote(freshInput, config));
+  setResult(calculateQuoteTotals(freshInput, config));
   setDurationText({});
   setStartTimeText({});
 }
