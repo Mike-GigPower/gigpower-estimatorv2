@@ -27,6 +27,7 @@ export type QuoteInput = {
   notes: string;
   labour: LabourLine[];
   nonLabour: NonLabourLine[];
+  status?: "Draft" | "Sent" | "Approved";
 };
 
 export type LabourLineResult = {

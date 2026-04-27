@@ -14,6 +14,7 @@ type AppHeaderProps = {
   contactEmail?: string;
   contactPhone?: string;
   venue?: string;
+    status?: string;
 };
 
 export default function AppHeader({
@@ -29,6 +30,7 @@ export default function AppHeader({
   contactEmail,
   contactPhone,
   venue,
+  status,
 }: AppHeaderProps) {
   return (
     <>
@@ -63,7 +65,8 @@ export default function AppHeader({
   <div>
   <div>
   <strong>Quote #:</strong> {quoteNumber || "—"} · Version {version ?? 1} ·{" "}
-  <strong>Valid Until:</strong> {validUntil || "—"}
+<strong>Status:</strong> {status || "Draft"} ·{" "}
+<strong>Valid Until:</strong> {validUntil || "—"}
 </div>
   <input
     type="text"
@@ -104,8 +107,9 @@ export default function AppHeader({
   </div>
   <div style={{ marginTop: "8px", fontSize: "13px" }}>
   <strong>Quote #:</strong> {quoteNumber || "—"} · Version {version ?? 1} ·{" "}
-  <strong>Valid Until:</strong>{" "}
-  <input
+<strong>Status:</strong> {status || "Draft"} ·{" "}
+<strong>Valid Until:</strong>{" "}
+<input
     type="text"
     value={validUntil || ""}
     onChange={(e) => onValidUntilChange?.(e.target.value)}

@@ -128,6 +128,7 @@ const defaultInput: QuoteInput = {
   quoteNumber: "",
   quoteDate: "",
   validUntil: "",
+  status: "Draft",
   labour: [emptyLabourLine("", 4, "")],
   nonLabour: [emptyNonLabourLine()],
 };
@@ -647,6 +648,7 @@ const ensuredInput: QuoteInput = {
   quoteNumber,
   quoteDate: quoteDateValue,
   validUntil: validUntilValue,
+  status: input.status || "Draft",
 };
   // Update an existing quote and create a new history version
   if (overwriteId) {
@@ -669,6 +671,7 @@ const ensuredInput: QuoteInput = {
       .update({
         name,
         quote_number: ensuredInput.quoteNumber,
+        status: ensuredInput.status,
         quote_date: ddmmyyyyToIso(ensuredInput.quoteDate),
         valid_until: ddmmyyyyToIso(ensuredInput.validUntil),
         payload: ensuredInput,
@@ -771,29 +774,31 @@ const ensuredInput: QuoteInput = {
     alert("Saved estimate not found.");
     return;
   }
+const draftInput = draft.input || defaultInput;
 
-  const hydrated: QuoteInput = {
-  ...draft.input,
-  quoteNumber: draft.input.quoteNumber || "",
-  quoteDate: draft.input.quoteDate || formatDateDDMMYYYY(new Date()),
-validUntil:
-  draft.input.validUntil ||
-  (() => {
-    const quoteDateValue =
-      draft.input.quoteDate || formatDateDDMMYYYY(new Date());
+const hydrated: QuoteInput = {
+  ...draftInput,
+  quoteNumber: draftInput.quoteNumber || "",
+  status: draftInput.status || "Draft",
+  quoteDate: draftInput.quoteDate || formatDateDDMMYYYY(new Date()),
+  validUntil:
+    draftInput.validUntil ||
+    (() => {
+      const quoteDateValue =
+        draftInput.quoteDate || formatDateDDMMYYYY(new Date());
 
-    const baseDate = ddmmyyyyToIso(quoteDateValue);
-    const d = baseDate ? new Date(baseDate) : new Date();
+      const baseDate = ddmmyyyyToIso(quoteDateValue);
+      const d = baseDate ? new Date(baseDate) : new Date();
 
-    d.setDate(d.getDate() + 14);
-    return formatDateDDMMYYYY(d);
-  })(),
-  labour: (draft.input.labour || []).map((line) => ({
+      d.setDate(d.getDate() + 14);
+      return formatDateDDMMYYYY(d);
+    })(),
+  labour: (draftInput.labour || []).map((line) => ({
     ...line,
     id: line.id || uid("lab"),
     notes: line.notes || "",
   })),
-  nonLabour: (draft.input.nonLabour || []).map((line) => ({
+  nonLabour: (draftInput.nonLabour || []).map((line) => ({
     ...line,
     id: line.id || uid("nl"),
   })),
@@ -1071,6 +1076,7 @@ const hasAnyData = hasLabourData || hasNonLabourData;
   }));
 }}
   version={selectedDraftMeta?.currentVersion ?? 1}
+  status={input.status}
     preparedBy={preparedBy}
   companyName={input.companyName}
   contactName={input.contactName}
@@ -1104,7 +1110,31 @@ const hasAnyData = hasLabourData || hasNonLabourData;
         />
       </div>
       
-     
+     <div className="no-print" style={{ marginBottom: "12px" }}>
+  <label style={{ display: "grid", gap: "4px", maxWidth: "200px" }}>
+    <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>
+      Status
+    </span>
+    <select
+      value={input.status || "Draft"}
+      onChange={(e) =>
+        setInput((prev) => ({
+          ...prev,
+          status: e.target.value as "Draft" | "Sent" | "Approved",
+        }))
+      }
+      style={{
+        padding: "8px 10px",
+        borderRadius: "8px",
+        border: "1px solid rgba(255,255,255,0.2)",
+      }}
+    >
+      <option value="Draft">Draft</option>
+      <option value="Sent">Sent</option>
+      <option value="Approved">Approved</option>
+    </select>
+  </label>
+</div>
       
       <div
   style={{
