@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppConfig } from "@/src/lib/useAppConfig";
-import type { RateRow } from "@/src/lib/types";
+import type { RateRow } from "@/src/lib/estimator";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseData } from "@/src/lib/supabase";

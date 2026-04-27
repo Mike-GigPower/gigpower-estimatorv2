@@ -1,13 +1,6 @@
 import LabourRow from "./LabourRow";
 
-type LabourLine = {
-  id: string;
-  role: string;
-  qty: number;
-  shiftDate: string;
-  startTime: string;
-  durationHours: number;
-};
+import type { LabourLine } from "@/src/lib/estimator";
 
 type LabourResultLine = {
   id: string;

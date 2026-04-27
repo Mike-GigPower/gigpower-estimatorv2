@@ -1,14 +1,6 @@
 import React from "react";
 
-type LabourLine = {
-  id: string;
-  role: string;
-  qty: number;
-  shiftDate: string;
-  startTime: string;
-  durationHours: number;
-  notes?: string;
-};
+import type { LabourLine } from "@/src/lib/estimator";
 
 type LabourResultLine = {
   id: string;

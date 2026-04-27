@@ -31,11 +31,13 @@ import { useAppConfig } from "@/src/lib/useAppConfig";
  * Shared app types
  */
 import type {
-  QuoteInput,
   LabourLine,
   NonLabourLine,
+  QuoteInput,
   QuoteResult,
-} from "@/src/lib/types";
+  RateRow,
+  AppConfig,
+} from "@/src/lib/estimator";
 
 type SavedDraft = {
   id: string;
