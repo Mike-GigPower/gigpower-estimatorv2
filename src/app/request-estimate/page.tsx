@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAppConfig } from "@/src/lib/useAppConfig";
+import { parseStartTime } from "@/src/lib/estimator/calc";
 
 type PublicCrewLine = {
   id: string;
@@ -41,7 +42,7 @@ const initialRequest: PublicEstimateRequest = {
   crewLines: [
   {
     id: crypto.randomUUID(),
-    crewType: "",
+    crewType: "Standard Crew",
     qty: "1",
     shiftDate: "",
     startTime: "",
@@ -91,7 +92,7 @@ function addCrewLine() {
       ...current.crewLines,
       {
         id: crypto.randomUUID(),
-        crewType: "",
+        crewType: "Standard Crew",
         qty: "1",
         shiftDate: "",
         startTime: "",
@@ -137,19 +138,20 @@ function removeCrewLine(id: string) {
   function validateCrewLines() {
   for (const line of request.crewLines) {
     if (
-      !line.crewType ||
-      !line.qty ||
-      !line.shiftDate ||
-      !line.startTime ||
-      !line.duration
-    ) {
-      return false;
-    }
+  !line.crewType.trim() ||
+  !line.qty.trim() ||
+  !line.shiftDate.trim() ||
+  !line.startTime.trim() ||
+  !line.duration.trim()
+) {
+  console.log("Invalid crew line:", line);
+  return false;
+}
   }
   return true;
 }
 
-function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
   event.preventDefault();
 
   // Validate crew requirements
@@ -170,10 +172,22 @@ function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     return;
   }
 
-  // Phase 2 only: no database save yet.
-  console.log("Public estimate request:", request);
+  const response = await fetch("/api/estimate-request", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify(request),
+});
 
-  setSubmitted(true);
+const data = await response.json();
+
+if (!data.success) {
+  alert("Something went wrong submitting the request. Please try again.");
+  return;
+}
+
+setSubmitted(true);
 }
 
   if (submitted) {
@@ -358,12 +372,19 @@ function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
       <label>
         Start time <span className="required-star">*</span>
         <input
-          type="time"
-          value={line.startTime}
-          onChange={(e) =>
-            updateCrewLine(line.id, { startTime: e.target.value })
-          }
-        />
+  value={line.startTime}
+  onChange={(e) =>
+    updateCrewLine(line.id, { startTime: e.target.value })
+  }
+  onBlur={(e) => {
+    const parsed = parseStartTime(e.target.value);
+
+    if (parsed) {
+      updateCrewLine(line.id, { startTime: parsed });
+    }
+  }}
+  placeholder="e.g. 10:30pm or 22:30"
+/>
       </label>
 
       <label>
