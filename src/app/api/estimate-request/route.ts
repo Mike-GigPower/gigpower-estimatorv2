@@ -5,31 +5,34 @@ import {
 } from "@/src/lib/email";
 import { estimateQuote } from "@/src/lib/calc";
 import { parseDurationHours } from "@/src/lib/estimator/calc";
+import type { QuoteInput } from "@/src/lib/estimator";
+import { publicRequestToQuoteInput } from "@/src/lib/estimator/publicRequest";
 
 
+function generateEstimateNumber() {
+  const now = new Date();
 
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+
+  const random = Math.floor(100 + Math.random() * 900); // 3 digits
+
+  return `GP-${yy}${mm}${dd}-${random}`;
+}
 
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const quoteInput = {
-  labour: body.crewLines.map((line: any) => ({
-    id: line.id,
-    role: line.crewType,
-    qty: Number(line.qty),
-    shiftDate: line.shiftDate,
-    startTime: line.startTime,
-    durationHours: parseDurationHours(line.duration) ?? 0,
-    notes: line.notes,
-  })),
-  nonLabour: [],
-};
+    const estimateNumber = generateEstimateNumber();
+    const quoteInput = publicRequestToQuoteInput(body);
 const result = estimateQuote(quoteInput);
 
     const { error } = await supabaseData.from("estimate_requests").insert([
       {
         status: "New",
+        estimate_number: estimateNumber,
 
         customer_name: body.customerName,
         company_name: body.companyName,
@@ -41,9 +44,16 @@ const result = estimateQuote(quoteInput);
         event_date: body.eventDate || null,
 
         payload: {
-        ...body,
-        estimateTotal: result.totals?.grandTotalIncGst,
-      },
+  ...body,
+  estimateNumber,
+  estimate: {
+    totalIncGst: result.totals?.grandTotalIncGst,
+    labourExGst: result.totals?.labourExGst,
+    nonLabourExGst: result.totals?.nonLabourExGst,
+    gst: result.totals?.gst,
+    subTotalExGst: result.totals?.subTotalExGst,
+  },
+},
       },
     ]);
 
@@ -63,6 +73,8 @@ const result = estimateQuote(quoteInput);
   eventDate: body.eventDate,
   eventLocation: body.eventLocation,
   grandTotalIncGst: result.totals?.grandTotalIncGst,
+  crewLines: body.crewLines,
+  estimateNumber,
 });
 
 await sendInternalEstimateNotification({
@@ -73,6 +85,8 @@ await sendInternalEstimateNotification({
   eventDate: body.eventDate,
   eventLocation: body.eventLocation,
   grandTotalIncGst: result.totals?.grandTotalIncGst,
+  crewLines: body.crewLines,
+  estimateNumber,
 });
 
     return Response.json({ success: true });
