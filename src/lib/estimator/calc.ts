@@ -525,3 +525,13 @@ export function parseDurationHours(value: string): number | null {
 
   return null;
 }
+
+export function calculateNonLabourLine(
+  qty: number,
+  amountExGst: number
+) {
+  const safeQty = qty || 0;
+  const safeAmount = amountExGst || 0;
+
+  return safeQty * safeAmount;
+}

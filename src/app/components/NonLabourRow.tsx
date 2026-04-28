@@ -1,5 +1,7 @@
 import React from "react";
 
+import { calculateNonLabourLine } from "@/src/lib/estimator/calc";
+
 type NonLabourLine = {
   id: string;
   description: string;
@@ -35,8 +37,10 @@ export default function NonLabourRow({
     line.amountExGst === 0 &&
     line.qty === 1;
 
-  const unit = line.amountExGst || 0;
-  const lineTotalExGst = unit * (line.qty || 1);
+  const lineTotalExGst = calculateNonLabourLine(
+  line.qty,
+  line.amountExGst
+);
 
   return (
     <tr data-blank={blank ? "true" : "false"}>
