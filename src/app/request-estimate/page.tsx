@@ -2,6 +2,16 @@
 
 import { useState } from "react";
 
+type PublicCrewLine = {
+  id: string;
+  crewType: string;
+  qty: string;
+  shiftDate: string;
+  startTime: string;
+  duration: string;
+  notes: string;
+};
+
 type PublicEstimateRequest = {
   customerName: string;
   companyName: string;
@@ -12,8 +22,7 @@ type PublicEstimateRequest = {
   eventDate: string;
   startTime: string;
   endTime: string;
-  crewRequired: string;
-  crewCount: string;
+  crewLines: PublicCrewLine[];
   notes: string;
 };
 
@@ -27,10 +36,21 @@ const initialRequest: PublicEstimateRequest = {
   eventDate: "",
   startTime: "",
   endTime: "",
-  crewRequired: "",
-  crewCount: "",
   notes: "",
+  crewLines: [
+  {
+    id: crypto.randomUUID(),
+    crewType: "",
+    qty: "1",
+    shiftDate: "",
+    startTime: "",
+    duration: "",
+    notes: "",
+  },
+],
 };
+
+
 
 export default function RequestEstimatePage() {
   const [request, setRequest] = useState<PublicEstimateRequest>(initialRequest);
@@ -45,6 +65,36 @@ export default function RequestEstimatePage() {
       [field]: value,
     }));
   }
+  
+  function updateCrewLine(
+  id: string,
+  patch: Partial<PublicCrewLine>
+) {
+  setRequest((current) => ({
+    ...current,
+    crewLines: current.crewLines.map((line) =>
+      line.id === id ? { ...line, ...patch } : line
+    ),
+  }));
+}
+
+function addCrewLine() {
+  setRequest((current) => ({
+    ...current,
+    crewLines: [
+      ...current.crewLines,
+      {
+        id: crypto.randomUUID(),
+        crewType: "",
+        qty: "1",
+        shiftDate: "",
+        startTime: "",
+        duration: "",
+        notes: "",
+      },
+    ],
+  }));
+}
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -170,24 +220,86 @@ export default function RequestEstimatePage() {
             />
           </label>
 
-          <label>
-            Crew required
-            <input
-              value={request.crewRequired}
-              onChange={(e) => updateField("crewRequired", e.target.value)}
-              placeholder="e.g. show crew, crew boss, forklift, general labour"
-            />
-          </label>
+          <div className="span-2">
+  <h2 style={{ fontSize: 18, marginTop: 8 }}>Crew requirements</h2>
+  <p className="muted">
+    Add one row for each crew type, date, start time, and duration required.
+  </p>
 
-          <label>
-            Estimated crew count
-            <input
-              type="number"
-              min="1"
-              value={request.crewCount}
-              onChange={(e) => updateField("crewCount", e.target.value)}
-            />
-          </label>
+  {request.crewLines.map((line) => (
+    <div key={line.id} className="card" style={{ marginBottom: 12 }}>
+      <label>
+        Crew type
+        <input
+          value={line.crewType}
+          onChange={(e) =>
+            updateCrewLine(line.id, { crewType: e.target.value })
+          }
+          placeholder="e.g. Show Crew, Crew Boss, Forklift"
+        />
+      </label>
+
+      <label>
+        Qty
+        <input
+          type="number"
+          min="1"
+          value={line.qty}
+          onChange={(e) =>
+            updateCrewLine(line.id, { qty: e.target.value })
+          }
+        />
+      </label>
+
+      <label>
+        Shift date
+        <input
+          type="date"
+          value={line.shiftDate}
+          onChange={(e) =>
+            updateCrewLine(line.id, { shiftDate: e.target.value })
+          }
+        />
+      </label>
+
+      <label>
+        Start time
+        <input
+          type="time"
+          value={line.startTime}
+          onChange={(e) =>
+            updateCrewLine(line.id, { startTime: e.target.value })
+          }
+        />
+      </label>
+
+      <label>
+        Duration
+        <input
+          value={line.duration}
+          onChange={(e) =>
+            updateCrewLine(line.id, { duration: e.target.value })
+          }
+          placeholder="e.g. 04:00 or 4.5"
+        />
+      </label>
+
+      <label>
+        Notes
+        <input
+          value={line.notes}
+          onChange={(e) =>
+            updateCrewLine(line.id, { notes: e.target.value })
+          }
+        />
+      </label>
+    </div>
+  ))}
+
+  <button type="button" onClick={addCrewLine}>
+    + Add crew requirement
+  </button>
+</div>
 
           <label className="span-2">
             Additional notes
