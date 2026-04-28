@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const quoteInput = publicRequestToQuoteInput(body);
 const result = estimateQuote(quoteInput);
 
-    const { error } = await supabaseData.from("estimate_requests").insert([
+    const { data, error } = await supabaseData.from("estimate_requests").insert([
       {
         status: "New",
         estimate_number: estimateNumber,
@@ -55,7 +55,9 @@ const result = estimateQuote(quoteInput);
   },
 },
       },
-    ]);
+    ])
+    .select()
+    .single();;
 
     if (error) {
       console.error("Estimate request insert error:", error);
@@ -65,6 +67,14 @@ const result = estimateQuote(quoteInput);
         { status: 500 }
       );
     }
+    
+    const requestId = data?.id;
+    
+    const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+const requestLink = `${baseUrl}/admin/requests?id=${requestId}`;
+    
     await sendCustomerEstimateEmail({
   customerName: body.customerName,
   customerEmail: body.email,
@@ -87,6 +97,7 @@ await sendInternalEstimateNotification({
   grandTotalIncGst: result.totals?.grandTotalIncGst,
   crewLines: body.crewLines,
   estimateNumber,
+  requestLink,
 });
 
     return Response.json({ success: true });

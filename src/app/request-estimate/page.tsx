@@ -153,6 +153,11 @@ function removeCrewLine(id: string) {
 
 async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
   event.preventDefault();
+  
+  if (!request.phone.trim()) {
+    alert("Please enter a contact phone number.");
+    return;
+  }
 
   // Validate crew requirements
   if (!validateCrewLines()) {
@@ -164,6 +169,7 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
   if (
     !request.customerName ||
     !request.email ||
+    !request.phone ||
     !request.eventName ||
     !request.eventLocation ||
     !request.eventDate
@@ -265,11 +271,12 @@ setSubmitted(true);
     </label>
 
     <label>
-      Contact phone
+      Contact phone <span className="required-star">*</span>
       <input
         value={request.phone}
         onChange={(e) => updateField("phone", e.target.value)}
         placeholder="0400 000 000"
+        required
       />
     </label>
 

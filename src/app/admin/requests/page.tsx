@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/src/lib/supabase/client";
+import { useSearchParams } from "next/navigation";
 
 type EstimateRequest = {
   id: string;
@@ -23,6 +24,8 @@ export default function AdminRequestsPage() {
   const [loading, setLoading] = useState(true);
 
   const [supabase] = useState(() => createClient());
+  const searchParams = useSearchParams();
+const requestIdFromUrl = searchParams.get("id");
 
   useEffect(() => {
     loadRequests();
@@ -44,9 +47,29 @@ export default function AdminRequestsPage() {
     }
 
     setRequests(data || []);
-    setSelected(data?.[0] || null);
+    if (requestIdFromUrl) {
+  const match = data?.find((r) => r.id === requestIdFromUrl);
+  setSelected(match || data?.[0] || null);
+} else {
+  setSelected(data?.[0] || null);
+}
     setLoading(false);
   }
+  
+  async function updateStatus(id: string, status: string) {
+  const { error } = await supabase
+    .from("estimate_requests")
+    .update({ status })
+    .eq("id", id);
+
+  if (error) {
+    console.error(error);
+    alert("Failed to update status");
+    return;
+  }
+
+  loadRequests();
+}
 
   function money(value?: number) {
     if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -58,6 +81,15 @@ export default function AdminRequestsPage() {
       currency: "AUD",
     });
   }
+  
+  function loadIntoEstimator(request: EstimateRequest) {
+  localStorage.setItem(
+    "loadedEstimateRequest",
+    JSON.stringify(request.payload)
+  );
+
+  window.location.href = "/";
+}
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-8">
@@ -132,9 +164,16 @@ export default function AdminRequestsPage() {
                     <h2 style={{ marginBottom: 4 }}>
                       {selected.estimate_number || "No reference"}
                     </h2>
-                    <p className="muted" style={{ marginTop: 0 }}>
-                      Status: {selected.status}
-                    </p>
+                    <div style={{ marginTop: 8 }}>
+  <select
+    value={selected.status}
+    onChange={(e) => updateStatus(selected.id, e.target.value)}
+  >
+    <option value="New">New</option>
+    <option value="Reviewed">Reviewed</option>
+    <option value="Quoted">Quoted</option>
+  </select>
+</div>
                   </div>
                 </div>
 
@@ -188,17 +227,26 @@ export default function AdminRequestsPage() {
                 </table>
 
                 <h3 style={{ marginTop: 20 }}>Estimate</h3>
-                <p>
-                  <strong>Total inc GST:</strong>{" "}
-                  {money(selected.payload?.estimate?.totalIncGst)}
-                </p>
+<p>
+  <strong>Total inc GST:</strong>{" "}
+  {money(selected.payload?.estimate?.totalIncGst)}
+</p>
 
-                {selected.payload?.notes && (
-                  <>
-                    <h3>Notes</h3>
-                    <p>{selected.payload.notes}</p>
-                  </>
-                )}
+<button
+  type="button"
+  className="btn-secondary"
+  style={{ marginTop: 12 }}
+  onClick={() => loadIntoEstimator(selected)}
+>
+  Load into estimator
+</button>
+
+{selected.payload?.notes && (
+  <>
+    <h3>Notes</h3>
+    <p>{selected.payload.notes}</p>
+  </>
+)}
               </>
             )}
           </div>

@@ -11,6 +11,7 @@ type EstimateEmailInput = {
   eventLocation?: string;
   grandTotalIncGst?: number;
   estimateNumber?: string;
+  requestLink?: string;
   crewLines?: {
     crewType: string;
     qty: string;
@@ -98,9 +99,15 @@ export async function sendInternalEstimateNotification(input: EstimateEmailInput
   return resend.emails.send({
     from: "GigPower Estimator <onboarding@resend.dev>",
     to: [notifyEmail],
-    subject: `New estimate request - ${input.eventName}`,
+    subject: `New estimate request - ${input.eventName} Estimate Number - ${input.estimateNumber}`,
     html: `
       <h2>New estimate request received</h2>
+      <p>
+  <strong>View request:</strong><br/>
+  <a href="${input.requestLink}">
+    Open in admin
+  </a>
+</p>
       <p><strong>Customer:</strong> ${input.customerName}</p>
       <p><strong>Company:</strong> ${input.companyName || "Not supplied"}</p>
       <p><strong>Email:</strong> ${input.customerEmail}</p>

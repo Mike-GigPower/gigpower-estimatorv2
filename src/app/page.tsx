@@ -12,6 +12,7 @@ import QuoteTotalsCard from "./components/QuoteTotalsCard";
 import TermsConditionsBox from "./components/TermsConditionsBox";
 import { supabaseData } from "@/src/lib/supabase";
 import { createClient } from "../lib/supabase/client";
+import { parseDurationHours } from "@/src/lib/estimator/calc";
 
 /**
  * React hooks
@@ -176,6 +177,35 @@ const [preparedBy, setPreparedBy] = useState("");
 const [validUntilManuallyEdited, setValidUntilManuallyEdited] = useState(false);
 
 useEffect(() => {
+  const stored = localStorage.getItem("loadedEstimateRequest");
+
+  if (!stored) return;
+
+  const payload = JSON.parse(stored);
+
+  setInput((prev) => ({
+    ...prev,
+    companyName: payload.companyName || "",
+    contactName: payload.customerName || "",
+    contactEmail: payload.email || "",
+    contactPhone: payload.phone || "",
+    venue: payload.eventLocation || "",
+    notes: payload.notes || "",
+    labour: (payload.crewLines || []).map((line: any) => ({
+      id: crypto.randomUUID(),
+      role: line.crewType,
+      qty: Number(line.qty),
+      shiftDate: line.shiftDate,
+      startTime: line.startTime,
+      durationHours: parseDurationHours(line.duration) ?? 0,
+      notes: line.notes,
+    })),
+  }));
+
+  localStorage.removeItem("loadedEstimateRequest");
+}, []);
+
+useEffect(() => {
   let isActive = true;
 
   async function initPage() {
@@ -199,17 +229,16 @@ useEffect(() => {
     if (!isActive) return;
 
     if (profileError || !userProfile?.is_active) {
-  
-  setIsMounted(true);
-  router.replace("/login");
-  return;
-}
+      setIsMounted(true);
+      router.replace("/login");
+      return;
+    }
 
     setPreparedBy(
       userProfile.full_name ||
-      userProfile.email ||
-      user.email ||
-      "GigPower"
+        userProfile.email ||
+        user.email ||
+        "GigPower"
     );
 
     setIsMounted(true);
@@ -222,7 +251,6 @@ useEffect(() => {
     isActive = false;
   };
 }, [router, authClient]);
-
   /**
    * Once config is ready, ensure there is at least one labour line.
    * This helps when the page loads before rates/config are available.
