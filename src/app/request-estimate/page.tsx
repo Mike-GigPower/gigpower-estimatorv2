@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAppConfig } from "@/src/lib/useAppConfig";
 
 type PublicCrewLine = {
   id: string;
@@ -52,7 +53,12 @@ const initialRequest: PublicEstimateRequest = {
 
 
 
+
+
 export default function RequestEstimatePage() {
+  const { config } = useAppConfig();
+
+const crewTypeOptions = config.rates.map((rate) => rate.role);
   const [request, setRequest] = useState<PublicEstimateRequest>(initialRequest);
   const [submitted, setSubmitted] = useState(false);
 
@@ -96,13 +102,79 @@ function addCrewLine() {
   }));
 }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+function duplicateCrewLine(id: string) {
+  setRequest((current) => {
+    const lineToDuplicate = current.crewLines.find((line) => line.id === id);
 
-    // Phase 2 only: no database save yet.
-    console.log("Public estimate request:", request);
-    setSubmitted(true);
+    if (!lineToDuplicate) return current;
+
+    return {
+      ...current,
+      crewLines: [
+        ...current.crewLines,
+        {
+          ...lineToDuplicate,
+          id: crypto.randomUUID(),
+        },
+      ],
+    };
+  });
+}
+
+function removeCrewLine(id: string) {
+  setRequest((current) => {
+    if (current.crewLines.length <= 1) {
+      return current;
+    }
+
+    return {
+      ...current,
+      crewLines: current.crewLines.filter((line) => line.id !== id),
+    };
+  });
+}
+
+  function validateCrewLines() {
+  for (const line of request.crewLines) {
+    if (
+      !line.crewType ||
+      !line.qty ||
+      !line.shiftDate ||
+      !line.startTime ||
+      !line.duration
+    ) {
+      return false;
+    }
   }
+  return true;
+}
+
+function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+
+  // Validate crew requirements
+  if (!validateCrewLines()) {
+    alert("Please complete all crew requirement fields.");
+    return;
+  }
+
+  // Validate top-level required fields
+  if (
+    !request.customerName ||
+    !request.email ||
+    !request.eventName ||
+    !request.eventLocation ||
+    !request.eventDate
+  ) {
+    alert("Please complete all required fields.");
+    return;
+  }
+
+  // Phase 2 only: no database save yet.
+  console.log("Public estimate request:", request);
+
+  setSubmitted(true);
+}
 
   if (submitted) {
     return (
@@ -139,86 +211,94 @@ function addCrewLine() {
         </p>
 
         <form onSubmit={handleSubmit} className="form-grid">
-          <label>
-            Contact name
-            <input
-              value={request.customerName}
-              onChange={(e) => updateField("customerName", e.target.value)}
-              required
-            />
-          </label>
+          <div className="card" style={{ marginBottom: 16 }}>
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+      gap: 12,
+      alignItems: "end",
+    }}
+  >
+    <label>
+      Company name
+      <input
+        value={request.companyName}
+        onChange={(e) => updateField("companyName", e.target.value)}
+        placeholder="Client company"
+      />
+    </label>
 
-          <label>
-            Company / organisation
-            <input
-              value={request.companyName}
-              onChange={(e) => updateField("companyName", e.target.value)}
-            />
-          </label>
+    <label>
+      Contact name <span className="required-star">*</span>
+      <input
+        value={request.customerName}
+        onChange={(e) => updateField("customerName", e.target.value)}
+        placeholder="Contact person"
+        required
+      />
+    </label>
 
-          <label>
-            Email
-            <input
-              type="email"
-              value={request.email}
-              onChange={(e) => updateField("email", e.target.value)}
-              required
-            />
-          </label>
+    <label>
+      Contact email <span className="required-star">*</span>
+      <input
+        type="email"
+        value={request.email}
+        onChange={(e) => updateField("email", e.target.value)}
+        placeholder="name@company.com"
+        required
+      />
+    </label>
 
-          <label>
-            Phone
-            <input
-              value={request.phone}
-              onChange={(e) => updateField("phone", e.target.value)}
-            />
-          </label>
+    <label>
+      Contact phone
+      <input
+        value={request.phone}
+        onChange={(e) => updateField("phone", e.target.value)}
+        placeholder="0400 000 000"
+      />
+    </label>
 
-          <label>
-            Event name
-            <input
-              value={request.eventName}
-              onChange={(e) => updateField("eventName", e.target.value)}
-              required
-            />
-          </label>
+    <label>
+      Venue <span className="required-star">*</span>
+      <input
+        value={request.eventLocation}
+        onChange={(e) => updateField("eventLocation", e.target.value)}
+        placeholder="Venue / site"
+        required
+      />
+    </label>
 
-          <label>
-            Event location
-            <input
-              value={request.eventLocation}
-              onChange={(e) => updateField("eventLocation", e.target.value)}
-              required
-            />
-          </label>
+    <label style={{ gridColumn: "span 2" }}>
+      Event name <span className="required-star">*</span>
+      <input
+        value={request.eventName}
+        onChange={(e) => updateField("eventName", e.target.value)}
+        placeholder="Event name"
+        required
+      />
+    </label>
 
-          <label>
-            Event date
-            <input
-              type="date"
-              value={request.eventDate}
-              onChange={(e) => updateField("eventDate", e.target.value)}
-              required
-            />
-          </label>
+    <label>
+      Event date <span className="required-star">*</span>
+      <input
+        type="date"
+        value={request.eventDate}
+        onChange={(e) => updateField("eventDate", e.target.value)}
+        required
+      />
+    </label>
 
-          <label>
-            Approx start time
-            <input
-              type="time"
-              value={request.startTime}
-              onChange={(e) => updateField("startTime", e.target.value)}
-            />
-          </label>
-
-          <label>
-            Approx finish time
-            <input
-              type="time"
-              value={request.endTime}
-              onChange={(e) => updateField("endTime", e.target.value)}
-            />
-          </label>
+    <label style={{ gridColumn: "span 2" }}>
+      Notes
+      <input
+        value={request.notes}
+        onChange={(e) => updateField("notes", e.target.value)}
+        placeholder="Optional notes"
+      />
+    </label>
+  </div>
+</div>
 
           <div className="span-2">
   <h2 style={{ fontSize: 18, marginTop: 8 }}>Crew requirements</h2>
@@ -227,20 +307,33 @@ function addCrewLine() {
   </p>
 
   {request.crewLines.map((line) => (
-    <div key={line.id} className="card" style={{ marginBottom: 12 }}>
+  <div key={line.id} className="card" style={{ marginBottom: 12 }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "220px 80px 150px 130px 130px 190px",
+        gap: 12,
+        alignItems: "end",
+      }}
+    >
       <label>
-        Crew type
-        <input
+        Crew type <span className="required-star">*</span>
+        <select
           value={line.crewType}
           onChange={(e) =>
             updateCrewLine(line.id, { crewType: e.target.value })
           }
-          placeholder="e.g. Show Crew, Crew Boss, Forklift"
-        />
+        >
+          {crewTypeOptions.map((role) => (
+  <option key={role} value={role}>
+    {role}
+  </option>
+))}
+        </select>
       </label>
 
       <label>
-        Qty
+        Qty <span className="required-star">*</span>
         <input
           type="number"
           min="1"
@@ -252,7 +345,7 @@ function addCrewLine() {
       </label>
 
       <label>
-        Shift date
+        Shift date <span className="required-star">*</span>
         <input
           type="date"
           value={line.shiftDate}
@@ -263,7 +356,7 @@ function addCrewLine() {
       </label>
 
       <label>
-        Start time
+        Start time <span className="required-star">*</span>
         <input
           type="time"
           value={line.startTime}
@@ -274,17 +367,17 @@ function addCrewLine() {
       </label>
 
       <label>
-        Duration
+        Duration <span className="required-star">*</span>
         <input
           value={line.duration}
           onChange={(e) =>
             updateCrewLine(line.id, { duration: e.target.value })
           }
-          placeholder="e.g. 04:00 or 4.5"
+          placeholder="04:00 or 4.5"
         />
       </label>
 
-      <label>
+      <label style={{ gridColumn: "1 / -1" }}>
         Notes
         <input
           value={line.notes}
@@ -293,8 +386,34 @@ function addCrewLine() {
           }
         />
       </label>
+
+      <div
+  style={{
+    display: "flex",
+    gap: 8,
+    alignItems: "end",
+  }}
+>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => duplicateCrewLine(line.id)}
+        >
+          Duplicate
+        </button>
+
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => removeCrewLine(line.id)}
+          disabled={request.crewLines.length <= 1}
+        >
+          Remove
+        </button>
+      </div>
     </div>
-  ))}
+  </div>
+))}
 
   <button type="button" onClick={addCrewLine}>
     + Add crew requirement
@@ -307,7 +426,7 @@ function addCrewLine() {
               value={request.notes}
               onChange={(e) => updateField("notes", e.target.value)}
               rows={5}
-              placeholder="Tell us anything useful: bump in/out times, access, venue constraints, known requirements..."
+              placeholder="Tell us anything useful: load in/out times, access, venue constraints, known requirements..."
             />
           </label>
 

@@ -112,6 +112,11 @@ label {
   margin-bottom: 6px;
 }
 
+.required-star {
+  color: var(--gp-gold);
+  margin-left: 4px;
+}
+
 small.muted,
 .muted {
   color: var(--muted);
