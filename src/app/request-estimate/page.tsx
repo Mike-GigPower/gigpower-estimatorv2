@@ -64,15 +64,25 @@ const crewTypeOptions = config.rates.map((rate) => rate.role);
   const [request, setRequest] = useState<PublicEstimateRequest>(initialRequest);
   const [submitted, setSubmitted] = useState(false);
 
-  function updateField(
-    field: keyof PublicEstimateRequest,
-    value: string
-  ) {
-    setRequest((current) => ({
+  function updateField(field: keyof PublicEstimateRequest, value: string) {
+  setRequest((current) => {
+    if (field === "eventDate") {
+      return {
+        ...current,
+        eventDate: value,
+        crewLines: current.crewLines.map((line) => ({
+          ...line,
+          shiftDate: line.shiftDate || value,
+        })),
+      };
+    }
+
+    return {
       ...current,
       [field]: value,
-    }));
-  }
+    };
+  });
+}
   
   function updateCrewLine(
   id: string,
@@ -95,7 +105,7 @@ function addCrewLine() {
         id: crypto.randomUUID(),
         crewType: "Standard Crew",
         qty: "1",
-        shiftDate: "",
+        shiftDate: current.eventDate || "",
         startTime: "",
         duration: "",
         notes: "",
@@ -203,7 +213,7 @@ setSubmitted(true);
         <div className="card">
           <h1>Estimate request received</h1>
           <p>
-            Thanks — your request has been captured. A GigPower team member will
+            Thanks — your request has been captured. A Gig Power team member will
             review the details and follow up.
           </p>
 
@@ -241,7 +251,7 @@ setSubmitted(true);
         <h1>Request an Estimate</h1>
         <p className="muted">
           Tell us about your event and the crew support you need. This is a
-          request form only — final pricing will be reviewed by the GigPower
+          request form only — final pricing will be reviewed by the Gig Power
           team.
         </p>
 
@@ -256,11 +266,12 @@ setSubmitted(true);
     }}
   >
     <label>
-      Company name
+      Company name <span className="required-star">*</span>
       <input
         value={request.companyName}
         onChange={(e) => updateField("companyName", e.target.value)}
         placeholder="Client company"
+        required
       />
     </label>
 
@@ -316,7 +327,7 @@ setSubmitted(true);
     </label>
 
     <label>
-      Event date <span className="required-star">*</span>
+      Start date <span className="required-star">*</span>
       <input
         type="date"
         value={request.eventDate}
