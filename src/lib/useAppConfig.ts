@@ -48,11 +48,11 @@ console.log("Rates loaded from Supabase:", ratesData);
       setConfig({
         ...baseConfig,
         ...(settingsData?.value || {}),
-        publicHolidays: (holidaysData || []).map((row) => ({
+        publicHolidays: (holidaysData || []).map((row: any) => ({
           date: row.holiday_date,
           label: row.name,
         })),
-        rates: (ratesData || []).map((row) => ({
+       rates: (ratesData || []).map((row: any) => ({
           role: row.role_name,
           day: row.day_rate,
           night: row.night_rate,

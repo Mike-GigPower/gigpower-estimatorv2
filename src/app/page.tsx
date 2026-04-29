@@ -151,7 +151,8 @@ const defaultInput: QuoteInput = {
 export default function Page() {
   
   const router = useRouter();
-  const authClient = createClient();
+  const [supabase] = useState(() => createClient());
+const authClient = supabase;
   /**
    * Load configuration such as rates, GST, min hours, quote text, currency, etc.
    */
@@ -719,15 +720,27 @@ const ensuredInput: QuoteInput = {
     
     const convertedRequestId = localStorage.getItem("convertedEstimateRequestId");
 
-if (convertedRequestId) {
-  const { error: updateError } = await supabaseData
-    .from("estimate_requests")
-    .update({ status: "Quoted" })
-    .eq("id", convertedRequestId);
+console.log("convertedRequestId on save:", convertedRequestId);
+
+if (convertedRequestId && convertedRequestId !== "undefined") {
+  const { data, error: updateError } = await authClient
+  .from("estimate_requests")
+  .update({
+  status: "Quoted",
+  quoted_at: new Date().toISOString(),
+  quote_number: ensuredInput.quoteNumber,
+})
+  .eq("id", convertedRequestId)
+  .select();
+    
+    console.log("Update result:", data);
 
   if (updateError) {
     console.error("Failed to update request status:", updateError);
+    alert("Failed to update request status: " + updateError.message);
   } else {
+    console.log("Estimate request marked as quoted:", convertedRequestId);
+    alert("Estimate request marked as Quoted.");
     localStorage.removeItem("convertedEstimateRequestId");
   }
 }

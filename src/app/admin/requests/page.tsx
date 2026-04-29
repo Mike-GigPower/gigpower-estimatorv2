@@ -9,6 +9,7 @@ type EstimateRequest = {
   created_at: string;
   status: string;
   estimate_number: string | null;
+  quote_number: string | null;
   customer_name: string | null;
   company_name: string | null;
   email: string | null;
@@ -34,10 +35,13 @@ const requestIdFromUrl = searchParams.get("id");
   async function loadRequests() {
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("estimate_requests")
-      .select("*")
-      .order("created_at", { ascending: false });
+   const { data, error } = await supabase
+  .from("estimate_requests")
+  .select("*")
+  .order("created_at", { ascending: false }) as {
+    data: EstimateRequest[] | null;
+    error: any;
+  };
 
     if (error) {
       console.error("Error loading estimate requests:", error);
@@ -48,7 +52,7 @@ const requestIdFromUrl = searchParams.get("id");
 
     setRequests(data || []);
     if (requestIdFromUrl) {
-  const match = data?.find((r) => r.id === requestIdFromUrl);
+  const match = data?.find((r: EstimateRequest) => r.id === requestIdFromUrl);
   setSelected(match || data?.[0] || null);
 } else {
   setSelected(data?.[0] || null);
@@ -82,7 +86,21 @@ const requestIdFromUrl = searchParams.get("id");
     });
   }
   
-  function loadIntoEstimator(request: EstimateRequest) {
+  async function loadIntoEstimator(request: EstimateRequest) {
+  localStorage.removeItem("loadedEstimateRequest");
+  localStorage.removeItem("convertedEstimateRequestId");
+
+  const { error } = await supabase
+    .from("estimate_requests")
+    .update({ status: "Reviewed" })
+    .eq("id", request.id);
+
+  if (error) {
+    console.error("Failed to update request status:", error);
+    alert("Failed to update request status: " + error.message);
+    return;
+  }
+
   localStorage.setItem(
     "loadedEstimateRequest",
     JSON.stringify({
@@ -177,6 +195,11 @@ const requestIdFromUrl = searchParams.get("id");
     <option value="Reviewed">Reviewed</option>
     <option value="Quoted">Quoted</option>
   </select>
+  {selected.quote_number && (
+  <p className="muted" style={{ marginTop: 6 }}>
+    Quote number: <strong>{selected.quote_number}</strong>
+  </p>
+)}
 </div>
                   </div>
                 </div>
