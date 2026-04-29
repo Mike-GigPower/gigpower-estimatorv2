@@ -68,9 +68,9 @@ function crewBreakdownHtml(lines?: EstimateEmailInput["crewLines"]) {
 export async function sendCustomerEstimateEmail(input: EstimateEmailInput) {
   return resend.emails.send({
   from: "GigPower <info@gigpower.com>",
-  reply_to: "info@gigpower.com",
+  replyTo: "info@gigpower.com",
   to: [input.customerEmail],
-    subject: `GigPower estimate request received - ${input.eventName}  Estimate Number - ${input.estimateNumber}` ,
+    subject: `Gig Power estimate request received - ${input.eventName}  Estimate Number - ${input.estimateNumber}` ,
     html: `
   <div style="font-family: Arial, sans-serif; background:#f5f5f5; padding:20px;">
     <div style="background:#111; padding:24px; text-align:center;">
@@ -180,7 +180,7 @@ export async function sendInternalEstimateNotification(input: EstimateEmailInput
 
   return resend.emails.send({
   from: "GigPower Estimator <info@gigpower.com>",
-  _to: "info@gigpower.com",
+ replyTo: "info@gigpower.com",
   to: [notifyEmail],
     subject: `New estimate request - ${input.eventName} Estimate Number - ${input.estimateNumber}`,
     html: `
