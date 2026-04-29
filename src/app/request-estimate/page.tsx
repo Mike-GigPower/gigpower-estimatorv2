@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAppConfig } from "@/src/lib/useAppConfig";
 import { parseStartTime } from "@/src/lib/estimator/calc";
+import Image from "next/image";
 
 type PublicCrewLine = {
   id: string;
@@ -223,6 +224,20 @@ setSubmitted(true);
   return (
     <main className="max-w-4xl mx-auto px-6 py-10">
       <div className="card">
+      <div style={{ marginBottom: 20 }}>
+  <Image
+    src="/brand/gigpower-logo.png"
+    alt="GigPower"
+  width={300}
+  height={100}
+  style={{
+    width: "auto",
+    height: "60px",
+    objectFit: "contain",
+    display: "block"
+  }}
+  />
+</div>
         <h1>Request an Estimate</h1>
         <p className="muted">
           Tell us about your event and the crew support you need. This is a

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { createClient } from "@/src/lib/supabase/client";
 import { useSearchParams } from "next/navigation";
 
@@ -18,7 +18,7 @@ type EstimateRequest = {
   payload: any;
 };
 
-export default function AdminRequestsPage() {
+function AdminRequestsContent() {
   const [requests, setRequests] = useState<EstimateRequest[]>([]);
   const [selected, setSelected] = useState<EstimateRequest | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,7 +85,11 @@ const requestIdFromUrl = searchParams.get("id");
   function loadIntoEstimator(request: EstimateRequest) {
   localStorage.setItem(
     "loadedEstimateRequest",
-    JSON.stringify(request.payload)
+    JSON.stringify({
+      requestId: request.id,
+      estimateNumber: request.estimate_number,
+      payload: request.payload,
+    })
   );
 
   window.location.href = "/";
@@ -238,7 +242,7 @@ const requestIdFromUrl = searchParams.get("id");
   style={{ marginTop: 12 }}
   onClick={() => loadIntoEstimator(selected)}
 >
-  Load into estimator
+  Convert to Quote
 </button>
 
 {selected.payload?.notes && (
@@ -253,5 +257,13 @@ const requestIdFromUrl = searchParams.get("id");
         </div>
       )}
     </main>
+  );
+}
+
+export default function AdminRequestsPage() {
+  return (
+    <Suspense fallback={<main className="max-w-7xl mx-auto px-6 py-8">Loading...</main>}>
+      <AdminRequestsContent />
+    </Suspense>
   );
 }

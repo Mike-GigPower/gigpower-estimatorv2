@@ -181,10 +181,13 @@ useEffect(() => {
 
   if (!stored) return;
 
-  const payload = JSON.parse(stored);
+  const loaded = JSON.parse(stored);
+  const payload = loaded.payload || loaded;
 
   setInput((prev) => ({
     ...prev,
+    quoteNumber: loaded.estimateNumber || prev.quoteNumber || "",
+    status: "Draft",
     companyName: payload.companyName || "",
     contactName: payload.customerName || "",
     contactEmail: payload.email || "",
@@ -201,6 +204,11 @@ useEffect(() => {
       notes: line.notes,
     })),
   }));
+
+  localStorage.setItem(
+    "convertedEstimateRequestId",
+    loaded.requestId || ""
+  );
 
   localStorage.removeItem("loadedEstimateRequest");
 }, []);
@@ -708,6 +716,21 @@ const ensuredInput: QuoteInput = {
     setSelectedDraftId(insertedQuote.id);
     alert("Estimate saved (shared across users). Version 1 created.");
     await loadAllDrafts();
+    
+    const convertedRequestId = localStorage.getItem("convertedEstimateRequestId");
+
+if (convertedRequestId) {
+  const { error: updateError } = await supabaseData
+    .from("estimate_requests")
+    .update({ status: "Quoted" })
+    .eq("id", convertedRequestId);
+
+  if (updateError) {
+    console.error("Failed to update request status:", updateError);
+  } else {
+    localStorage.removeItem("convertedEstimateRequestId");
+  }
+}
 }
 
   /**
