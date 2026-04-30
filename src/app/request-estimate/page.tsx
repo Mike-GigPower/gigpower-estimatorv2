@@ -467,7 +467,9 @@ setSubmitted(true);
         <input
   type="date"
   value={line.shiftDate}
-  onChange={(e) => updateCrewLine(line.id, "shiftDate", e.target.value)}
+  onChange={(e) =>
+  updateCrewLine(line.id, { shiftDate: e.target.value })
+}
   onClick={(e) => {
     const input = e.currentTarget as HTMLInputElement;
     if (input.showPicker) {
