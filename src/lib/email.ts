@@ -5,6 +5,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 type EstimateEmailInput = {
   customerName: string;
   customerEmail: string;
+  customerPhone?: string;
   companyName?: string;
   eventName: string;
   eventDate?: string;
@@ -12,6 +13,7 @@ type EstimateEmailInput = {
   grandTotalIncGst?: number;
   estimateNumber?: string;
   requestLink?: string;
+  needsCrewAdvice?: boolean;
   crewLines?: {
     crewType: string;
     qty: string;
@@ -89,15 +91,21 @@ export async function sendCustomerEstimateEmail(input: EstimateEmailInput) {
 
         <p>Hi ${input.customerName || "there"},</p>
 
-        <p>
-          Thanks for your request. Based on the details provided, your indicative estimate is:
-        </p>
+        
 
-        <!-- ESTIMATE NUMBER -->
-        <p style="margin-top:20px; font-size:12px; color:#777;">
-          Estimate Number
-        </p>
-        <p style="
+   ${input.needsCrewAdvice
+  ? `
+    <p>
+      Thanks for your request. We understand you would like help working out the crew requirements for your event.
+    </p>
+    <p>
+      A GigPower representative will contact you to discuss your event requirements and help determine the right crew support.
+    </p>
+
+    <p>
+      <strong>Your Estimate reference #
+    </p>
+    <p style="
   font-size:20px;
   font-weight:bold;
   margin-top:4px;
@@ -110,51 +118,82 @@ export async function sendCustomerEstimateEmail(input: EstimateEmailInput) {
   ${input.estimateNumber}
 </p>
 
-        <!-- TOTAL -->
-        <h1 style="margin-top:16px; font-size:28px; color:#111;">
-  ${money(input.grandTotalIncGst)}
-</h1>
-<p style="margin-top:-8px; color:#666;">
-  inc GST
-</p>
-<hr style="margin:20px 0; border:none; border-top:1px solid #eee;" />
 
-        <!-- EXPLANATION -->
-        <p style="margin-top:20px; line-height:1.5;">
-          This estimate does not represent a confirmed booking. It is based on the details 
-          provided and assumes standard working conditions.
-        </p>
+    <p style="margin-top:20px;">
+      <strong>Event:</strong> ${input.eventName}<br/>
+      <strong>Date:</strong> ${input.eventDate || "To be confirmed"}<br/>
+      <strong>Venue:</strong> ${input.eventLocation || "To be confirmed"}
+    </p>
 
-        <p style="line-height:1.5;">
-          If you would like to proceed, please contact us via email or phone quoting reference 
-          <strong>${input.estimateNumber}</strong>.
-        </p>
+    <div style="text-align:center; margin:24px 0;">
+      <a href="tel:+61393765600"
+         style="
+           background:#fcb900;
+           color:#111;
+           padding:12px 20px;
+           text-decoration:none;
+           font-weight:bold;
+           border-radius:6px;
+           display:inline-block;
+         ">
+        Call GigPower
+      </a>
+    </div>
+  `
+  : `
+    <p>
+      Thanks for your request. Based on the details provided, your indicative estimate is:
+    </p>
 
-        <!-- CREW BREAKDOWN -->
-        ${crewBreakdownHtml(input.crewLines)}
+    
+    <h1 style="margin-top:16px; color:#111;">
+      ${money(input.grandTotalIncGst)} inc GST
+    </h1>
 
-        <!-- EVENT DETAILS -->
-        <p style="margin-top:20px;">
-          <strong>Event:</strong> ${input.eventName}<br/>
-          <strong>Date:</strong> ${input.eventDate || "To be confirmed"}<br/>
-          <strong>Venue:</strong> ${input.eventLocation || "To be confirmed"}
-        </p>
+    <p>
+      This estimate does not represent a confirmed booking. It is based on the details provided and assumes standard working conditions.
+    </p>
+
+    <p>
+      If you would like to proceed, please contact us quoting your estimate reference #: 
+    </p>
+    
+
+    <p style="
+      font-size:20px;
+      font-weight:bold;
+      margin-top:4px;
+      background:#111;
+      color:#fcb900;
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:4px;
+    ">
+      ${input.estimateNumber}
+    </p>
+
+
+    ${crewBreakdownHtml(input.crewLines)}
+
+    <div style="text-align:center; margin:24px 0;">
+      <a href="mailto:info@gigpower.com?subject=Proceed%20with%20estimate%20${input.estimateNumber}"
+         style="
+           background:#fcb900;
+           color:#111;
+           padding:12px 20px;
+           text-decoration:none;
+           font-weight:bold;
+           border-radius:6px;
+           display:inline-block;
+         ">
+        Proceed with Booking
+      </a>
+    </div>
+  `
+}
+
       </div>
       
-      <div style="text-align:center; margin:24px 0;">
-  <a href="mailto:info@gigpower.com"
-     style="
-       background:#fcb900;
-       color:#111;
-       padding:12px 20px;
-       text-decoration:none;
-       font-weight:bold;
-       border-radius:6px;
-       display:inline-block;
-     ">
-    Proceed with Booking
-  </a>
-</div>
 
       <!-- FOOTER -->
       <div style="background:#f0f0f0; padding:20px; text-align:center; font-size:12px; color:#555;">
@@ -185,6 +224,12 @@ export async function sendInternalEstimateNotification(input: EstimateEmailInput
     subject: `New estimate request - ${input.eventName} Estimate Number - ${input.estimateNumber}`,
     html: `
       <h2>New estimate request received</h2>
+      ${input.needsCrewAdvice
+  ? `<p style="background:#fff3cd; padding:10px; border-radius:6px;">
+      <strong>Customer requested a call to discuss crew requirements.</strong>
+    </p>`
+  : ""
+}
       <p>
   <strong>View request:</strong><br/>
   <a href="${input.requestLink}">
@@ -194,11 +239,17 @@ export async function sendInternalEstimateNotification(input: EstimateEmailInput
       <p><strong>Customer:</strong> ${input.customerName}</p>
       <p><strong>Company:</strong> ${input.companyName || "Not supplied"}</p>
       <p><strong>Email:</strong> ${input.customerEmail}</p>
+      <p><strong>Phone:</strong> ${input.customerPhone}</p>
       <p><strong>Event:</strong> ${input.eventName}</p>
       <p><strong>Date:</strong> ${input.eventDate || "Not supplied"}</p>
       <p><strong>Venue:</strong> ${input.eventLocation || "Not supplied"}</p>
       ${crewBreakdownHtml(input.crewLines)}
-      <p><strong>Indicative total:</strong> ${money(input.grandTotalIncGst)} inc GST</p>
+      <p>
+  <strong>Indicative total:</strong>
+  ${input.needsCrewAdvice
+    ? " Not shown to customer - crew advice requested"
+    : ` ${money(input.grandTotalIncGst)} inc GST`}
+</p>
     `,
   });
 }

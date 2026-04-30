@@ -28,6 +28,10 @@ export async function POST(request: Request) {
     const estimateNumber = generateEstimateNumber();
     const quoteInput = publicRequestToQuoteInput(body);
 const result = estimateQuote(quoteInput);
+const shouldShowEstimateTotal = !body.needsCrewAdvice;
+const displayedTotal = shouldShowEstimateTotal
+  ? result.totals?.grandTotalIncGst
+  : undefined;
 
     const { data, error } = await supabaseData.from("estimate_requests").insert([
       {
@@ -47,12 +51,13 @@ const result = estimateQuote(quoteInput);
   ...body,
   estimateNumber,
   estimate: {
-    totalIncGst: result.totals?.grandTotalIncGst,
-    labourExGst: result.totals?.labourExGst,
-    nonLabourExGst: result.totals?.nonLabourExGst,
-    gst: result.totals?.gst,
-    subTotalExGst: result.totals?.subTotalExGst,
-  },
+  totalIncGst: result.totals?.grandTotalIncGst,
+  displayedToCustomer: shouldShowEstimateTotal,
+  labourExGst: result.totals?.labourExGst,
+  nonLabourExGst: result.totals?.nonLabourExGst,
+  gst: result.totals?.gst,
+  subTotalExGst: result.totals?.subTotalExGst,
+},
 },
       },
     ])
@@ -78,11 +83,13 @@ const requestLink = `${baseUrl}/admin/requests?id=${requestId}`;
     await sendCustomerEstimateEmail({
   customerName: body.customerName,
   customerEmail: body.email,
+  customerPhone: body.phone,
   companyName: body.companyName,
   eventName: body.eventName,
   eventDate: body.eventDate,
   eventLocation: body.eventLocation,
-  grandTotalIncGst: result.totals?.grandTotalIncGst,
+  grandTotalIncGst: displayedTotal,
+needsCrewAdvice: body.needsCrewAdvice,
   crewLines: body.crewLines,
   estimateNumber,
 });
@@ -90,11 +97,13 @@ const requestLink = `${baseUrl}/admin/requests?id=${requestId}`;
 await sendInternalEstimateNotification({
   customerName: body.customerName,
   customerEmail: body.email,
+  customerPhone: body.phone,
   companyName: body.companyName,
   eventName: body.eventName,
   eventDate: body.eventDate,
   eventLocation: body.eventLocation,
-  grandTotalIncGst: result.totals?.grandTotalIncGst,
+  grandTotalIncGst: displayedTotal,
+needsCrewAdvice: body.needsCrewAdvice,
   crewLines: body.crewLines,
   estimateNumber,
   requestLink,

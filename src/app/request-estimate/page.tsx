@@ -27,6 +27,7 @@ type PublicEstimateRequest = {
   endTime: string;
   crewLines: PublicCrewLine[];
   notes: string;
+  needsCrewAdvice: boolean;
 };
 
 const initialRequest: PublicEstimateRequest = {
@@ -39,6 +40,7 @@ const initialRequest: PublicEstimateRequest = {
   eventDate: "",
   startTime: "",
   endTime: "",
+  needsCrewAdvice: false,
   notes: "",
   crewLines: [
   {
@@ -58,21 +60,25 @@ const initialRequest: PublicEstimateRequest = {
 
 
 export default function RequestEstimatePage() {
-  const { config } = useAppConfig();
+  	const { config } = useAppConfig();
+	const crewTypeOptions = config.rates.map((rate) => rate.role);
+  	const [request, setRequest] = useState<PublicEstimateRequest>(initialRequest);
+  	const [submitted, setSubmitted] = useState(false);
 
-const crewTypeOptions = config.rates.map((rate) => rate.role);
-  const [request, setRequest] = useState<PublicEstimateRequest>(initialRequest);
-  const [submitted, setSubmitted] = useState(false);
-
-  function updateField(field: keyof PublicEstimateRequest, value: string) {
+  function updateField<K extends keyof PublicEstimateRequest>(
+  field: K,
+  value: PublicEstimateRequest[K]
+  ) {
   setRequest((current) => {
     if (field === "eventDate") {
+      const newValue = value as string;
+
       return {
         ...current,
-        eventDate: value,
+        eventDate: newValue,
         crewLines: current.crewLines.map((line) => ({
           ...line,
-          shiftDate: line.shiftDate || value,
+          shiftDate: line.shiftDate || newValue,
         })),
       };
     }
@@ -82,7 +88,7 @@ const crewTypeOptions = config.rates.map((rate) => rate.role);
       [field]: value,
     };
   });
-}
+   }
   
   function updateCrewLine(
   id: string,
@@ -94,7 +100,7 @@ const crewTypeOptions = config.rates.map((rate) => rate.role);
       line.id === id ? { ...line, ...patch } : line
     ),
   }));
-}
+  }
 
 function addCrewLine() {
   setRequest((current) => ({
@@ -171,10 +177,10 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
   }
 
   // Validate crew requirements
-  if (!validateCrewLines()) {
-    alert("Please complete all crew requirement fields.");
-    return;
-  }
+  if (!request.needsCrewAdvice && !validateCrewLines()) {
+  alert("Please complete all crew requirement fields, or tick the option for GigPower to contact you to discuss crew requirements.");
+  return;
+}
 
   // Validate top-level required fields
   if (
@@ -188,6 +194,13 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     alert("Please complete all required fields.");
     return;
   }
+  
+  if (!request.needsCrewAdvice && !validateCrewLines()) {
+  alert(
+    "Please complete all crew requirement fields, or tick the option for GigPower to contact you to discuss crew requirements."
+  );
+  return;
+}
 
   const response = await fetch("/api/estimate-request", {
   method: "POST",
@@ -208,15 +221,36 @@ setSubmitted(true);
 }
 
   if (submitted) {
-    return (
-      <main className="max-w-3xl mx-auto px-6 py-10">
-        <div className="card">
-          <h1>Estimate request received</h1>
-          <p>
-            Thanks — your request has been captured. A Gig Power team member will
-            review the details and follow up.
-          </p>
+  return (
+    <main className="max-w-3xl mx-auto px-6 py-10">
+      <div className="card" style={{ padding: "28px 32px" }}>
+        <div style={{ marginBottom: 24 }}>
+          <img
+            src="/brand/gigpower-logo.png"
+            alt="GigPower"
+            style={{ height: 50 }}
+          />
+        </div>
 
+        <h1>
+          {request.needsCrewAdvice
+            ? "Call request received"
+            : "Estimate request received"}
+        </h1>
+
+        <p className="muted">
+          {request.needsCrewAdvice
+            ? "Thanks — your request has been received. A GigPower representative will contact you to discuss your event and crew requirements."
+            : "Thanks — your estimate request has been received. Please check your email for your estimate reference and details."}
+        </p>
+
+        {request.needsCrewAdvice && (
+          <p style={{ fontSize: 13, color: "#aaa", marginTop: 10 }}>
+            If your request is urgent, please call us on +61 3 9376 5600.
+          </p>
+        )}
+
+        <div style={{ marginTop: 24 }}>
           <button
             type="button"
             onClick={() => {
@@ -227,9 +261,10 @@ setSubmitted(true);
             Submit another request
           </button>
         </div>
-      </main>
-    );
-  }
+      </div>
+    </main>
+  );
+}
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-10">
@@ -250,9 +285,9 @@ setSubmitted(true);
 </div>
         <h1>Request an Estimate</h1>
         <p className="muted">
-          Tell us about your event and the crew support you need. This is a
-          request form only — final pricing will be reviewed by the Gig Power
-          team.
+          Tell us about your event and the crew support you need and the calculator
+           will send you a costed estimate. Note - This is an estimate only and final 
+           pricing will be reviewed by the Gig Power team.
         </p>
 
         <form onSubmit={handleSubmit} className="form-grid">
@@ -306,15 +341,7 @@ setSubmitted(true);
       />
     </label>
 
-    <label>
-      Venue <span className="required-star">*</span>
-      <input
-        value={request.eventLocation}
-        onChange={(e) => updateField("eventLocation", e.target.value)}
-        placeholder="Venue / site"
-        required
-      />
-    </label>
+    
 
     <label style={{ gridColumn: "span 2" }}>
       Event name <span className="required-star">*</span>
@@ -329,36 +356,80 @@ setSubmitted(true);
     <label>
       Start date <span className="required-star">*</span>
       <input
-        type="date"
-        value={request.eventDate}
-        onChange={(e) => updateField("eventDate", e.target.value)}
+  type="date"
+  value={request.eventDate}
+  onChange={(e) => updateField("eventDate", e.target.value)}
+  onClick={(e) => {
+    const input = e.currentTarget as HTMLInputElement;
+    if (input.showPicker) {
+      input.showPicker();
+    }
+  }}
+  style={{ cursor: "pointer" }}
+/>
+    </label>
+    <label>
+      Venue <span className="required-star">*</span>
+      <input
+        value={request.eventLocation}
+        onChange={(e) => updateField("eventLocation", e.target.value)}
+        placeholder="Venue / site"
         required
       />
     </label>
 
-    <label style={{ gridColumn: "span 2" }}>
-      Notes
-      <input
-        value={request.notes}
-        onChange={(e) => updateField("notes", e.target.value)}
-        placeholder="Optional notes"
-      />
-    </label>
+   
   </div>
 </div>
 
-          <div className="span-2">
-  <h2 style={{ fontSize: 18, marginTop: 8 }}>Crew requirements</h2>
-  <p className="muted">
-    Add one row for each crew type, date, start time, and duration required.
-  </p>
+          <div
+  
+  style={{
+    marginTop: 18,
+    marginBottom: 22,
+  }}
+>
+  <label
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 10,
+      cursor: "pointer",
+      color: request.needsCrewAdvice ? "#fcb900" : "#cbd5e1",
+      fontWeight: request.needsCrewAdvice ? 700 : 500,
+    }}
+  >
+    <input
+      type="checkbox"
+      checked={request.needsCrewAdvice}
+      onChange={(e) => updateField("needsCrewAdvice", e.target.checked)}
+      style={{
+        transform: "scale(1.2)",
+        margin: 0,
+        width: 16,
+        height: 16,
+        flex: "0 0 auto",
+      }}
+    />
+
+    <span>
+      I’m not sure what crew I need — please contact me to discuss.
+    </span>
+  </label>
+</div>
+  {!request.needsCrewAdvice && (
+  <>
+    <h2 style={{ fontSize: 18, marginTop: 8 }}>Crew requirements</h2>
+    <p className="muted">
+      Add one row per crew type and shift (e.g. different dates or start times).
+    </p>
 
   {request.crewLines.map((line) => (
   <div key={line.id} className="card" style={{ marginBottom: 12 }}>
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "220px 80px 150px 130px 130px 190px",
+        gridTemplateColumns: "260px 90px 180px 160px 160px 1fr",
         gap: 12,
         alignItems: "end",
       }}
@@ -394,12 +465,17 @@ setSubmitted(true);
       <label>
         Shift date <span className="required-star">*</span>
         <input
-          type="date"
-          value={line.shiftDate}
-          onChange={(e) =>
-            updateCrewLine(line.id, { shiftDate: e.target.value })
-          }
-        />
+  type="date"
+  value={line.shiftDate}
+  onChange={(e) => updateCrewLine(line.id, "shiftDate", e.target.value)}
+  onClick={(e) => {
+    const input = e.currentTarget as HTMLInputElement;
+    if (input.showPicker) {
+      input.showPicker();
+    }
+  }}
+  style={{ cursor: "pointer" }}
+/>
       </label>
 
       <label>
@@ -430,22 +506,15 @@ setSubmitted(true);
           placeholder="04:00 or 4.5"
         />
       </label>
-
-      <label style={{ gridColumn: "1 / -1" }}>
-        Notes
-        <input
-          value={line.notes}
-          onChange={(e) =>
-            updateCrewLine(line.id, { notes: e.target.value })
-          }
-        />
-      </label>
-
+      
       <div
   style={{
+  gridColumn: "6 / 7",
     display: "flex",
+    justifyContent: "flex-end", 
     gap: 8,
     alignItems: "end",
+    width: "100%",
   }}
 >
         <button
@@ -465,27 +534,53 @@ setSubmitted(true);
           Remove
         </button>
       </div>
+
+      <label style={{ gridColumn: "1 / 7" }}>
+        Shift Notes
+        <input
+          value={line.notes}
+          onChange={(e) =>
+            updateCrewLine(line.id, { notes: e.target.value })
+          }
+        />
+      </label>
+
+      
     </div>
   </div>
 ))}
 
-  <button type="button" onClick={addCrewLine}>
+    <button type="button" onClick={addCrewLine}>
     + Add crew requirement
   </button>
-</div>
+  </>
+)}
 
-          <label className="span-2">
-            Additional notes
+
+<label className="span-2">
+            {request.needsCrewAdvice ? (
+    <>
+      Additional notes <span className="required-star">*</span>
+    </>
+  ) : (
+    "Additional notes"
+  )}
             <textarea
               value={request.notes}
               onChange={(e) => updateField("notes", e.target.value)}
               rows={5}
-              placeholder="Tell us anything useful: load in/out times, access, venue constraints, known requirements..."
+              placeholder={
+  request.needsCrewAdvice
+    ? "Please tell us as much as you can: event type, expected schedule, venue access, bump in/out times, number of stages/rooms, or anything you are unsure about..."
+    : "Tell us anything useful: load in/out times, access, venue constraints, known requirements..."
+}
             />
           </label>
 
           <div className="span-2 row" style={{ justifyContent: "flex-end" }}>
-            <button type="submit">Submit estimate request</button>
+            <button type="submit">
+             {request.needsCrewAdvice ? "Request a Call" : "Get My Estimate"}
+            </button>
           </div>
         </form>
       </div>

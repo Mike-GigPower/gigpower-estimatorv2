@@ -161,10 +161,28 @@ const requestIdFromUrl = searchParams.get("id");
                     }}
                   >
                     <strong>
-                      {request.estimate_number || "No reference"}
-                    </strong>
-                    <br />
-                    {request.event_name || "Untitled event"}
+  {request.estimate_number || "No reference"}
+</strong>
+
+{request.payload?.needsCrewAdvice && (
+  <span
+  style={{
+    display: "inline-block",
+    marginTop: 8,
+    padding: "4px 8px",
+    borderRadius: 999,
+    background: "#fff3cd",
+    color: "#7a5a00",
+    fontSize: 12,
+    fontWeight: 700,
+  }}
+>
+  Advice requested
+</span>
+)}
+
+<br />
+{request.event_name || "Untitled event"}
                     <br />
                     <small>
                       {request.event_date || "No date"} ·{" "}
@@ -200,6 +218,20 @@ const requestIdFromUrl = searchParams.get("id");
     Quote number: <strong>{selected.quote_number}</strong>
   </p>
 )}
+{selected.payload?.needsCrewAdvice && (
+  <p
+    style={{
+      marginTop: 8,
+      padding: "8px 10px",
+      borderRadius: 6,
+      background: "#fff3cd",
+      color: "#7a5a00",
+      fontWeight: 700,
+    }}
+  >
+    Customer requested a call to discuss crew requirements.
+  </p>
+)}
 </div>
                   </div>
                 </div>
@@ -207,22 +239,36 @@ const requestIdFromUrl = searchParams.get("id");
                 <hr />
 
                 <h3>Customer</h3>
-                <p>
-                  <strong>Name:</strong> {selected.customer_name || "-"}
-                  <br />
-                  <strong>Company:</strong> {selected.company_name || "-"}
-                  <br />
-                  <strong>Email:</strong> {selected.email || "-"}
-                </p>
+<p>
+  <strong>Name:</strong> {selected.payload?.customerName || "-"}
+  <br />
+  <strong>Company:</strong> {selected.payload?.companyName || "-"}
+  <br />
+  <strong>Email:</strong> {selected.payload?.email || "-"}
+  <br />
+  <strong>Phone:</strong> {selected.payload?.phone || "Not supplied"}
+</p>
+{selected.payload?.phone && (
+  <>
+    <br />
+    <a
+      href={`tel:${selected.payload.phone}`}
+      className="btn-secondary"
+      style={{ display: "inline-block", marginTop: 8 }}
+    >
+      Call customer
+    </a>
+  </>
+)}
 
-                <h3>Event</h3>
-                <p>
-                  <strong>Event:</strong> {selected.event_name || "-"}
-                  <br />
-                  <strong>Date:</strong> {selected.event_date || "-"}
-                  <br />
-                  <strong>Venue:</strong> {selected.event_location || "-"}
-                </p>
+<h3>Event</h3>
+<p>
+  <strong>Event:</strong> {selected.payload?.eventName || "-"}
+  <br />
+  <strong>Date:</strong> {selected.payload?.eventDate || "-"}
+  <br />
+  <strong>Venue:</strong> {selected.payload?.eventLocation || "-"}
+</p>
 
                 <h3>Crew requirements</h3>
 
@@ -270,7 +316,7 @@ const requestIdFromUrl = searchParams.get("id");
 
 {selected.payload?.notes && (
   <>
-    <h3>Notes</h3>
+    <h3>Customer Notes</h3>
     <p>{selected.payload.notes}</p>
   </>
 )}
@@ -282,6 +328,8 @@ const requestIdFromUrl = searchParams.get("id");
     </main>
   );
 }
+
+
 
 export default function AdminRequestsPage() {
   return (
