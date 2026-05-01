@@ -19,6 +19,7 @@ type DraftToolbarProps = {
   onDeleteSelected: () => void;
   onClearAll: () => void;
   onPrint: () => void;
+  onDownloadPdf?: () => void;
   onRecalculate: () => void;
   busy: boolean;
 };
@@ -37,6 +38,7 @@ export default function DraftToolbar({
   onDeleteSelected,
   onClearAll,
   onPrint,
+  onDownloadPdf,
   onRecalculate,
   busy,
 }: DraftToolbarProps) {
@@ -110,6 +112,12 @@ export default function DraftToolbar({
       <button className="btn-print" onClick={onPrint}>
         Print
       </button>
+      
+      {onDownloadPdf && (
+  <button type="button" onClick={onDownloadPdf}>
+    Download PDF
+  </button>
+)}
 
       <button className="primary" disabled={busy} onClick={onRecalculate}>
         {busy ? "Calculating…" : "Recalculate"}
