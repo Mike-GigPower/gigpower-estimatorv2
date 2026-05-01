@@ -105,7 +105,7 @@ const requestIdFromUrl = searchParams.get("id");
     "loadedEstimateRequest",
     JSON.stringify({
       requestId: request.id,
-      estimateNumber: request.estimate_number,
+      requestNumber: request.estimate_number,
       payload: request.payload,
     })
   );

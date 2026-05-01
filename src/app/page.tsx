@@ -189,7 +189,7 @@ useEffect(() => {
 
   setInput((prev) => ({
     ...prev,
-    quoteNumber: loaded.estimateNumber || prev.quoteNumber || "",
+    quoteNumber: loaded.requestNumber || prev.quoteNumber || "",
     status: "Draft",
     companyName: payload.companyName || "",
     contactName: payload.customerName || "",

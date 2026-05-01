@@ -69,10 +69,10 @@ function crewBreakdownHtml(lines?: EstimateEmailInput["crewLines"]) {
 
 export async function sendCustomerEstimateEmail(input: EstimateEmailInput) {
   return resend.emails.send({
-  from: "GigPower <info@gigpower.com>",
+  from: "Gig Power <info@gigpower.com>",
   replyTo: "info@gigpower.com",
   to: [input.customerEmail],
-    subject: `Gig Power estimate request received - ${input.eventName}  Estimate Number - ${input.estimateNumber}` ,
+    subject: `Gig Power estimate request received - ${input.eventName}  Request Number - ${input.estimateNumber}` ,
     html: `
   <div style="font-family: Arial, sans-serif; background:#f5f5f5; padding:20px;">
     <div style="background:#111; padding:24px; text-align:center;">
@@ -103,7 +103,7 @@ export async function sendCustomerEstimateEmail(input: EstimateEmailInput) {
     </p>
 
     <p>
-      <strong>Your Estimate reference #
+      <strong>Your Request reference #
     </p>
     <p style="
   font-size:20px;
@@ -136,7 +136,7 @@ export async function sendCustomerEstimateEmail(input: EstimateEmailInput) {
            border-radius:6px;
            display:inline-block;
          ">
-        Call GigPower
+        Call Gig Power
       </a>
     </div>
   `
@@ -155,7 +155,7 @@ export async function sendCustomerEstimateEmail(input: EstimateEmailInput) {
     </p>
 
     <p>
-      If you would like to proceed, please contact us quoting your estimate reference #: 
+      If you would like to proceed, please contact us quoting your request reference #: 
     </p>
     
 
@@ -198,7 +198,7 @@ export async function sendCustomerEstimateEmail(input: EstimateEmailInput) {
       <!-- FOOTER -->
       <div style="background:#f0f0f0; padding:20px; text-align:center; font-size:12px; color:#555;">
         <p style="margin:0;">
-          GigPower – The Entertainment Labour Specialists
+          Gig Power – The Entertainment Labour Specialists
         </p>
         <p style="margin:6px 0;">
           info@gigpower.com | +613 9376 5600
@@ -218,10 +218,10 @@ export async function sendInternalEstimateNotification(input: EstimateEmailInput
   const notifyEmail = process.env.GIGPOWER_NOTIFICATION_EMAIL || "mike@gigpower.com";
 
   return resend.emails.send({
-  from: "GigPower Estimator <info@gigpower.com>",
+  from: "Gig Power Estimator <info@gigpower.com>",
  replyTo: "info@gigpower.com",
   to: [notifyEmail],
-    subject: `New estimate request - ${input.eventName} Estimate Number - ${input.estimateNumber}`,
+    subject: `New estimate request - ${input.eventName} Request Number - ${input.estimateNumber}`,
     html: `
       <h2>New estimate request received</h2>
       ${input.needsCrewAdvice
