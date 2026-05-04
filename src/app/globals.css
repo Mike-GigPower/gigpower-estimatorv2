@@ -211,6 +211,11 @@ button.ghost {
   background: rgba(255,255,255,0.14);
 }
 
+.btn-danger {
+  background: #dc2626;
+  color: white;
+}
+
 .icon-btn {
   display: inline-flex;
   align-items: center;

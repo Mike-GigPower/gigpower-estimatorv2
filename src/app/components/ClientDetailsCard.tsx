@@ -17,7 +17,7 @@ export default function ClientDetailsCard({
   onUpdateHeader,
 }: ClientDetailsCardProps) {
   return (
-    <div className="card no-print">
+    <div className="no-print">
       <div className="row">
         <div className="col">
           <label>Company name</label>

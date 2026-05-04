@@ -172,6 +172,7 @@ const authClient = supabase;
    */
   const [input, setInput] = useState<QuoteInput>(defaultInput);
 const [draftName, setDraftName] = useState("Untitled Estimate");
+const [statusFilter, setStatusFilter] = useState("");
 const [savedDrafts, setSavedDrafts] = useState<SavedDraft[]>([]);
 const [selectedDraftId, setSelectedDraftId] = useState("");
 const [isMounted, setIsMounted] = useState(false);
@@ -897,12 +898,16 @@ if (!profile || profile.role !== "admin") {
     return;
   }
 
+   await loadAllDrafts();
+
   if (selectedDraftId === id) {
     setSelectedDraftId("");
+    setDraftName("");
+    
+    setInput(defaultInput);
   }
 
   alert("Saved estimate deleted.");
-  await loadAllDrafts();
 }
 
   /**
@@ -1010,28 +1015,36 @@ async function loadAllDrafts() {
 }
 
   const drafts: SavedDraft[] = (data ?? []).map((row: any) => ({
-    id: row.id,
-    name: row.name,
-    savedAt: row.created_at,
-    updatedAt: row.updated_at || null,
-    currentVersion: row.current_version ?? 1,
-    input: {
-      ...defaultInput,
-      ...(row.payload || {}),
-      quoteNumber: row.payload?.quoteNumber || row.quote_number || "",
-      quoteDate: row.payload?.quoteDate || "",
-      validUntil: row.payload?.validUntil || "",
-      labour: (row.payload?.labour || []).map((line: any) => ({
-        ...line,
-        id: line.id || uid("lab"),
-        notes: line.notes || "",
-      })),
-      nonLabour: (row.payload?.nonLabour || []).map((line: any) => ({
-        ...line,
-        id: line.id || uid("nl"),
-      })),
-    },
-  }));
+  id: row.id,
+  name: row.name,
+  savedAt: row.created_at,
+  updatedAt: row.updated_at || null,
+  currentVersion: row.current_version ?? 1,
+
+  // Add this top-level status for filtering
+  status: row.payload?.status || "Draft",
+
+  input: {
+    ...defaultInput,
+    ...(row.payload || {}),
+    quoteNumber: row.payload?.quoteNumber || row.quote_number || "",
+    quoteDate: row.payload?.quoteDate || "",
+    validUntil: row.payload?.validUntil || "",
+
+    // Add this input status for display/load consistency
+    status: row.payload?.status || "Draft",
+
+    labour: (row.payload?.labour || []).map((line: any) => ({
+      ...line,
+      id: line.id || uid("lab"),
+      notes: line.notes || "",
+    })),
+    nonLabour: (row.payload?.nonLabour || []).map((line: any) => ({
+      ...line,
+      id: line.id || uid("nl"),
+    })),
+  },
+}));
 
   setSavedDrafts(drafts);
 }
@@ -1041,22 +1054,31 @@ async function loadAllDrafts() {
    * Matches quote number, draft name, company name, or contact name.
    */
   const filteredDrafts = savedDrafts.filter((d) => {
-    const needle = quoteSearch.trim().toLowerCase();
-    if (!needle) return true;
+  const q = quoteSearch.trim().toLowerCase();
 
-    const quoteNumber = (d.input.quoteNumber ?? "").toLowerCase();
-    const draftLabel = (d.name ?? "").toLowerCase();
-    const companyName = (d.input.companyName ?? "").toLowerCase();
-    const contactName = (d.input.contactName ?? "").toLowerCase();
+  const quoteNumber = d.input?.quoteNumber || d.quoteNumber || "";
+  const requestNumber = d.input?.requestNumber || "";
+  const companyName = d.input?.companyName || d.companyName || "";
+  const contactName = d.input?.contactName || "";
+  const eventName = d.input?.eventName || "";
+  const draftName = d.name || "";
 
-    return (
-      quoteNumber.includes(needle) ||
-      draftLabel.includes(needle) ||
-      companyName.includes(needle) ||
-      contactName.includes(needle)
-    );
-  });
+  const draftStatus = d.input?.status || d.status || "Draft";
 
+  const matchesSearch =
+    !q ||
+    quoteNumber.toLowerCase().includes(q) ||
+    requestNumber.toLowerCase().includes(q) ||
+    companyName.toLowerCase().includes(q) ||
+    contactName.toLowerCase().includes(q) ||
+    eventName.toLowerCase().includes(q) ||
+    draftName.toLowerCase().includes(q);
+
+  const matchesStatus =
+    !statusFilter || draftStatus === statusFilter;
+
+  return matchesSearch && matchesStatus;
+});
 const selectedDraftMeta =
   savedDrafts.find((d) => d.id === selectedDraftId) || null;
 
@@ -1103,6 +1125,12 @@ const hasAnyData = hasLabourData || hasNonLabourData;
           draftName={draftName}
           setDraftName={setDraftName}
           quoteSearch={quoteSearch}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          status={input.status}
+          currentVersion={selectedDraftMeta?.currentVersion ?? 1}
+lastSavedAt={selectedDraftMeta?.updatedAt || selectedDraftMeta?.savedAt || null}
+setStatus={(value) => setInput((prev) => ({ ...prev, status: value }))}
           setQuoteSearch={setQuoteSearch}
           selectedDraftId={selectedDraftId}
           setSelectedDraftId={setSelectedDraftId}
@@ -1124,46 +1152,9 @@ const hasAnyData = hasLabourData || hasNonLabourData;
         />
       </div>
       
-     <div className="no-print" style={{ marginBottom: "12px" }}>
-  <label style={{ display: "grid", gap: "4px", maxWidth: "200px" }}>
-    <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>
-      Status
-    </span>
-    <select
-      value={input.status || "Draft"}
-      onChange={(e) =>
-        setInput((prev) => ({
-          ...prev,
-          status: e.target.value as "Draft" | "Sent" | "Approved",
-        }))
-      }
-      style={{
-        padding: "8px 10px",
-        borderRadius: "8px",
-        border: "1px solid rgba(255,255,255,0.2)",
-      }}
-    >
-      <option value="Draft">Draft</option>
-      <option value="Sent">Sent</option>
-      <option value="Approved">Approved</option>
-    </select>
-  </label>
-</div>
+     
       
-      <div
-  style={{
-    marginTop: "8px",
-    marginBottom: "12px",
-    fontSize: "12px",
-    color: "rgba(255,255,255,0.65)",
-  }}
->
-  {selectedDraftMeta
-    ? `Version ${selectedDraftMeta.currentVersion ?? 1} · Last saved ${formatSavedDate(
-        selectedDraftMeta.updatedAt || selectedDraftMeta.savedAt
-      )}`
-    : "New unsaved estimate"}
-</div>
+      
 
       <div className="hr" />
 

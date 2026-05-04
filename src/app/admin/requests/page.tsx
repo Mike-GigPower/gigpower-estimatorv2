@@ -322,7 +322,7 @@ const requestIdFromUrl = searchParams.get("id");
   style={{ marginTop: 12 }}
   onClick={() => loadIntoEstimator(selected)}
 >
-  Convert to Quote
+  Convert to Formal Estimate
 </button>
 
 {selected.payload?.notes && (
