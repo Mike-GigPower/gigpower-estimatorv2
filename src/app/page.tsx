@@ -187,9 +187,26 @@ useEffect(() => {
   const loaded = JSON.parse(stored);
   const payload = loaded.payload || loaded;
 
+  const sourceRequestId =
+    loaded.sourceRequestId || loaded.requestId || "";
+
+  const requestNumber =
+  loaded.requestNumber ||
+  payload.requestNumber ||
+  loaded.estimate_number ||
+  payload.estimate_number ||
+  "";
+
   setInput((prev) => ({
     ...prev,
-    quoteNumber: loaded.requestNumber || prev.quoteNumber || "",
+
+    // Keep Estimate # separate from Request #
+    quoteNumber: prev.quoteNumber || "",
+
+    // Link back to source Request
+    sourceRequestId,
+    requestNumber,
+
     status: "Draft",
     companyName: payload.companyName || "",
     contactName: payload.customerName || "",
@@ -208,10 +225,7 @@ useEffect(() => {
     })),
   }));
 
-  localStorage.setItem(
-    "convertedEstimateRequestId",
-    loaded.requestId || ""
-  );
+  localStorage.setItem("convertedEstimateRequestId", sourceRequestId);
 
   localStorage.removeItem("loadedEstimateRequest");
 }, []);
@@ -662,19 +676,24 @@ const ensuredInput: QuoteInput = {
     const nextVersion = (existingQuote?.current_version || 1) + 1;
 
     const { error: updateError } = await supabaseData
-      .from("quotes")
-      .update({
-        name,
-        quote_number: ensuredInput.quoteNumber,
-        status: ensuredInput.status,
-        quote_date: ddmmyyyyToIso(ensuredInput.quoteDate),
-        valid_until: ddmmyyyyToIso(ensuredInput.validUntil),
-        payload: ensuredInput,
-        updated_at: now,
-        updated_by: actorId,
-        current_version: nextVersion,
-      })
-      .eq("id", overwriteId);
+  .from("quotes")
+  .update({
+    name,
+    quote_number: ensuredInput.quoteNumber,
+
+    // Link estimate back to source request
+    source_request_id: ensuredInput.sourceRequestId || null,
+    request_number: ensuredInput.requestNumber || null,
+
+    status: ensuredInput.status,
+    quote_date: ddmmyyyyToIso(ensuredInput.quoteDate),
+    valid_until: ddmmyyyyToIso(ensuredInput.validUntil),
+    payload: ensuredInput,
+    updated_at: now,
+    updated_by: actorId,
+    current_version: nextVersion,
+  })
+  .eq("id", overwriteId);
 
     if (updateError) {
   console.error("Error updating estimate:", updateError);
@@ -713,6 +732,8 @@ const ensuredInput: QuoteInput = {
       {
         name,
         quote_number: ensuredInput.quoteNumber,
+        source_request_id: ensuredInput.sourceRequestId || null,
+request_number: ensuredInput.requestNumber || null,
         quote_date: ddmmyyyyToIso(ensuredInput.quoteDate),
         valid_until: ddmmyyyyToIso(ensuredInput.validUntil),
         payload: ensuredInput,
@@ -1057,6 +1078,7 @@ const hasAnyData = hasLabourData || hasNonLabourData;
   <AppHeader
   draftName={draftName}
   quoteNumber={input.quoteNumber}
+   requestNumber={input.requestNumber}
   quoteDate={input.quoteDate}
   validUntil={input.validUntil}
   onValidUntilChange={(value) => {

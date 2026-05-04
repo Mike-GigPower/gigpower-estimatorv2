@@ -25,7 +25,7 @@ function generateEstimateNumber() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const estimateNumber = generateEstimateNumber();
+    const requestNumber = generateEstimateNumber();
     const quoteInput = publicRequestToQuoteInput(body);
 const result = estimateQuote(quoteInput);
 const shouldShowEstimateTotal = !body.needsCrewAdvice;
@@ -36,7 +36,7 @@ const displayedTotal = shouldShowEstimateTotal
     const { data, error } = await supabaseData.from("estimate_requests").insert([
       {
         status: "New",
-        estimate_number: estimateNumber,
+        estimate_number: requestNumber,
 
         customer_name: body.customerName,
         company_name: body.companyName,
@@ -49,7 +49,7 @@ const displayedTotal = shouldShowEstimateTotal
 
         payload: {
   ...body,
-  estimateNumber,
+  requestNumber,
   estimate: {
   totalIncGst: result.totals?.grandTotalIncGst,
   displayedToCustomer: shouldShowEstimateTotal,
@@ -91,7 +91,7 @@ const requestLink = `${baseUrl}/admin/requests?id=${requestId}`;
   grandTotalIncGst: displayedTotal,
 needsCrewAdvice: body.needsCrewAdvice,
   crewLines: body.crewLines,
-  estimateNumber,
+  requestNumber,
 });
 
 await sendInternalEstimateNotification({
@@ -105,7 +105,7 @@ await sendInternalEstimateNotification({
   grandTotalIncGst: displayedTotal,
 needsCrewAdvice: body.needsCrewAdvice,
   crewLines: body.crewLines,
-  estimateNumber,
+  requestNumber,
   requestLink,
 });
 

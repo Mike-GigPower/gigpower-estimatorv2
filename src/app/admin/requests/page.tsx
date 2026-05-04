@@ -102,13 +102,24 @@ const requestIdFromUrl = searchParams.get("id");
   }
 
   localStorage.setItem(
-    "loadedEstimateRequest",
-    JSON.stringify({
-      requestId: request.id,
-      requestNumber: request.estimate_number,
-      payload: request.payload,
-    })
-  );
+  "loadedEstimateRequest",
+  JSON.stringify({
+    sourceRequestId: request.id,
+    requestId: request.id,
+    requestNumber:
+      request.payload?.requestNumber ||
+      request.estimate_number ||
+      "",
+    payload: {
+      ...(request.payload || {}),
+      sourceRequestId: request.id,
+      requestNumber:
+        request.payload?.requestNumber ||
+        request.estimate_number ||
+        "",
+    },
+  })
+);
 
   window.location.href = "/";
 }

@@ -19,6 +19,8 @@ export type QuoteInput = {
   quoteNumber: string;
   quoteDate: string;
   validUntil: string;
+    sourceRequestId?: string;
+  requestNumber?: string;
   companyName: string;
   contactName: string;
   contactEmail: string;

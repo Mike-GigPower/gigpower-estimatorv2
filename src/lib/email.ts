@@ -11,7 +11,7 @@ type EstimateEmailInput = {
   eventDate?: string;
   eventLocation?: string;
   grandTotalIncGst?: number;
-  estimateNumber?: string;
+  requestNumber?: string;
   requestLink?: string;
   needsCrewAdvice?: boolean;
   crewLines?: {
@@ -72,7 +72,7 @@ export async function sendCustomerEstimateEmail(input: EstimateEmailInput) {
   from: "Gig Power <info@gigpower.com>",
   replyTo: "info@gigpower.com",
   to: [input.customerEmail],
-    subject: `Gig Power estimate request received - ${input.eventName}  Request Number - ${input.estimateNumber}` ,
+    subject: `Gig Power estimate request received - ${input.eventName}  Request Number - ${input.requestNumber}` ,
     html: `
   <div style="font-family: Arial, sans-serif; background:#f5f5f5; padding:20px;">
     <div style="background:#111; padding:24px; text-align:center;">
@@ -115,7 +115,7 @@ export async function sendCustomerEstimateEmail(input: EstimateEmailInput) {
   padding:6px 10px;
   border-radius:4px;
 ">
-  ${input.estimateNumber}
+  ${input.requestNumber}
 </p>
 
 
@@ -169,14 +169,14 @@ export async function sendCustomerEstimateEmail(input: EstimateEmailInput) {
       padding:6px 10px;
       border-radius:4px;
     ">
-      ${input.estimateNumber}
+      ${input.requestNumber}
     </p>
 
 
     ${crewBreakdownHtml(input.crewLines)}
 
     <div style="text-align:center; margin:24px 0;">
-      <a href="mailto:info@gigpower.com?subject=Proceed%20with%20estimate%20${input.estimateNumber}"
+      <a href="mailto:info@gigpower.com?subject=Proceed%20with%20estimate%20${input.requestNumber}"
          style="
            background:#fcb900;
            color:#111;
@@ -221,7 +221,7 @@ export async function sendInternalEstimateNotification(input: EstimateEmailInput
   from: "Gig Power Estimator <info@gigpower.com>",
  replyTo: "info@gigpower.com",
   to: [notifyEmail],
-    subject: `New estimate request - ${input.eventName} Request Number - ${input.estimateNumber}`,
+    subject: `New estimate request - ${input.eventName} Request Number - ${input.requestNumber}`,
     html: `
       <h2>New estimate request received</h2>
       ${input.needsCrewAdvice

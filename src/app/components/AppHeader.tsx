@@ -4,6 +4,7 @@ import { defaultConfig } from "@/src/lib/config";
 type AppHeaderProps = {
   draftName: string;
   quoteNumber: string;
+ requestNumber?: string;
   quoteDate: string;
   validUntil: string;
   onValidUntilChange?: (value: string) => void;
@@ -20,6 +21,7 @@ type AppHeaderProps = {
 export default function AppHeader({
   draftName,
   quoteNumber,
+  requestNumber,
   quoteDate,
   validUntil,
   onValidUntilChange,
@@ -64,7 +66,11 @@ export default function AppHeader({
   )}
   <div>
   <div>
-  <strong>Quote #:</strong> {quoteNumber || "—"} · Version {version ?? 1} ·{" "}
+  <strong>Estimate #:</strong> {quoteNumber || "—"}
+{requestNumber && (
+  <> · From Request {requestNumber}</>
+)}
+ · Version {version ?? 1} ·{" "}
 <strong>Status:</strong> {status || "Draft"} ·{" "}
 <strong>Valid Until:</strong> {validUntil || "—"}
 </div>
@@ -106,16 +112,23 @@ export default function AppHeader({
     </div>
   </div>
   <div style={{ marginTop: "8px", fontSize: "13px" }}>
-  <strong>Quote #:</strong> {quoteNumber || "—"} · Version {version ?? 1} ·{" "}
-<strong>Status:</strong> {status || "Draft"} ·{" "}
-<strong>Valid Until:</strong>{" "}
-<input
+  <div>
+  <strong>Estimate #:</strong> {quoteNumber || "—"}
+  {requestNumber && <> · From Request {requestNumber}</>}
+  {" "}· Version {version ?? 1}
+</div>
+
+<div style={{ marginTop: "6px" }}>
+  <strong>Status:</strong> {status || "Draft"} ·{" "}
+  <strong>Valid Until:</strong>{" "}
+  <input
     type="text"
     value={validUntil || ""}
     onChange={(e) => onValidUntilChange?.(e.target.value)}
     className="ml-2 border rounded px-2 py-1"
     style={{ width: "120px" }}
   />
+</div>
 </div>
 </div>
 
