@@ -1050,20 +1050,19 @@ async function loadAllDrafts() {
 }
 
   /**
-   * Filter saved drafts using the toolbar search box.
-   * Matches quote number, draft name, company name, or contact name.
-   */
-  const filteredDrafts = savedDrafts.filter((d) => {
+ * Filter saved drafts using the toolbar search box and status filter.
+ * Matches estimate number, request number, draft name, company name, or contact name.
+ */
+const filteredDrafts = savedDrafts.filter((d) => {
   const q = quoteSearch.trim().toLowerCase();
 
-  const quoteNumber = d.input?.quoteNumber || d.quoteNumber || "";
+  const quoteNumber = d.input?.quoteNumber || "";
   const requestNumber = d.input?.requestNumber || "";
-  const companyName = d.input?.companyName || d.companyName || "";
+  const companyName = d.input?.companyName || "";
   const contactName = d.input?.contactName || "";
-  const eventName = d.input?.eventName || "";
   const draftName = d.name || "";
 
-  const draftStatus = d.input?.status || d.status || "Draft";
+  const draftStatus = d.input?.status || "Draft";
 
   const matchesSearch =
     !q ||
@@ -1071,14 +1070,13 @@ async function loadAllDrafts() {
     requestNumber.toLowerCase().includes(q) ||
     companyName.toLowerCase().includes(q) ||
     contactName.toLowerCase().includes(q) ||
-    eventName.toLowerCase().includes(q) ||
     draftName.toLowerCase().includes(q);
 
-  const matchesStatus =
-    !statusFilter || draftStatus === statusFilter;
+  const matchesStatus = !statusFilter || draftStatus === statusFilter;
 
   return matchesSearch && matchesStatus;
 });
+
 const selectedDraftMeta =
   savedDrafts.find((d) => d.id === selectedDraftId) || null;
 
@@ -1127,10 +1125,12 @@ const hasAnyData = hasLabourData || hasNonLabourData;
           quoteSearch={quoteSearch}
           statusFilter={statusFilter}
           setStatusFilter={setStatusFilter}
-          status={input.status}
+          status={input.status || "Draft"}
           currentVersion={selectedDraftMeta?.currentVersion ?? 1}
 lastSavedAt={selectedDraftMeta?.updatedAt || selectedDraftMeta?.savedAt || null}
-setStatus={(value) => setInput((prev) => ({ ...prev, status: value }))}
+setStatus={(value: "Draft" | "Sent" | "Approved") =>
+  setInput({ ...input, status: value })
+}
           setQuoteSearch={setQuoteSearch}
           selectedDraftId={selectedDraftId}
           setSelectedDraftId={setSelectedDraftId}

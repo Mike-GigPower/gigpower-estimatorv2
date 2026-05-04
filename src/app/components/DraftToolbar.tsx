@@ -16,7 +16,7 @@ type DraftToolbarProps = {
   filteredDrafts: DraftOption[];
   statusFilter: string;
   status: string;
-setStatus: (value: string) => void;
+setStatus: (value: "Draft" | "Sent" | "Approved") => void;
 currentVersion?: number;
 lastSavedAt?: string | null;
   setStatusFilter: (value: string) => void;
@@ -260,7 +260,9 @@ return (
           </label>
           <select
             value={status || "Draft"}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) =>
+  setStatus(e.target.value as "Draft" | "Sent" | "Approved")
+}
             style={{ width: "100%", height: 42 }}
           >
             <option value="Draft">Draft</option>
