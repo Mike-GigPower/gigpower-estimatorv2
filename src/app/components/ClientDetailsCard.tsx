@@ -17,8 +17,18 @@ export default function ClientDetailsCard({
   onUpdateHeader,
 }: ClientDetailsCardProps) {
   return (
-    <div className="no-print">
-      <div className="row">
+  <div className="card no-print" style={{ display: "grid", gap: 16 }}>
+    
+    {/* Header */}
+    <div>
+      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
+  Client Details
+</h3>
+      <p style={{ margin: "4px 0 0", color: "rgba(255,255,255,0.6)", fontSize: 13 }}>
+        Enter client and contact information for this estimate.
+      </p>
+    </div>
+      <div className="row" style={{ marginTop: 8 }}>
         <div className="col">
           <label>Company name</label>
           <input
@@ -65,7 +75,7 @@ export default function ClientDetailsCard({
         </div>
       </div>
 
-      <div style={{ marginTop: 10 }}>
+      <div style={{ marginTop: 16 }}>
         <label>Notes</label>
         <textarea
           value={input.notes ?? ""}

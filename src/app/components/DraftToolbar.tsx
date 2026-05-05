@@ -63,6 +63,128 @@ lastSavedAt,
 }: DraftToolbarProps) {
 return (
   <div className="no-print" style={{ display: "grid", gap: 20 }}>
+  {!estimatorVisible && (
+  <div
+    style={{
+      
+      display: "grid",
+      gap: 16,
+    }}
+  >
+    <div
+      style={{
+        border: "1px solid rgba(255,255,255,0.12)",
+        borderRadius: 14,
+        padding: 18,
+        background: "rgba(255,255,255,0.04)",
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div>
+        <h2 style={{ margin: 0 }}>
+  Create a New Estimate
+</h2>
+        <p
+          style={{
+            margin: "6px 0 0",
+            color: "rgba(255,255,255,0.65)",
+            fontSize: 14,
+          }}
+        >
+          Start from a blank estimate and build a new quote.
+        </p>
+      </div>
+
+      <button
+        onClick={onCreateNew}
+        style={{
+          width: "fit-content",
+          background: "#16a34a",
+          color: "#fff",
+          borderColor: "#22c55e",
+        }}
+      >
+        Create New Estimate
+      </button>
+    </div>
+
+    <div
+      style={{
+        border: "1px solid rgba(255,255,255,0.12)",
+        borderRadius: 14,
+        padding: 18,
+        background: "rgba(255,255,255,0.04)",
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div>
+        <h2 style={{ margin: 0 }}>
+  Recent Estimates
+</h2>
+        <p
+          style={{
+            margin: "6px 0 0",
+            color: "rgba(255,255,255,0.65)",
+            fontSize: 14,
+          }}
+        >
+          Quickly open one of the most recently saved estimates.
+        </p>
+      </div>
+
+      {filteredDrafts.length === 0 ? (
+        <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>
+          No saved estimates found.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: 8 }}>
+          {filteredDrafts.slice(0, 5).map((d) => (
+            <button
+  key={d.id}
+  type="button"
+  onClick={() => {
+    onLoadDraftById(d.id);
+  }}
+  style={{
+    textAlign: "left",
+    padding: "10px 12px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.06)",
+    color: "#fff",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.background = "rgba(214,168,79,0.18)";
+    e.currentTarget.style.border = "1px solid #d6a84f";
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+    e.currentTarget.style.border = "1px solid rgba(255,255,255,0.12)";
+  }}
+>
+              <div style={{ fontWeight: 700 }}>
+                {(d.quoteNumber || "—")} | {d.name}
+              </div>
+              <div
+                style={{
+                  marginTop: 3,
+                  fontSize: 13,
+                  color: "rgba(255,255,255,0.6)",
+                }}
+              >
+                {d.companyName || "No company recorded"}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+)}
     <div className="card" style={{ display: "grid", gap: 16 }}>
       <div>
         <h2 style={{ margin: 0 }}>Find Estimate</h2>
@@ -150,128 +272,7 @@ return (
       </div>
     </div>
     
-{!estimatorVisible && (
-  <div
-    style={{
-      marginTop: 16,
-      display: "grid",
-      gap: 16,
-    }}
-  >
-    <div
-      style={{
-        border: "1px solid rgba(255,255,255,0.12)",
-        borderRadius: 14,
-        padding: 18,
-        background: "rgba(255,255,255,0.04)",
-        display: "grid",
-        gap: 12,
-      }}
-    >
-      <div>
-        <h3 style={{ margin: 0, fontSize: 18 }}>
-          Create a new estimate
-        </h3>
-        <p
-          style={{
-            margin: "6px 0 0",
-            color: "rgba(255,255,255,0.65)",
-            fontSize: 14,
-          }}
-        >
-          Start from a blank estimate and build a new quote.
-        </p>
-      </div>
 
-      <button
-        onClick={onCreateNew}
-        style={{
-          width: "fit-content",
-          background: "#16a34a",
-          color: "#fff",
-          borderColor: "#22c55e",
-        }}
-      >
-        Create New Estimate
-      </button>
-    </div>
-
-    <div
-      style={{
-        border: "1px solid rgba(255,255,255,0.12)",
-        borderRadius: 14,
-        padding: 18,
-        background: "rgba(255,255,255,0.04)",
-        display: "grid",
-        gap: 12,
-      }}
-    >
-      <div>
-        <h3 style={{ margin: 0, fontSize: 18 }}>
-          Recent estimates
-        </h3>
-        <p
-          style={{
-            margin: "6px 0 0",
-            color: "rgba(255,255,255,0.65)",
-            fontSize: 14,
-          }}
-        >
-          Quickly open one of the most recently saved estimates.
-        </p>
-      </div>
-
-      {filteredDrafts.length === 0 ? (
-        <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>
-          No saved estimates found.
-        </div>
-      ) : (
-        <div style={{ display: "grid", gap: 8 }}>
-          {filteredDrafts.slice(0, 5).map((d) => (
-            <button
-  key={d.id}
-  type="button"
-  onClick={() => {
-    onLoadDraftById(d.id);
-  }}
-  style={{
-    textAlign: "left",
-    padding: "10px 12px",
-    borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.06)",
-    color: "#fff",
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-  }}
-  onMouseEnter={(e) => {
-    e.currentTarget.style.background = "rgba(214,168,79,0.18)";
-    e.currentTarget.style.border = "1px solid #d6a84f";
-  }}
-  onMouseLeave={(e) => {
-    e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-    e.currentTarget.style.border = "1px solid rgba(255,255,255,0.12)";
-  }}
->
-              <div style={{ fontWeight: 700 }}>
-                {(d.quoteNumber || "—")} | {d.name}
-              </div>
-              <div
-                style={{
-                  marginTop: 3,
-                  fontSize: 13,
-                  color: "rgba(255,255,255,0.6)",
-                }}
-              >
-                {d.companyName || "No company recorded"}
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-)}
 
     {estimatorVisible && (
   <div className="card" style={{ display: "grid", gap: 18 }}>
