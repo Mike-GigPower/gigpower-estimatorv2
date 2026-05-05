@@ -171,6 +171,7 @@ const authClient = supabase;
    * This is what the user edits on the screen.
    */
   const [input, setInput] = useState<QuoteInput>(defaultInput);
+  const [estimatorVisible, setEstimatorVisible] = useState(false);
 const [draftName, setDraftName] = useState("Untitled Estimate");
 const [statusFilter, setStatusFilter] = useState("");
 const [savedDrafts, setSavedDrafts] = useState<SavedDraft[]>([]);
@@ -559,6 +560,7 @@ function handleStartNew() {
   ) {
     resetToBlankQuote();
     setValidUntilManuallyEdited(false);
+    setEstimatorVisible(true);
     return;
   }
 
@@ -568,16 +570,27 @@ function handleStartNew() {
 async function handleSaveAndStartNew() {
   await saveDraft(selectedDraftId || undefined);
   resetToBlankQuote();
+  setValidUntilManuallyEdited(false);
   setShowStartNewConfirm(false);
+  setEstimatorVisible(true);
 }
 
 function handleDiscardAndStartNew() {
   resetToBlankQuote();
+  setValidUntilManuallyEdited(false);
   setShowStartNewConfirm(false);
+  setEstimatorVisible(true);
 }
 
 function handleCancelStartNew() {
   setShowStartNewConfirm(false);
+}
+
+function handleCreateNewEstimate() {
+  resetToBlankQuote();
+  setValidUntilManuallyEdited(false);
+  setShowStartNewConfirm(false);
+  setEstimatorVisible(true);
 }
 
 async function downloadQuotePdf() {
@@ -853,6 +866,7 @@ const hydrated: QuoteInput = {
   setInput(hydrated);
   recalc(hydrated);
   setValidUntilManuallyEdited(!!hydrated.validUntil);
+  setEstimatorVisible(true);
 }
 
   /**
@@ -905,6 +919,7 @@ if (!profile || profile.role !== "admin") {
     setDraftName("");
     
     setInput(defaultInput);
+    setEstimatorVisible(false);
   }
 
   alert("Saved estimate deleted.");
@@ -1126,6 +1141,7 @@ const hasAnyData = hasLabourData || hasNonLabourData;
           statusFilter={statusFilter}
           setStatusFilter={setStatusFilter}
           status={input.status || "Draft"}
+          estimatorVisible={estimatorVisible}
           currentVersion={selectedDraftMeta?.currentVersion ?? 1}
 lastSavedAt={selectedDraftMeta?.updatedAt || selectedDraftMeta?.savedAt || null}
 setStatus={(value: "Draft" | "Sent" | "Approved") =>
@@ -1145,6 +1161,7 @@ setStatus={(value: "Draft" | "Sent" | "Approved") =>
           onLoadSelected={() => selectedDraftId && loadDraftById(selectedDraftId)}
           onDeleteSelected={() => selectedDraftId && deleteDraft(selectedDraftId)}
           onClearAll={handleStartNew}
+          onCreateNew={handleCreateNewEstimate}
           onPrint={() => window.print()}
           onRecalculate={() => recalc(input)}
           onDownloadPdf={downloadQuotePdf}
@@ -1154,7 +1171,8 @@ setStatus={(value: "Draft" | "Sent" | "Approved") =>
       
      
       
-      
+      {estimatorVisible && (
+  <>
 
       <div className="hr" />
 
@@ -1224,6 +1242,9 @@ setStatus={(value: "Draft" | "Sent" | "Approved") =>
     />
 
     <TermsConditionsBox body={config.quoteText.termsAndConditions} />
+  </>
+)}
+
   </>
 )}
       

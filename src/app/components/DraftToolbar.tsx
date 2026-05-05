@@ -16,11 +16,13 @@ type DraftToolbarProps = {
   filteredDrafts: DraftOption[];
   statusFilter: string;
   status: string;
+  estimatorVisible: boolean;
 setStatus: (value: "Draft" | "Sent" | "Approved") => void;
 currentVersion?: number;
 lastSavedAt?: string | null;
   setStatusFilter: (value: string) => void;
   onSaveNew: () => void;
+  onCreateNew: () => void;
   onUpdateSaved: () => void;
   onLoadSelected: () => void;
   onDeleteSelected: () => void;
@@ -50,10 +52,12 @@ lastSavedAt,
   onLoadSelected,
   onDeleteSelected,
   onClearAll,
+  onCreateNew,
   onPrint,
   onDownloadPdf,
   onRecalculate,
   busy,
+  estimatorVisible,
 }: DraftToolbarProps) {
 return (
   <div className="no-print" style={{ display: "grid", gap: 20 }}>
@@ -143,8 +147,24 @@ return (
         </div>
       </div>
     </div>
+    
+{!estimatorVisible && (
+  <button
+    onClick={onCreateNew}
+    style={{
+      marginTop: 12,
+      width: "fit-content",
+      background: "#16a34a",
+      color: "#fff",
+      borderColor: "#22c55e",
+    }}
+  >
+    Create New Estimate
+  </button>
+)}
 
-    <div className="card" style={{ display: "grid", gap: 18 }}>
+    {estimatorVisible && (
+  <div className="card" style={{ display: "grid", gap: 18 }}>
       <div>
         <h2 style={{ margin: 0 }}>Estimate Details</h2>
         <p style={{ margin: "4px 0 0", color: "#666", fontSize: 14 }}>
@@ -267,9 +287,8 @@ return (
           >
             <option value="Draft">Draft</option>
             <option value="Sent">Sent</option>
-            <option value="Accepted">Accepted</option>
-            <option value="Declined">Declined</option>
-            <option value="Expired">Expired</option>
+            <option value="Approved">Approved</option>
+            
           </select>
         </div>
       </div>
@@ -281,11 +300,12 @@ return (
           marginTop: 4,
         }}
       >
-        {lastSavedAt
+                {lastSavedAt
           ? `Version ${currentVersion ?? 1} · Last saved ${lastSavedAt}`
           : "New unsaved estimate"}
       </div>
     </div>
-  </div>
+  )}
+</div>
 );
 }
