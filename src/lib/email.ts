@@ -215,7 +215,7 @@ export async function sendCustomerEstimateEmail(input: EstimateEmailInput) {
 }
 
 export async function sendInternalEstimateNotification(input: EstimateEmailInput) {
-  const notifyEmail = process.env.GIGPOWER_NOTIFICATION_EMAIL || "mike@gigpower.com";
+  const notifyEmail = process.env.GIGPOWER_NOTIFICATION_EMAIL || "info@gigpower.com";
 
   return resend.emails.send({
   from: "Gig Power Estimator <info@gigpower.com>",
