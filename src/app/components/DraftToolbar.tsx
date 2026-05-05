@@ -17,6 +17,7 @@ type DraftToolbarProps = {
   onLoadDraftById: (id: string) => void;
   statusFilter: string;
   status: string;
+  createdByName?: string;
   estimatorVisible: boolean;
 setStatus: (value: "Draft" | "Sent" | "Approved") => void;
 currentVersion?: number;
@@ -44,6 +45,7 @@ export default function DraftToolbar({
   status,
 setStatus,
 currentVersion,
+createdByName,
 lastSavedAt,
   selectedDraftId,
   setSelectedDraftId,
@@ -412,8 +414,10 @@ return (
         }}
       >
                 {lastSavedAt
-          ? `Version ${currentVersion ?? 1} · Last saved ${lastSavedAt}`
-          : "New unsaved estimate"}
+  ? `Version ${currentVersion ?? 1} · ${
+      createdByName ? `Created by ${createdByName} · ` : ""
+    }Last saved ${lastSavedAt}`
+  : "New unsaved estimate"}
       </div>
     </div>
   )}

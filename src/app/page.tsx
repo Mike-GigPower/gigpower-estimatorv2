@@ -56,6 +56,7 @@ type SavedDraft = {
   updatedAt?: string | null;
   currentVersion?: number;
   input: QuoteInput;
+  createdByName?: string;
 };
 
 
@@ -1049,48 +1050,75 @@ if (!profile || profile.role !== "admin") {
 
 async function loadAllDrafts() {
   const { data, error } = await authClient
-  .from("quotes")
-.select("*")
-.or("is_deleted.eq.false,is_deleted.is.null")
-.order("created_at", { ascending: false });
+    .from("quotes")
+    .select("*")
+    .or("is_deleted.eq.false,is_deleted.is.null")
+    .order("created_at", { ascending: false });
 
   if (error) {
-  console.error("Failed to load drafts:", error);
-  setSavedDrafts([]); // fail safely instead of stale UI
-  return;
+    console.error("Failed to load drafts:", error);
+    setSavedDrafts([]);
+    return;
+  }
+
+  const isUuid = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
+const createdByIds = Array.from(
+  new Set(
+    (data ?? [])
+      .map((row: any) => row.created_by)
+      .filter((value: any): value is string => Boolean(value) && isUuid(value))
+  )
+);
+
+let profiles: any[] = [];
+
+if (createdByIds.length > 0) {
+  const { data: profileData, error: profilesError } = await authClient
+    .from("profiles")
+    .select("id, full_name, email")
+    .in("id", createdByIds);
+
+  if (profilesError) {
+    console.warn("Failed to load creator profiles:", profilesError);
+  }
+
+  profiles = profileData ?? [];
 }
 
+  const profileById = new Map(
+    (profiles ?? []).map((profile: any) => [profile.id, profile.full_name])
+  );
+
   const drafts: SavedDraft[] = (data ?? []).map((row: any) => ({
-  id: row.id,
-  name: row.name,
-  savedAt: row.created_at,
-  updatedAt: row.updated_at || null,
-  currentVersion: row.current_version ?? 1,
-
-  // Add this top-level status for filtering
-  status: row.payload?.status || "Draft",
-
-  input: {
-    ...defaultInput,
-    ...(row.payload || {}),
-    quoteNumber: row.payload?.quoteNumber || row.quote_number || "",
-    quoteDate: row.payload?.quoteDate || "",
-    validUntil: row.payload?.validUntil || "",
-
-    // Add this input status for display/load consistency
+    id: row.id,
+    name: row.name,
+    savedAt: row.created_at,
+    updatedAt: row.updated_at || null,
+    currentVersion: row.current_version ?? 1,
+    createdByName: profileById.get(row.created_by) || "Unknown",
     status: row.payload?.status || "Draft",
 
-    labour: (row.payload?.labour || []).map((line: any) => ({
-      ...line,
-      id: line.id || uid("lab"),
-      notes: line.notes || "",
-    })),
-    nonLabour: (row.payload?.nonLabour || []).map((line: any) => ({
-      ...line,
-      id: line.id || uid("nl"),
-    })),
-  },
-}));
+    input: {
+      ...defaultInput,
+      ...(row.payload || {}),
+      quoteNumber: row.payload?.quoteNumber || row.quote_number || "",
+      quoteDate: row.payload?.quoteDate || "",
+      validUntil: row.payload?.validUntil || "",
+      status: row.payload?.status || "Draft",
+
+      labour: (row.payload?.labour || []).map((line: any) => ({
+        ...line,
+        id: line.id || uid("lab"),
+        notes: line.notes || "",
+      })),
+      nonLabour: (row.payload?.nonLabour || []).map((line: any) => ({
+        ...line,
+        id: line.id || uid("nl"),
+      })),
+    },
+  }));
 
   setSavedDrafts(drafts);
 }
@@ -1173,6 +1201,7 @@ const hasAnyData = hasLabourData || hasNonLabourData;
           setStatusFilter={setStatusFilter}
           onLoadDraftById={handleLoadEstimate}
           status={input.status || "Draft"}
+          createdByName={selectedDraftMeta?.createdByName}
           estimatorVisible={estimatorVisible}
           currentVersion={selectedDraftMeta?.currentVersion ?? 1}
 lastSavedAt={selectedDraftMeta?.updatedAt || selectedDraftMeta?.savedAt || null}
