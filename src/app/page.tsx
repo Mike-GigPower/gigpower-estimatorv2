@@ -180,6 +180,7 @@ const [isMounted, setIsMounted] = useState(false);
 const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
 const [preparedBy, setPreparedBy] = useState("");
 const [validUntilManuallyEdited, setValidUntilManuallyEdited] = useState(false);
+const [pendingLoadId, setPendingLoadId] = useState<string | null>(null);
 
 useEffect(() => {
   const stored = localStorage.getItem("loadedEstimateRequest");
@@ -567,23 +568,53 @@ function handleStartNew() {
   setShowStartNewConfirm(true);
 }
 
+function handleLoadEstimate(id: string) {
+  const isEmpty = isQuoteEmpty({
+    input,
+    draftName,
+    minBillableHours: config.minBillableHours,
+  });
+
+  if (!estimatorVisible || isEmpty) {
+    loadDraftById(id);
+    return;
+  }
+
+  setPendingLoadId(id);
+  setShowStartNewConfirm(true);
+}
+
 async function handleSaveAndStartNew() {
   await saveDraft(selectedDraftId || undefined);
-  resetToBlankQuote();
-  setValidUntilManuallyEdited(false);
+
+  if (pendingLoadId) {
+    await loadDraftById(pendingLoadId);
+    setPendingLoadId(null);
+  } else {
+    resetToBlankQuote();
+    setValidUntilManuallyEdited(false);
+    setEstimatorVisible(true);
+  }
+
   setShowStartNewConfirm(false);
-  setEstimatorVisible(true);
 }
 
 function handleDiscardAndStartNew() {
-  resetToBlankQuote();
-  setValidUntilManuallyEdited(false);
+  if (pendingLoadId) {
+    loadDraftById(pendingLoadId);
+    setPendingLoadId(null);
+  } else {
+    resetToBlankQuote();
+    setValidUntilManuallyEdited(false);
+    setEstimatorVisible(true);
+  }
+
   setShowStartNewConfirm(false);
-  setEstimatorVisible(true);
 }
 
 function handleCancelStartNew() {
   setShowStartNewConfirm(false);
+  setPendingLoadId(null);
 }
 
 function handleCreateNewEstimate() {
@@ -1140,6 +1171,7 @@ const hasAnyData = hasLabourData || hasNonLabourData;
           quoteSearch={quoteSearch}
           statusFilter={statusFilter}
           setStatusFilter={setStatusFilter}
+          onLoadDraftById={handleLoadEstimate}
           status={input.status || "Draft"}
           estimatorVisible={estimatorVisible}
           currentVersion={selectedDraftMeta?.currentVersion ?? 1}
@@ -1158,7 +1190,7 @@ setStatus={(value: "Draft" | "Sent" | "Approved") =>
           }))}
           onSaveNew={() => saveDraft()}
           onUpdateSaved={() => saveDraft(selectedDraftId)}
-          onLoadSelected={() => selectedDraftId && loadDraftById(selectedDraftId)}
+          onLoadSelected={() => selectedDraftId && handleLoadEstimate(selectedDraftId)}
           onDeleteSelected={() => selectedDraftId && deleteDraft(selectedDraftId)}
           onClearAll={handleStartNew}
           onCreateNew={handleCreateNewEstimate}
