@@ -550,7 +550,7 @@ doc
   .fontSize(8)
   .fillColor("#777")
   .font("Helvetica-Bold")
-  .text("GigPower - The Entertainment Labour Specialists", 40, footerY, {
+  .text("Gig Power - The Entertainment Labour Specialists", 40, footerY, {
     align: "center",
     width: 515,
   });
@@ -562,7 +562,7 @@ doc
     width: 515,
   });
 
-doc.text("Factory 9, 88 Dynon Road, West mMlbourne VIC 3003", 40, footerY + 24, {
+doc.text("Factory 9, 88 Dynon Road, West Melbourne VIC 3003", 40, footerY + 24, {
   align: "center",
   width: 515,
 });
