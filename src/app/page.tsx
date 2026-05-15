@@ -182,6 +182,8 @@ const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
 const [preparedBy, setPreparedBy] = useState("");
 const [validUntilManuallyEdited, setValidUntilManuallyEdited] = useState(false);
 const [pendingLoadId, setPendingLoadId] = useState<string | null>(null);
+const [currentUserRole, setCurrentUserRole] = useState("");
+const isAdmin = currentUserRole === "admin";
 
 useEffect(() => {
   const stored = localStorage.getItem("loadedEstimateRequest");
@@ -251,7 +253,7 @@ useEffect(() => {
 
     const { data: userProfile, error: profileError } = await authClient
       .from("profiles")
-      .select("is_active, full_name, email")
+      .select("is_active, full_name, email, role")
       .eq("id", user.id)
       .single();
 
@@ -269,6 +271,7 @@ useEffect(() => {
         user.email ||
         "GigPower"
     );
+    setCurrentUserRole(userProfile.role || "");
 
     setIsMounted(true);
     loadAllDrafts();
@@ -294,9 +297,9 @@ useEffect(() => {
         ...prev,
         labour: [
           emptyLabourLine(
-            config.rates[0]?.role ?? "",
-            config.minBillableHours
-          ),
+  config.rates[0]?.role ?? "",
+  isAdmin ? 0 : config.minBillableHours
+),
         ],
       };
     });
@@ -1268,7 +1271,7 @@ setStatus={(value: "Draft" | "Sent" | "Approved") =>
     hoursToHHMM={hoursToHHMM}
     autoColonHHMM={autoColonHHMM}
     money={moneyFmt}
-    minBillableHours={config.minBillableHours}
+    minBillableHours={isAdmin ? 0 : config.minBillableHours}
   />
 </div>
 
