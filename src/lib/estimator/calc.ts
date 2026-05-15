@@ -59,7 +59,7 @@ export function normaliseInputRoles(next: QuoteInput, config: AppConfig): QuoteI
 
   return {
     ...next,
-    labour: next.labour.map((line) => ({
+    labour: (Array.isArray(next.labour) ? next.labour : []).map((line) => ({
       ...line,
       role: validRoles.includes(line.role) ? line.role : fallbackRole,
     })),

@@ -6,6 +6,7 @@
 import AppHeader from "./components/AppHeader";
 import DraftToolbar from "./components/DraftToolbar";
 import ClientDetailsCard from "./components/ClientDetailsCard";
+import { sortLabourByDate } from "@/src/lib/estimator/pdfRows";
 import LabourTable from "./components/LabourTable";
 import NonLabourTable from "./components/NonLabourTable";
 import QuoteTotalsCard from "./components/QuoteTotalsCard";
@@ -78,6 +79,7 @@ function money(n: number, currency: string) {
     currency: currency || "AUD",
   }).format(n || 0);
 }
+
 
 
 
@@ -885,11 +887,13 @@ const hydrated: QuoteInput = {
       d.setDate(d.getDate() + 14);
       return formatDateDDMMYYYY(d);
     })(),
-  labour: (draftInput.labour || []).map((line) => ({
+ labour: sortLabourLinesByDate(
+  (draftInput.labour || []).map((line) => ({
     ...line,
     id: line.id || uid("lab"),
     notes: line.notes || "",
-  })),
+  }))
+),
   nonLabour: (draftInput.nonLabour || []).map((line) => ({
     ...line,
     id: line.id || uid("nl"),

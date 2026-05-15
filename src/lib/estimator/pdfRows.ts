@@ -2,11 +2,17 @@ import type { LabourLine } from "./types";
 
 export function sortLabourByDate(lines: LabourLine[]) {
   return [...lines].sort((a, b) => {
-    const dateCompare = (a.shiftDate || "").localeCompare(b.shiftDate || "");
+    const dateCompare = String(a.shiftDate || "").localeCompare(
+      String(b.shiftDate || "")
+    );
 
-    if (dateCompare !== 0) return dateCompare;
+    if (dateCompare !== 0) {
+      return dateCompare;
+    }
 
-    return (a.startTime || "").localeCompare(b.startTime || "");
+    return String(a.startTime || "").localeCompare(
+      String(b.startTime || "")
+    );
   });
 }
 
