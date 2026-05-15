@@ -23,6 +23,7 @@ export default function QuoteTotalsCard({
         <div className="totals">
           <div><strong>Labour (ex GST):</strong> {money(0)}</div>
           <div><strong>Non-labour (ex GST):</strong> {money(0)}</div>
+          <div><strong>Total (ex GST):</strong> {money(0)}</div>
           <div><strong>GST:</strong> {money(0)}</div>
           <div className="grand">
             <strong>Grand Total (inc GST):</strong> {money(0)}
@@ -46,6 +47,15 @@ export default function QuoteTotalsCard({
     <div className="totals-label"><strong>Non-labour (ex GST):</strong></div>
     <div className="totals-value">{money(totals?.nonLabourExGst ?? 0)}</div>
   </div>
+
+  <div className="totals-row">
+  <div className="totals-label">
+    <strong>Total (ex GST):</strong>
+  </div>
+  <div className="totals-value">
+    {money((totals.labourExGst ?? 0) + (totals.nonLabourExGst ?? 0))}
+  </div>
+</div>
 
   <div className="totals-row">
     <div className="totals-label"><strong>GST:</strong></div>

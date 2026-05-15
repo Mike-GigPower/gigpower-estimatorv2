@@ -475,12 +475,15 @@ if (nonLabourLines.length > 0) {
 }
 
 const hasNonLabour = nonLabourLines.length > 0;
-
-  // Totals
+// Totals
 sectionTitle(doc, "Totals");
 
 const totalsY = doc.y;
-const totalsBoxHeight = hasNonLabour ? 92 : 76;
+const totalsBoxHeight = hasNonLabour ? 108 : 92;
+
+const totalExGst =
+  (result?.totals?.labourExGst ?? 0) +
+  (result?.totals?.nonLabourExGst ?? 0);
 
 doc.rect(340, totalsY, 215, totalsBoxHeight).fill("#111");
 
@@ -492,7 +495,8 @@ doc.text(money(result?.totals?.labourExGst), 455, totalsY + 14, {
   align: "right",
 });
 
-let gstY = totalsY + 30;
+let totalExGstY = totalsY + 30;
+let gstY = totalsY + 46;
 
 if (hasNonLabour) {
   doc.text("Non-labour ex GST", 355, totalsY + 30);
@@ -501,8 +505,15 @@ if (hasNonLabour) {
     align: "right",
   });
 
-  gstY = totalsY + 46;
+  totalExGstY = totalsY + 46;
+  gstY = totalsY + 62;
 }
+
+doc.text("Total ex GST", 355, totalExGstY);
+doc.text(money(totalExGst), 455, totalExGstY, {
+  width: 85,
+  align: "right",
+});
 
 doc.text("GST", 355, gstY);
 doc.text(money(result?.totals?.gst), 455, gstY, {
