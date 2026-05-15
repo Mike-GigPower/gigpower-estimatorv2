@@ -1263,6 +1263,7 @@ setStatus={(value: "Draft" | "Sent" | "Approved") =>
     setDurationText={setDurationText}
     updateLabour={updateLabour}
     addLabour={addLabour}
+    isAdmin={isAdmin}
     duplicateLabour={duplicateLabour}
     removeLabour={removeLabour}
     sortLabourByDate={sortLabourByDate}

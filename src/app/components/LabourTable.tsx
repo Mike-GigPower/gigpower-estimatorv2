@@ -28,6 +28,7 @@ type LabourTableProps = {
   roleOptions: string[];
   startTimeText: Record<string, string>;
   setStartTimeText: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  isAdmin?: boolean;
   durationText: Record<string, string>;
   setDurationText: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   updateLabour: (id: string, patch: Partial<LabourLine>) => void;
@@ -49,6 +50,7 @@ export default function LabourTable({
   roleOptions,
   startTimeText,
   setStartTimeText,
+  isAdmin,
   durationText,
   setDurationText,
   updateLabour,
@@ -142,6 +144,7 @@ export default function LabourTable({
   roleOptions={roleOptions}
   startTimeText={startTimeText}
   setStartTimeText={setStartTimeText}
+  isAdmin={isAdmin}
   durationText={durationText}
   setDurationText={setDurationText}
   updateLabour={updateLabour}

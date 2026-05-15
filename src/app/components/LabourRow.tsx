@@ -19,6 +19,7 @@ type LabourRowProps = {
   roleOptions: string[];
   startTimeText: Record<string, string>;
   setStartTimeText: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  isAdmin?: boolean;
   durationText: Record<string, string>;
   setDurationText: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   updateLabour: (id: string, patch: Partial<LabourLine>) => void;
@@ -40,6 +41,7 @@ export default function LabourRow({
   roleOptions,
   startTimeText,
   setStartTimeText,
+  isAdmin,
   durationText,
   setDurationText,
   updateLabour,
@@ -335,26 +337,29 @@ const rowInvalid = shiftDateInvalid || startTimeInvalid || durationDraftInvalid;
       <td>
         <span className="print-only">{hoursToHHMM(line.durationHours)}</span>
 
-        {(() => {
-          function commitDuration() {
-            const raw = (durationText[line.id] ?? hoursToHHMM(line.durationHours)).trim();
-            const parsed = parseDurationHours(raw);
+       {(() => {
+  function commitDuration() {
+    const raw = (durationText[line.id] ?? hoursToHHMM(line.durationHours)).trim();
+    const parsed = parseDurationHours(raw);
 
-            if (parsed !== null && parsed >= minBillableHours) {
-              updateLabour(line.id, { durationHours: parsed });
+    const isAllowedDuration =
+      parsed !== null && (isAdmin || parsed >= minBillableHours);
 
-              setDurationText((prev) => {
-                const next = { ...prev };
-                delete next[line.id];
-                return next;
-              });
-            } else {
-              setDurationText((prev) => ({
-                ...prev,
-                [line.id]: raw,
-              }));
-            }
-          }
+    if (isAllowedDuration) {
+      updateLabour(line.id, { durationHours: parsed });
+
+      setDurationText((prev) => {
+        const next = { ...prev };
+        delete next[line.id];
+        return next;
+      });
+    } else {
+      setDurationText((prev) => ({
+        ...prev,
+        [line.id]: raw,
+      }));
+    }
+  }
 
           return (
             <input

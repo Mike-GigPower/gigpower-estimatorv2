@@ -12,6 +12,7 @@ export function useAppConfig() {
 
   useEffect(() => {
     async function loadConfig() {
+      console.log("useAppConfig loadConfig is running");
       const baseConfig = defaultConfig;
 const authClient = createClient();
 const { data: settingsData, error: settingsError } = await authClient
@@ -45,6 +46,12 @@ const { data: settingsData, error: settingsError } = await authClient
         return;
       }
 console.log("Rates loaded from Supabase:", ratesData);
+console.log("Settings loaded from Supabase:", settingsData);
+console.log("Settings value:", settingsData?.value);
+console.log(
+  "Loaded minBillableHours:",
+  settingsData?.value?.minBillableHours
+);
       setConfig({
         ...baseConfig,
         ...(settingsData?.value || {}),

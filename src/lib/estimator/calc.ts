@@ -299,6 +299,10 @@ const billableHours = Math.max(
     };
   }
 
+  console.log("minBillableHours:", config.minBillableHours);
+console.log("durationHours:", line.durationHours);
+console.log("billableHours:", billableHours);
+
   const startDT = new Date(yy, mm - 1, dd, tt.h, tt.m, 0, 0);
   const endDT = new Date(startDT.getTime() + billableHours * 3600000);
 
