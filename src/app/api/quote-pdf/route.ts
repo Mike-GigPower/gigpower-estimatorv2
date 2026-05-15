@@ -44,14 +44,21 @@ function formatPdfDate(dateString: string) {
   });
 }
 
-function sectionTitle(doc: PDFKit.PDFDocument, title: string) {
-  checkPage(doc, 45);
+function sectionTitle(
+  doc: PDFKit.PDFDocument,
+  title: string,
+  keepWithNext = 70
+) {
+  // Ensure there is enough room for:
+  // heading + at least one content row beneath it
+  checkPage(doc, keepWithNext);
 
   doc.moveDown(0.8);
+
   doc.fontSize(13).fillColor("#111").text(title, 40, doc.y, {
-  width: 515,
-  align: "left",
-});
+    width: 515,
+    align: "left",
+  });
 
   doc
     .moveTo(40, doc.y + 4)

@@ -274,7 +274,11 @@ export function calculateLabourLine(
   }
 
   const rr = rateRow;
-  const billableHours = Math.max(line.durationHours, config.minBillableHours);
+  const minBillableHours = Number(config.minBillableHours ?? 4);
+const billableHours = Math.max(
+  Number(line.durationHours || 0),
+  minBillableHours
+);
   const [yy, mm, dd] = line.shiftDate.split("-").map(Number);
   const tt = parseTimeHHMM(line.startTime);
 
