@@ -222,7 +222,7 @@ setSubmitted(true);
 
   if (submitted) {
   return (
-    <main className="max-w-3xl mx-auto px-6 py-10">
+    <main className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-10">
       <div className="card" style={{ padding: "28px 32px" }}>
         <div style={{ marginBottom: 24 }}>
           <img
@@ -292,14 +292,7 @@ setSubmitted(true);
 
         <form onSubmit={handleSubmit} className="form-grid">
           <div className="card" style={{ marginBottom: 16 }}>
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-      gap: 12,
-      alignItems: "end",
-    }}
-  >
+  <div className="request-form-details-grid">
     <label>
       Company name <span className="required-star">*</span>
       <input
@@ -343,7 +336,7 @@ setSubmitted(true);
 
     
 
-    <label style={{ gridColumn: "span 2" }}>
+    <label className="span-2">
       Event name <span className="required-star">*</span>
       <input
         value={request.eventName}
