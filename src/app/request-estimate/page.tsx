@@ -419,14 +419,7 @@ setSubmitted(true);
 
   {request.crewLines.map((line) => (
   <div key={line.id} className="card" style={{ marginBottom: 12 }}>
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "260px 90px 180px 160px 160px 1fr",
-        gap: 12,
-        alignItems: "end",
-      }}
-    >
+    <div className="request-crew-line-grid">
       <label>
         Crew type <span className="required-star">*</span>
         <select
