@@ -765,6 +765,38 @@ th {
   width: 100%;
   font-size: 16px;
 }
+.request-crew-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  align-items: end;
+  width: 100%;
+}
+
+.request-crew-notes {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 1101px) {
+  .request-crew-actions {
+    grid-column: 6 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .request-crew-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .request-crew-actions button {
+    width: 100%;
+  }
+
+  .request-crew-notes {
+    grid-column: auto;
+  }
+}
 
 /* Tablet */
 @media (max-width: 1100px) {

@@ -495,16 +495,7 @@ setSubmitted(true);
         />
       </label>
       
-      <div
-  style={{
-  gridColumn: "6 / 7",
-    display: "flex",
-    justifyContent: "flex-end", 
-    gap: 8,
-    alignItems: "end",
-    width: "100%",
-  }}
->
+      <div className="request-crew-actions">
         <button
           type="button"
           className="btn-secondary"
@@ -523,7 +514,7 @@ setSubmitted(true);
         </button>
       </div>
 
-      <label style={{ gridColumn: "1 / 7" }}>
+      <label className="request-crew-notes">
         Shift Notes
         <input
           value={line.notes}
