@@ -381,6 +381,9 @@ th {
 
 .labour-qty-input {
   max-width: 72px;
+  width: 60px;
+  font-size: 15px;
+  padding: 6px 6px;
   text-align: center;
 }
 
@@ -565,7 +568,7 @@ th {
 
 .print-abn {
   font-size: 11px;
-  line-height: 1.2:
+  line-height: 1.2;
   white-space: nowrap;
   text-align: right;
 }
@@ -590,12 +593,7 @@ th {
 
 
 /* Labour table input sizing */
-.labour-qty-input {
-  width: 60px;
-  font-size: 15px;
-  padding: 6px 6px;
-  text-align: center;
-}
+
 
 .labour-time-input {
   width: 80px;
@@ -722,9 +720,97 @@ th {
   box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.18);
 }
   
-
 /* =========================================================
-   10. ADMIN CONSOLE
+   10. REQUEST FORM / MOBILE LAYOUT
+   ========================================================= */
+
+.request-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.request-form-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Customer / event details grid */
+.request-form-details-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.request-form-details-grid .span-2 {
+  grid-column: span 2;
+}
+
+/* Crew request line grid */
+.request-crew-line-grid {
+  display: grid;
+  grid-template-columns: 260px 90px 180px 160px 160px 1fr auto auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.request-form-details-grid input,
+.request-form-details-grid select,
+.request-form-details-grid textarea,
+.request-crew-line-grid input,
+.request-crew-line-grid select,
+.request-crew-line-grid textarea {
+  width: 100%;
+  font-size: 16px;
+}
+
+/* Tablet */
+@media (max-width: 1100px) {
+  .request-crew-line-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .request-crew-line-grid button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 900px) {
+  .request-form-details-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .request-form-details-grid .span-2 {
+    grid-column: span 2;
+  }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .request-form-grid,
+  .request-form-details-grid,
+  .request-crew-line-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .request-form-details-grid .span-2 {
+    grid-column: span 1;
+  }
+
+  .request-form-actions {
+    flex-direction: column;
+  }
+
+  .request-form-actions button,
+  .request-crew-line-grid button {
+    width: 100%;
+  }
+}
+/* =========================================================
+   11. ADMIN CONSOLE
    ========================================================= */
 .admin-shell {
   max-width: 980px;
@@ -884,7 +970,7 @@ th {
 }
 
 /* =========================================================
-   ADMIN – PUBLIC HOLIDAYS
+   12. ADMIN – PUBLIC HOLIDAYS
    ========================================================= */
 
 .admin-holiday-row {
@@ -919,7 +1005,7 @@ th {
 }
 
 /* =========================================================
-   11. PRINT PAGE SETUP
+   13. PRINT PAGE SETUP
    ========================================================= */
 @page {
   size: A4 portrait;
@@ -927,7 +1013,7 @@ th {
 }
 
 /* =========================================================
-   12. PRINT OVERRIDES
+   14 . PRINT OVERRIDES
    ========================================================= */
 @media print {
   html,
@@ -1384,100 +1470,3 @@ img,
 }
 }
 
-.request-form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-@media (max-width: 768px) {
-  .request-form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .request-form-actions {
-    flex-direction: column;
-  }
-
-  .request-form-actions button {
-    width: 100%;
-  }
-
-  input,
-  select,
-  textarea {
-    font-size: 16px;
-  }
-}
-.request-form-details-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-  align-items: end;
-}
-
-.request-form-details-grid .span-2 {
-  grid-column: span 2;
-}
-
-.request-form-details-grid input,
-.request-form-details-grid select,
-.request-form-details-grid textarea {
-  width: 100%;
-  font-size: 16px;
-}
-
-@media (max-width: 900px) {
-  .request-form-details-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .request-form-details-grid .span-2 {
-    grid-column: span 2;
-  }
-}
-
-@media (max-width: 640px) {
-  .request-form-details-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-
-  .request-form-details-grid .span-2 {
-    grid-column: span 1;
-  }
-}
-.request-crew-line-grid {
-  display: grid;
-  grid-template-columns: 260px 90px 180px 160px 160px 1fr auto auto;
-  gap: 12px;
-  align-items: end;
-}
-
-.request-crew-line-grid input,
-.request-crew-line-grid select,
-.request-crew-line-grid textarea {
-  width: 100%;
-  font-size: 16px;
-}
-
-@media (max-width: 1100px) {
-  .request-crew-line-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .request-crew-line-grid button {
-    width: 100%;
-  }
-}
-
-@media (max-width: 640px) {
-  .request-crew-line-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-
-  .request-crew-line-grid button {
-    width: 100%;
-  }
-}
