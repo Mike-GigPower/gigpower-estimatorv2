@@ -12,7 +12,7 @@ import NonLabourTable from "./components/NonLabourTable";
 import QuoteTotalsCard from "./components/QuoteTotalsCard";
 import TermsConditionsBox from "./components/TermsConditionsBox";
 import { supabaseData } from "@/src/lib/supabase";
-import { createClient } from "../lib/supabase/client";
+import { createClient } from "@/src/lib/supabase/client";
 import { parseDurationHours } from "@/src/lib/estimator/calc";
 
 /**
@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation";
  * Quote calculation engine and app configuration hook
  */
 import { useAppConfig } from "@/src/lib/useAppConfig";
+import { buildCrewFinderPayload, downloadCrewFinderJson } from "@/src/lib/crewfinderExport";
 import {
   addDaysToDDMMYYYY,
   autoColonHHMM,
@@ -378,7 +379,10 @@ const todayIso = today.toISOString().slice(0, 10);
   }
 
   function calculateCurrentQuote(nextInput: QuoteInput) {
-    return calculateQuoteTotals(nextInput, config);
+    const effectiveConfig = isAdmin
+      ? { ...config, minBillableHours: 0 }
+      : config;
+    return calculateQuoteTotals(nextInput, effectiveConfig);
   }
 
   /**
@@ -403,7 +407,7 @@ const todayIso = today.toISOString().slice(0, 10);
     } finally {
       setBusy(false);
     }
-  }, [input, config, ready]);
+  }, [input, config, ready, isAdmin]);
 
   /**
    * Original file also includes this second recalculation effect.
@@ -413,7 +417,7 @@ const todayIso = today.toISOString().slice(0, 10);
   useEffect(() => {
     if (!ready) return;
     setResult(calculateCurrentQuote(input));
-  }, [config, input, ready]);
+  }, [config, input, ready, isAdmin]);
 
   /**
    * Remember the currently selected draft id between refreshes.
@@ -525,7 +529,7 @@ const todayIso = today.toISOString().slice(0, 10);
     patch: Partial<
       Pick<
         QuoteInput,
-        "companyName" | "contactName" | "contactEmail" | "contactPhone" | "venue" | "notes"
+        "companyName" | "contactName" | "contactEmail" | "contactPhone" | "venue" | "notes" | "eventName" | "onsiteContact"
       >
     >
   ) {
@@ -628,6 +632,47 @@ function handleCreateNewEstimate() {
   setValidUntilManuallyEdited(false);
   setShowStartNewConfirm(false);
   setEstimatorVisible(true);
+}
+
+async function exportToCrewFinder() {
+  if (input.status !== "Approved") {
+    alert("Only Approved estimates can be exported to CrewFinder.");
+    return;
+  }
+
+  const { data: sessionData, error: sessionError } =
+    await authClient.auth.getSession();
+
+  if (sessionError || !sessionData.session) {
+    alert("Your session has expired. Please log in again.");
+    router.replace("/login");
+    return;
+  }
+
+  const userEmail = sessionData.session.user.email || "unknown";
+  const now = new Date().toISOString();
+
+  const payload = buildCrewFinderPayload(input, {
+    estimateId: selectedDraftId || `est_${Date.now()}`,
+    version: selectedDraftMeta?.currentVersion ?? 1,
+    createdAt: selectedDraftMeta?.savedAt || now,
+    approvedAt: now,
+    createdBy: selectedDraftMeta?.createdByName || userEmail,
+    approvedBy: userEmail,
+    config,
+  });
+
+  downloadCrewFinderJson(
+    payload,
+    input.quoteNumber || "DRAFT",
+    selectedDraftMeta?.currentVersion ?? 1
+  );
+
+  // Mark as exported and save
+  setInput((prev) => ({ ...prev, status: "Exported to Operations" }));
+  if (selectedDraftId) {
+    await saveDraft(selectedDraftId);
+  }
 }
 
 async function downloadQuotePdf() {
@@ -900,10 +945,15 @@ const hydrated: QuoteInput = {
   })),
 };
 
-  setDraftName(draft.name || "Untitled Estimate");
+  const loadedName = draft.name || "Untitled Estimate";
+  setDraftName(loadedName);
   setSelectedDraftId(draft.id);
-  setInput(hydrated);
-  recalc(hydrated);
+  const hydratedWithEvent = {
+    ...hydrated,
+    eventName: hydrated.eventName || loadedName,
+  };
+  setInput(hydratedWithEvent);
+  recalc(hydratedWithEvent);
   setValidUntilManuallyEdited(!!hydrated.validUntil);
   setEstimatorVisible(true);
 }
@@ -1202,7 +1252,10 @@ const hasAnyData = hasLabourData || hasNonLabourData;
       <div className="toolbar-section">
         <DraftToolbar
           draftName={draftName}
-          setDraftName={setDraftName}
+          setDraftName={(name) => {
+            setDraftName(name);
+            setInput((prev) => ({ ...prev, eventName: name }));
+          }}
           quoteSearch={quoteSearch}
           statusFilter={statusFilter}
           setStatusFilter={setStatusFilter}
@@ -1212,7 +1265,7 @@ const hasAnyData = hasLabourData || hasNonLabourData;
           estimatorVisible={estimatorVisible}
           currentVersion={selectedDraftMeta?.currentVersion ?? 1}
 lastSavedAt={selectedDraftMeta?.updatedAt || selectedDraftMeta?.savedAt || null}
-setStatus={(value: "Draft" | "Sent" | "Approved") =>
+setStatus={(value: "Draft" | "Sent" | "Approved" | "Exported to Operations") =>
   setInput({ ...input, status: value })
 }
           setQuoteSearch={setQuoteSearch}
@@ -1233,6 +1286,7 @@ setStatus={(value: "Draft" | "Sent" | "Approved") =>
           onPrint={() => window.print()}
           onRecalculate={() => recalc(input)}
           onDownloadPdf={downloadQuotePdf}
+          onExportCrewFinder={exportToCrewFinder}
           busy={busy}
         />
       </div>

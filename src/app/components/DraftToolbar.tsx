@@ -19,9 +19,9 @@ type DraftToolbarProps = {
   status: string;
   createdByName?: string;
   estimatorVisible: boolean;
-setStatus: (value: "Draft" | "Sent" | "Approved") => void;
-currentVersion?: number;
-lastSavedAt?: string | null;
+  setStatus: (value: "Draft" | "Sent" | "Approved" | "Exported to Operations") => void;
+  currentVersion?: number;
+  lastSavedAt?: string | null;
   setStatusFilter: (value: string) => void;
   onSaveNew: () => void;
   onCreateNew: () => void;
@@ -31,6 +31,7 @@ lastSavedAt?: string | null;
   onClearAll: () => void;
   onPrint: () => void;
   onDownloadPdf?: () => void;
+  onExportCrewFinder?: () => void;
   onRecalculate: () => void;
   busy: boolean;
 };
@@ -43,10 +44,10 @@ export default function DraftToolbar({
   statusFilter,
   setStatusFilter,
   status,
-setStatus,
-currentVersion,
-createdByName,
-lastSavedAt,
+  setStatus,
+  currentVersion,
+  createdByName,
+  lastSavedAt,
   selectedDraftId,
   setSelectedDraftId,
   filteredDrafts,
@@ -59,6 +60,7 @@ lastSavedAt,
   onCreateNew,
   onPrint,
   onDownloadPdf,
+  onExportCrewFinder,
   onRecalculate,
   busy,
   estimatorVisible,
@@ -230,9 +232,8 @@ return (
             <option value="">All statuses</option>
             <option value="Draft">Draft</option>
             <option value="Sent">Sent</option>
-            <option value="Accepted">Accepted</option>
-            <option value="Declined">Declined</option>
-            <option value="Expired">Expired</option>
+            <option value="Approved">Approved</option>
+            <option value="Exported to Operations">Exported to Operations</option>
           </select>
         </div>
 
@@ -324,6 +325,27 @@ return (
           </button>
         )}
 
+        {onExportCrewFinder && (
+          <button
+            type="button"
+            onClick={onExportCrewFinder}
+            title={
+              status !== "Approved"
+                ? "Only available when status is Approved"
+                : "Export JSON for CrewFinder / SmartStaff"
+            }
+            style={{
+              background: status === "Approved" ? "#1e40af" : undefined,
+              color: status === "Approved" ? "#fff" : undefined,
+              borderColor: status === "Approved" ? "#3b82f6" : undefined,
+              opacity: status !== "Approved" ? 0.45 : 1,
+              cursor: status !== "Approved" ? "not-allowed" : "pointer",
+            }}
+          >
+            Export to CrewFinder
+          </button>
+        )}
+
         <button className="primary" disabled={busy} onClick={onRecalculate}>
           {busy ? "Calculating…" : "Recalculate"}
         </button>
@@ -394,14 +416,14 @@ return (
           <select
             value={status || "Draft"}
             onChange={(e) =>
-  setStatus(e.target.value as "Draft" | "Sent" | "Approved")
-}
+              setStatus(e.target.value as "Draft" | "Sent" | "Approved" | "Exported to Operations")
+            }
             style={{ width: "100%", height: 42 }}
           >
             <option value="Draft">Draft</option>
             <option value="Sent">Sent</option>
             <option value="Approved">Approved</option>
-            
+            <option value="Exported to Operations">Exported to Operations</option>
           </select>
         </div>
       </div>

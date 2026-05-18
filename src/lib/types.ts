@@ -1,3 +1,28 @@
+export const CREWFINDER_CALL_NAMES = [
+  "Load In",
+  "Load Out",
+  "LX",
+  "SX",
+  "VX",
+  "Backline",
+  "Show Call",
+  "FOH Spot",
+  "Truss Spot",
+  "Wardrobe",
+  "Steel",
+  "Fork",
+  "Truck",
+  "EWP",
+  "Crown Hand",
+  "Crew Boss",
+  "Site",
+  "Utility",
+  "General",
+  "Other",
+] as const;
+
+export type CrewFinderCallName = (typeof CREWFINDER_CALL_NAMES)[number];
+
 export type LabourLine = {
   id: string;
   role: string;
@@ -5,7 +30,10 @@ export type LabourLine = {
   shiftDate: string;
   startTime: string;
   durationHours: number;
-  notes?: string; 
+  notes?: string;
+  callName?: CrewFinderCallName | "";
+  publicHolidaySameDay?: boolean;
+  publicHolidayNextDay?: boolean;
 };
 
 export type NonLabourLine = {
@@ -19,7 +47,7 @@ export type QuoteInput = {
   quoteNumber: string;
   quoteDate: string;
   validUntil: string;
-    sourceRequestId?: string;
+  sourceRequestId?: string;
   requestNumber?: string;
   companyName: string;
   contactName: string;
@@ -27,9 +55,11 @@ export type QuoteInput = {
   contactPhone: string;
   venue: string;
   notes: string;
+  eventName?: string;
+  onsiteContact?: string;
   labour: LabourLine[];
   nonLabour: NonLabourLine[];
-  status?: "Draft" | "Sent" | "Approved";
+  status?: "Draft" | "Sent" | "Approved" | "Exported to Operations";
 };
 
 export type LabourLineResult = {

@@ -6,7 +6,14 @@ type ClientDetailsCardProps = {
     patch: Partial<
       Pick<
         QuoteInput,
-        "companyName" | "contactName" | "contactEmail" | "contactPhone" | "venue" | "notes"
+        | "companyName"
+        | "contactName"
+        | "contactEmail"
+        | "contactPhone"
+        | "venue"
+        | "notes"
+        | "eventName"
+        | "onsiteContact"
       >
     >
   ) => void;
@@ -73,10 +80,43 @@ export default function ClientDetailsCard({
             placeholder="Optional"
           />
         </div>
+
+        <div className="col">
+          <label>
+            Event name{" "}
+            <span style={{ fontWeight: 400, color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
+              (CrewFinder booking name)
+            </span>
+          </label>
+          <input
+            value={input.eventName ?? ""}
+            onChange={(e) => onUpdateHeader({ eventName: e.target.value })}
+            placeholder="e.g. Coldplay – Music of the Spheres Tour"
+          />
+        </div>
+
+        <div className="col">
+          <label>
+            Onsite contact{" "}
+            <span style={{ fontWeight: 400, color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
+              (CrewFinder)
+            </span>
+          </label>
+          <input
+            value={input.onsiteContact ?? ""}
+            onChange={(e) => onUpdateHeader({ onsiteContact: e.target.value })}
+            placeholder="Name of onsite contact"
+          />
+        </div>
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <label>Notes</label>
+        <label>
+          Notes{" "}
+          <span style={{ fontWeight: 400, color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
+            (also sent as operational notes to CrewFinder)
+          </span>
+        </label>
         <textarea
           value={input.notes ?? ""}
           onChange={(e) => onUpdateHeader({ notes: e.target.value })}

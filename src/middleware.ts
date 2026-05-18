@@ -12,11 +12,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const response = await updateSession(request);
-
-  const hasSession =
-    response.cookies.getAll().some((c) => c.name.startsWith("sb-")) ||
-    request.cookies.getAll().some((c) => c.name.startsWith("sb-"));
+  const { response, user } = await updateSession(request);
 
   const isProtected =
     pathname === "/" ||
@@ -26,14 +22,14 @@ export async function middleware(request: NextRequest) {
 
   const isLogin = pathname === "/login";
 
-  if (isProtected && !hasSession) {
+  if (isProtected && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 
-  if (isLogin && hasSession) {
+  if (isLogin && user) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";

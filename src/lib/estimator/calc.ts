@@ -274,11 +274,11 @@ export function calculateLabourLine(
   }
 
   const rr = rateRow;
-  const minBillableHours = Number(config.minBillableHours ?? 4);
-const billableHours = Math.max(
-  Number(line.durationHours || 0),
-  minBillableHours
-);
+  const minBillableHours = Number(config.minBillableHours ?? 0);
+  const billableHours = Math.max(
+    Number(line.durationHours || 0),
+    minBillableHours
+  );
   const [yy, mm, dd] = line.shiftDate.split("-").map(Number);
   const tt = parseTimeHHMM(line.startTime);
 
@@ -298,10 +298,6 @@ const billableHours = Math.max(
       },
     };
   }
-
-  console.log("minBillableHours:", config.minBillableHours);
-console.log("durationHours:", line.durationHours);
-console.log("billableHours:", billableHours);
 
   const startDT = new Date(yy, mm - 1, dd, tt.h, tt.m, 0, 0);
   const endDT = new Date(startDT.getTime() + billableHours * 3600000);
@@ -526,7 +522,7 @@ export function parseDurationHours(value: string): number | null {
     return h + mins / 60;
   }
 
-  if (/^\d+(\.\d+)?$/.test(raw)) {
+  if (/^\d*\.?\d+$/.test(raw)) {
     const hours = Number(raw);
     if (!Number.isNaN(hours) && hours > 0) return hours;
   }

@@ -1,6 +1,7 @@
 import React from "react";
 
 import type { LabourLine } from "@/src/lib/estimator";
+import { CREWFINDER_CALL_NAMES } from "@/src/lib/types";
 
 import {
   parseDurationHours,
@@ -79,7 +80,7 @@ export default function LabourRow({
       return h + mins / 60;
     }
 
-    if (/^\d+(\.\d+)?$/.test(raw)) {
+    if (/^\d*\.?\d+$/.test(raw)) {
       const hours = Number(raw);
       if (!Number.isNaN(hours) && hours > 0) return hours;
     }
@@ -89,6 +90,7 @@ export default function LabourRow({
 
   const durationDraft = durationText[line.id];
   const durationDraftInvalid =
+    !isAdmin &&
     typeof durationDraft === "string" &&
     durationDraft.trim() !== "" &&
     (() => {
@@ -179,51 +181,35 @@ const startTimeInvalid =
 const rowInvalid = shiftDateInvalid || startTimeInvalid || durationDraftInvalid;
 
   return (
-    <tr>
-      <td>
-        <div className="labour-role-cell">
-          <span className="print-only">
-            {line.role}
-            {line.notes ? ` — ${line.notes}` : ""}
-          </span>
-
-          <select
-            className="no-print labour-role-select"
-            data-row-id={line.id}
-            data-col="role"
-            value={line.role}
-            onChange={(e) => updateLabour(line.id, { role: e.target.value })}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                focusNext(e.currentTarget);
-              }
-            }}
-          >
-            {roleOptions.map((role) => (
-              <option key={role} value={role}>
-                {role}
-              </option>
-            ))}
-          </select>
-
-          <textarea
-            className="no-print labour-notes-input"
-            onFocus={(e) => e.currentTarget.select()}
-            placeholder="Notes (optional)"
-            maxLength={100}
-            rows={2}
-            value={line.notes || ""}
-            onChange={(e) => updateLabour(line.id, { notes: e.target.value })}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                focusNext(e.currentTarget);
-              }
-            }}
-          />
-        </div>
-      </td>
+    <>
+      <tr>
+        <td>
+          <div className="labour-role-cell">
+            <span className="print-only">
+              {line.role}
+              {line.notes ? ` — ${line.notes}` : ""}
+            </span>
+            <select
+              className="no-print labour-role-select"
+              data-row-id={line.id}
+              data-col="role"
+              value={line.role}
+              onChange={(e) => updateLabour(line.id, { role: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  focusNext(e.currentTarget);
+                }
+              }}
+            >
+              {roleOptions.map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
+          </div>
+        </td>
 
       <td>
         <span className="print-only">{line.qty}</span>
@@ -433,25 +419,8 @@ const rowInvalid = shiftDateInvalid || startTimeInvalid || durationDraftInvalid;
             title="Copy line"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <rect
-                x="9"
-                y="9"
-                width="10"
-                height="10"
-                rx="2"
-                stroke="currentColor"
-                strokeWidth="2"
-              />
-              <rect
-                x="5"
-                y="5"
-                width="10"
-                height="10"
-                rx="2"
-                stroke="currentColor"
-                strokeWidth="2"
-                opacity="0.6"
-              />
+              <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="2" />
+              <rect x="5" y="5" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="2" opacity="0.6" />
             </svg>
           </button>
 
@@ -472,5 +441,51 @@ const rowInvalid = shiftDateInvalid || startTimeInvalid || durationDraftInvalid;
         </div>
       </td>
     </tr>
+
+    {/* Row 2: Notes + SmartStaff call name (screen only) */}
+    <tr className="no-print">
+      <td colSpan={8} style={{ paddingTop: 0, paddingBottom: 8 }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <textarea
+            className="labour-notes-input"
+            onFocus={(e) => e.currentTarget.select()}
+            placeholder="Notes (optional)"
+            maxLength={300}
+            rows={2}
+            style={{ flex: 1 }}
+            value={line.notes || ""}
+            onChange={(e) => updateLabour(line.id, { notes: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                focusNext(e.currentTarget);
+              }
+            }}
+          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 160 }}>
+            <label style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", whiteSpace: "nowrap" }}>
+              SmartStaff call name
+            </label>
+            <select
+              style={{ fontSize: 13, height: 32 }}
+              value={line.callName || ""}
+              onChange={(e) =>
+                updateLabour(line.id, {
+                  callName: e.target.value as typeof line.callName,
+                })
+              }
+            >
+              <option value="">— Select —</option>
+              {CREWFINDER_CALL_NAMES.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </td>
+    </tr>
+    </>
   );
 }
