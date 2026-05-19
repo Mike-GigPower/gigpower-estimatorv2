@@ -23,6 +23,67 @@ export const CREWFINDER_CALL_NAMES = [
 
 export type CrewFinderCallName = (typeof CREWFINDER_CALL_NAMES)[number];
 
+/**
+ * Maps each SmartStaff/CrewFinder Call Name to the rate-card role that
+ * drives pricing for that call.
+ *
+ * The role field on a LabourLine is no longer user-editable in the Request
+ * or Estimator UI — it is derived from the chosen Call Name via this map.
+ *
+ * "Other" is intentionally mapped to "Standard Crew" as a safe default; the
+ * Call Name "Other" is hidden in both the Request and Estimator UIs and can
+ * only appear on legacy data.
+ */
+export const CALL_NAME_TO_ROLE: Record<CrewFinderCallName, string> = {
+  "Load In": "Standard Crew",
+  "Load Out": "Standard Crew",
+  "LX": "Standard Crew",
+  "SX": "Standard Crew",
+  "VX": "Standard Crew",
+  "Backline": "Standard Crew",
+  "Show Call": "Show Crew",
+  "FOH Spot": "Show Crew",
+  "Truss Spot": "Show Crew",
+  "Wardrobe": "Seamstress",
+  "Steel": "Steel Hand",
+  "Fork": "Fork/Truck/EWP",
+  "Truck": "Fork/Truck/EWP",
+  "EWP": "Fork/Truck/EWP",
+  "Crown Hand": "Crown Hand",
+  "Crew Boss": "Crew Boss",
+  "Site": "Standard Crew",
+  "Utility": "Standard Crew",
+  "General": "Standard Crew",
+  "Other": "Standard Crew",
+};
+
+/**
+ * Call Names visible in the public Request UI.
+ * "Crown Hand" and "Other" are not selectable by customers.
+ */
+export const REQUEST_UI_CALL_NAMES: CrewFinderCallName[] =
+  CREWFINDER_CALL_NAMES.filter(
+    (name) => name !== "Crown Hand" && name !== "Other"
+  ) as CrewFinderCallName[];
+
+/**
+ * Call Names visible in the internal Estimator UI.
+ * "Other" is not selectable; "Crown Hand" remains available to admins.
+ */
+export const ESTIMATOR_UI_CALL_NAMES: CrewFinderCallName[] =
+  CREWFINDER_CALL_NAMES.filter((name) => name !== "Other") as CrewFinderCallName[];
+
+/**
+ * Resolve a Call Name to its mapped rate role.
+ * Returns "Standard Crew" as a safe fallback when the call name is unknown
+ * or empty.
+ */
+export function roleForCallName(callName: string | undefined | null): string {
+  if (!callName) return "Standard Crew";
+  const mapped = (CALL_NAME_TO_ROLE as Record<string, string>)[callName];
+  return mapped || "Standard Crew";
+}
+
 export type LabourLine = {
   id: string;
   role: string;

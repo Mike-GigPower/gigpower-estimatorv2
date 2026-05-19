@@ -109,7 +109,11 @@ export default function LabourTable({
         <table className="entry-table labour-table print-labour-table">
           <thead>
             <tr>
-              <th style={{ minWidth: 200 }}>Role</th>
+              <th style={{ minWidth: 200 }}>
+                {/* Screen: editable Call Name. Print: derived rate role. */}
+                <span className="no-print">Call Name</span>
+                <span className="print-only">Role</span>
+              </th>
               <th style={{ minWidth: 70 }}>Qty</th>
               <th style={{ minWidth: 110 }}>
                 <span className="th-top">Shift</span>
@@ -173,7 +177,7 @@ export default function LabourTable({
           </p>
 
           <small className="muted" style={{ display: "block", marginTop: 6 }}>
-            Start times must be valid 24-hour times, and labour durations must be at least{" "}
+            Each line needs a Call Name. Start times must be valid 24-hour times, and labour durations must be at least{" "}
             {minBillableHours} hours.
           </small>
         </div>

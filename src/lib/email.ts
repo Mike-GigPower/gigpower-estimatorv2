@@ -41,7 +41,7 @@ function crewBreakdownHtml(lines?: EstimateEmailInput["crewLines"]) {
     <table cellpadding="6" cellspacing="0" border="1" style="border-collapse: collapse;">
       <thead>
         <tr>
-          <th align="left">Crew type</th>
+          <th align="left">Call Name</th>
           <th align="left">Qty</th>
           <th align="left">Date</th>
           <th align="left">Start</th>

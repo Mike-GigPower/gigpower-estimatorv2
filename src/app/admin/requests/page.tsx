@@ -286,7 +286,7 @@ const requestIdFromUrl = searchParams.get("id");
                 <table className="entry-table">
                   <thead>
                     <tr>
-                      <th>Crew type</th>
+                      <th>Call Name</th>
                       <th>Qty</th>
                       <th>Date</th>
                       <th>Start</th>

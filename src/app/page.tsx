@@ -51,6 +51,8 @@ import type {
   QuoteResult,
 } from "@/src/lib/estimator/types";
 
+import { roleForCallName } from "@/src/lib/types";
+
 type SavedDraft = {
   id: string;
   name: string;
@@ -96,12 +98,15 @@ const SELECTED_DRAFT_KEY = "gigpower-selected-estimate";
 function emptyLabourLine(defaultRole = "", minBillableHours = 4, shiftDate = ""): LabourLine {
   return {
     id: uid("lab"),
+    // Role is derived from callName via roleForCallName; defaultRole is the
+    // fallback used until the user picks a Call Name on the new row.
     role: defaultRole,
     qty: 1,
     shiftDate,
     startTime: "08:00",
     durationHours: minBillableHours,
     notes: "",
+    callName: "",
   };
 }
 
@@ -208,14 +213,11 @@ useEffect(() => {
 
   setInput((prev) => ({
     ...prev,
-
     // Keep Estimate # separate from Request #
     quoteNumber: prev.quoteNumber || "",
-
     // Link back to source Request
     sourceRequestId,
     requestNumber,
-
     status: "Draft",
     companyName: payload.companyName || "",
     contactName: payload.customerName || "",
@@ -223,15 +225,21 @@ useEffect(() => {
     contactPhone: payload.phone || "",
     venue: payload.eventLocation || "",
     notes: payload.notes || "",
-    labour: (payload.crewLines || []).map((line: any) => ({
-      id: crypto.randomUUID(),
-      role: line.crewType,
-      qty: Number(line.qty),
-      shiftDate: line.shiftDate,
-      startTime: line.startTime,
-      durationHours: parseDurationHours(line.duration) ?? 0,
-      notes: line.notes,
-    })),
+    labour: (payload.crewLines || []).map((line: any) => {
+      const callName = line.crewType || "";
+      return {
+        id: crypto.randomUUID(),
+        // The request now stores the SmartStaff Call Name in `crewType`.
+        // The rate role is derived from it via roleForCallName.
+        role: roleForCallName(callName),
+        callName,
+        qty: Number(line.qty),
+        shiftDate: line.shiftDate,
+        startTime: line.startTime,
+        durationHours: parseDurationHours(line.duration) ?? 0,
+        notes: line.notes,
+      };
+    }),
   }));
 
   localStorage.setItem("convertedEstimateRequestId", sourceRequestId);
@@ -1071,8 +1079,9 @@ if (!profile || profile.role !== "admin") {
    */
   const totals = result?.totals;
 
-  const hasLabourData = input.labour.some(
+   const hasLabourData = input.labour.some(
   (l) =>
+    (l.callName || "").toString().trim() !== "" ||
     (l.role || "").trim() !== "" ||
     (l.startTime || "").trim() !== "" ||
     (l.durationHours ?? 0) !== 0

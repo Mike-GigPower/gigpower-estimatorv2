@@ -1,7 +1,11 @@
 import React from "react";
 
 import type { LabourLine } from "@/src/lib/estimator";
-import { CREWFINDER_CALL_NAMES } from "@/src/lib/types";
+import {
+  ESTIMATOR_UI_CALL_NAMES,
+  roleForCallName,
+  type CrewFinderCallName,
+} from "@/src/lib/types";
 
 import {
   parseDurationHours,
@@ -17,6 +21,11 @@ type LabourResultLine = {
 type LabourRowProps = {
   line: LabourLine;
   resultLine?: LabourResultLine;
+  /**
+   * Kept on the props for backwards compatibility with LabourTable. The role
+   * field is no longer user-selectable, so the list is unused inside the row,
+   * but removing it from the prop signature would require a wider refactor.
+   */
   roleOptions: string[];
   startTimeText: Record<string, string>;
   setStartTimeText: React.Dispatch<React.SetStateAction<Record<string, string>>>;
@@ -39,7 +48,7 @@ type LabourRowProps = {
 export default function LabourRow({
   line,
   resultLine,
-  roleOptions,
+  roleOptions: _roleOptions,
   startTimeText,
   setStartTimeText,
   isAdmin,
@@ -97,38 +106,21 @@ export default function LabourRow({
       const parsed = parseDurationHours(durationDraft);
       return parsed !== null && parsed < minBillableHours;
     })();
-  
+
   function parseStartTime(value: string): string | null {
-  const raw = value.trim().toLowerCase();
+    const raw = value.trim().toLowerCase();
 
-  let normalized: string | null = null;
+    let normalized: string | null = null;
 
-  const compact = raw.replace(/\s+/g, "");
-  const isAM = compact.includes("am");
-  const isPM = compact.includes("pm");
-  const cleaned = compact.replace(/am|pm/g, "");
+    const compact = raw.replace(/\s+/g, "");
+    const isAM = compact.includes("am");
+    const isPM = compact.includes("pm");
+    const cleaned = compact.replace(/am|pm/g, "");
 
-  let match = cleaned.match(/^(\d{1,2})[:\.](\d{2})$/);
-  if (match) {
-    let hours = Number(match[1]);
-    const minutes = Number(match[2]);
-
-    if (minutes >= 0 && minutes < 60) {
-      if (isPM && hours < 12) hours += 12;
-      if (isAM && hours === 12) hours = 0;
-
-      if (hours >= 0 && hours <= 23) {
-        normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-      }
-    }
-  }
-
-  if (!normalized) {
-    match = cleaned.match(/^(\d{3,4})$/);
+    let match = cleaned.match(/^(\d{1,2})[:\.](\d{2})$/);
     if (match) {
-      const digits = match[1].padStart(4, "0");
-      let hours = Number(digits.slice(0, 2));
-      const minutes = Number(digits.slice(2, 4));
+      let hours = Number(match[1]);
+      const minutes = Number(match[2]);
 
       if (minutes >= 0 && minutes < 60) {
         if (isPM && hours < 12) hours += 12;
@@ -139,46 +131,75 @@ export default function LabourRow({
         }
       }
     }
-  }
 
-  if (!normalized) {
-    match = cleaned.match(/^(\d{1,2})$/);
-    if (match) {
-      let hours = Number(match[1]);
-      const minutes = 0;
+    if (!normalized) {
+      match = cleaned.match(/^(\d{3,4})$/);
+      if (match) {
+        const digits = match[1].padStart(4, "0");
+        let hours = Number(digits.slice(0, 2));
+        const minutes = Number(digits.slice(2, 4));
 
-      if (isPM && hours < 12) hours += 12;
-      if (isAM && hours === 12) hours = 0;
+        if (minutes >= 0 && minutes < 60) {
+          if (isPM && hours < 12) hours += 12;
+          if (isAM && hours === 12) hours = 0;
 
-      if (hours >= 0 && hours <= 23) {
-        normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+          if (hours >= 0 && hours <= 23) {
+            normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+          }
+        }
       }
     }
+
+    if (!normalized) {
+      match = cleaned.match(/^(\d{1,2})$/);
+      if (match) {
+        let hours = Number(match[1]);
+        const minutes = 0;
+
+        if (isPM && hours < 12) hours += 12;
+        if (isAM && hours === 12) hours = 0;
+
+        if (hours >= 0 && hours <= 23) {
+          normalized = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+        }
+      }
+    }
+
+    return normalized;
   }
 
-  return normalized;
-}
+  const shiftDateInvalid = (() => {
+    if (!line.shiftDate || !/^\d{4}-\d{2}-\d{2}$/.test(line.shiftDate)) return true;
 
-const shiftDateInvalid = (() => {
-  if (!line.shiftDate || !/^\d{4}-\d{2}-\d{2}$/.test(line.shiftDate)) return true;
+    const d = new Date(`${line.shiftDate}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return true;
 
-  const d = new Date(`${line.shiftDate}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return true;
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
 
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}` !== line.shiftDate;
+  })();
 
-  return `${yyyy}-${mm}-${dd}` !== line.shiftDate;
-})();
+  const startTimeDraft = startTimeText[line.id];
+  const startTimeInvalid =
+    typeof startTimeDraft === "string" &&
+    startTimeDraft.trim() !== "" &&
+    parseStartTime(startTimeDraft) === null;
 
-const startTimeDraft = startTimeText[line.id];
-const startTimeInvalid =
-  typeof startTimeDraft === "string" &&
-  startTimeDraft.trim() !== "" &&
-  parseStartTime(startTimeDraft) === null;
+  // Call Name is now mandatory.
+  const callNameMissing = !line.callName;
 
-const rowInvalid = shiftDateInvalid || startTimeInvalid || durationDraftInvalid;
+  const rowInvalid =
+    shiftDateInvalid || startTimeInvalid || durationDraftInvalid || callNameMissing;
+
+  function handleCallNameChange(nextCallName: string) {
+    const typedCallName = nextCallName as CrewFinderCallName | "";
+    updateLabour(line.id, {
+      callName: typedCallName,
+      role: roleForCallName(typedCallName),
+    });
+  }
 
   return (
     <>
@@ -190,11 +211,11 @@ const rowInvalid = shiftDateInvalid || startTimeInvalid || durationDraftInvalid;
               {line.notes ? ` — ${line.notes}` : ""}
             </span>
             <select
-              className="no-print labour-role-select"
+              className={`no-print labour-role-select${callNameMissing ? " field-error" : ""}`}
               data-row-id={line.id}
-              data-col="role"
-              value={line.role}
-              onChange={(e) => updateLabour(line.id, { role: e.target.value })}
+              data-col="callName"
+              value={line.callName || ""}
+              onChange={(e) => handleCallNameChange(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -202,9 +223,10 @@ const rowInvalid = shiftDateInvalid || startTimeInvalid || durationDraftInvalid;
                 }
               }}
             >
-              {roleOptions.map((role) => (
-                <option key={role} value={role}>
-                  {role}
+              <option value="" disabled>— Select Call Name —</option>
+              {ESTIMATOR_UI_CALL_NAMES.map((name) => (
+                <option key={name} value={name}>
+                  {name}
                 </option>
               ))}
             </select>
@@ -376,12 +398,12 @@ const rowInvalid = shiftDateInvalid || startTimeInvalid || durationDraftInvalid;
                       addLabour();
 
                       requestAnimationFrame(() => {
-                        const roleFields = Array.from(
-                          document.querySelectorAll<HTMLElement>('[data-col="role"]')
+                        const callNameFields = Array.from(
+                          document.querySelectorAll<HTMLElement>('[data-col="callName"]')
                         ).filter((el) => el.offsetParent !== null);
 
-                        const lastRoleField = roleFields[roleFields.length - 1];
-                        lastRoleField?.focus();
+                        const lastCallNameField = callNameFields[callNameFields.length - 1];
+                        lastCallNameField?.focus();
                       });
                     } else {
                       focusNext(e.currentTarget);
@@ -442,48 +464,26 @@ const rowInvalid = shiftDateInvalid || startTimeInvalid || durationDraftInvalid;
       </td>
     </tr>
 
-    {/* Row 2: Notes + SmartStaff call name (screen only) */}
+    {/* Row 2: Notes only (screen only). The SmartStaff Call Name has moved
+        into the primary row in place of the (now hidden) Role field. */}
     <tr className="no-print">
       <td colSpan={8} style={{ paddingTop: 0, paddingBottom: 8 }}>
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-          <textarea
-            className="labour-notes-input"
-            onFocus={(e) => e.currentTarget.select()}
-            placeholder="Notes (optional)"
-            maxLength={300}
-            rows={2}
-            style={{ flex: 1 }}
-            value={line.notes || ""}
-            onChange={(e) => updateLabour(line.id, { notes: e.target.value })}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                focusNext(e.currentTarget);
-              }
-            }}
-          />
-          <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 160 }}>
-            <label style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", whiteSpace: "nowrap" }}>
-              SmartStaff call name
-            </label>
-            <select
-              style={{ fontSize: 13, height: 32 }}
-              value={line.callName || ""}
-              onChange={(e) =>
-                updateLabour(line.id, {
-                  callName: e.target.value as typeof line.callName,
-                })
-              }
-            >
-              <option value="">— Select —</option>
-              {CREWFINDER_CALL_NAMES.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <textarea
+          className="labour-notes-input"
+          onFocus={(e) => e.currentTarget.select()}
+          placeholder="Notes (optional)"
+          maxLength={300}
+          rows={2}
+          style={{ width: "100%" }}
+          value={line.notes || ""}
+          onChange={(e) => updateLabour(line.id, { notes: e.target.value })}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              focusNext(e.currentTarget);
+            }
+          }}
+        />
       </td>
     </tr>
     </>

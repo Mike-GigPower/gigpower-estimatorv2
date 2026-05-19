@@ -3,10 +3,17 @@
 import { useState } from "react";
 import { useAppConfig } from "@/src/lib/useAppConfig";
 import { parseStartTime, parseDurationHours } from "@/src/lib/estimator/calc";
+import { REQUEST_UI_CALL_NAMES } from "@/src/lib/types";
 import Image from "next/image";
 
 type PublicCrewLine = {
   id: string;
+  /**
+   * Holds the SmartStaff Call Name selected by the customer (e.g. "Load In").
+   * The field name remains "crewType" to keep the API payload shape unchanged,
+   * but its meaning is now Call Name. The rate role is derived from this on
+   * the server using CALL_NAME_TO_ROLE.
+   */
   crewType: string;
   qty: string;
   shiftDate: string;
@@ -45,7 +52,7 @@ const initialRequest: PublicEstimateRequest = {
   crewLines: [
     {
       id: crypto.randomUUID(),
-      crewType: "Standard Crew",
+      crewType: "",
       qty: "1",
       shiftDate: "",
       startTime: "",
@@ -59,7 +66,7 @@ type Step = "form" | "verify" | "submitted";
 
 export default function RequestEstimatePage() {
   const { config } = useAppConfig();
-  const crewTypeOptions = config.rates.map((rate) => rate.role);
+  const callNameOptions = REQUEST_UI_CALL_NAMES;
   const [request, setRequest] = useState<PublicEstimateRequest>(initialRequest);
   const [step, setStep] = useState<Step>("form");
   const [durationErrors, setDurationErrors] = useState<Record<string, string>>({});
@@ -120,7 +127,7 @@ export default function RequestEstimatePage() {
         ...current.crewLines,
         {
           id: crypto.randomUUID(),
-          crewType: "Standard Crew",
+          crewType: "",
           qty: "1",
           shiftDate: current.eventDate || "",
           startTime: "",
@@ -194,7 +201,7 @@ export default function RequestEstimatePage() {
     }
 
     if (!request.needsCrewAdvice && !validateCrewLines()) {
-      alert(`Please complete all crew requirement fields. Minimum duration is ${config.minBillableHours} hours.`);
+      alert(`Please complete all crew requirement fields, including a Call Name for each line. Minimum duration is ${config.minBillableHours} hours.`);
       return;
     }
 
@@ -460,9 +467,16 @@ export default function RequestEstimatePage() {
                 <div key={line.id} className="card" style={{ marginBottom: 12 }}>
                   <div className="request-crew-line-grid">
                     <label>
-                      Crew type <span className="required-star">*</span>
-                      <select value={line.crewType} onChange={(e) => updateCrewLine(line.id, { crewType: e.target.value })}>
-                        {crewTypeOptions.map((role) => <option key={role} value={role}>{role}</option>)}
+                      Call Name <span className="required-star">*</span>
+                      <select
+                        value={line.crewType}
+                        onChange={(e) => updateCrewLine(line.id, { crewType: e.target.value })}
+                        required
+                      >
+                        <option value="" disabled>— Select —</option>
+                        {callNameOptions.map((name) => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
                       </select>
                     </label>
                     <label>
