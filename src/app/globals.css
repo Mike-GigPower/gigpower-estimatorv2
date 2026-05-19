@@ -398,6 +398,19 @@ th {
   gap: 6px;
   flex-wrap: nowrap;
 }
+/* Notes toggle button on labour rows.
+   Subtle when collapsed (just the + icon), gold-tinted when there's a note. */
+.labour-notes-toggle {
+  opacity: 0.55;
+  transition: opacity 0.15s, color 0.15s;
+}
+.labour-notes-toggle:hover {
+  opacity: 1;
+}
+.labour-notes-toggle.is-active {
+  opacity: 1;
+  color: var(--gp-gold);
+}
 
 /* =========================================================
    8. REUSABLE COMPONENTS

@@ -66,6 +66,8 @@ export default function LabourRow({
   money,
   minBillableHours,
 }: LabourRowProps) {
+  const [notesExpanded, setNotesExpanded] = React.useState(false);
+const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
   function focusNext(current: HTMLElement) {
     const focusable = Array.from(
       document.querySelectorAll<HTMLElement>(
@@ -437,6 +439,47 @@ export default function LabourRow({
 
       <td className="no-print">
         <div className="labour-row-actions">
+         <button
+      type="button"
+      className={`icon-btn labour-notes-toggle${showNotes ? " is-active" : ""}`}
+      onClick={() => {
+        if (showNotes && !line.notes?.trim()) {
+          // Expanded but empty → collapse
+          setNotesExpanded(false);
+        } else if (!showNotes) {
+          // Collapsed → expand and focus
+          setNotesExpanded(true);
+          requestAnimationFrame(() => {
+            const ta = document.querySelector<HTMLTextAreaElement>(
+              `textarea[data-notes-for="${line.id}"]`
+            );
+            ta?.focus();
+          });
+        } else {
+          // Has content → focus the textarea
+          const ta = document.querySelector<HTMLTextAreaElement>(
+            `textarea[data-notes-for="${line.id}"]`
+          );
+          ta?.focus();
+        }
+      }}
+      title={showNotes ? "Edit note" : "Add note"}
+      aria-label={showNotes ? "Edit note" : "Add note"}
+    >
+      {showNotes ? (
+        /* Filled note icon when content present or expanded */
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"
+                stroke="currentColor" strokeWidth="2" fill="currentColor" fillOpacity="0.15"/>
+          <path d="M8 11h8M8 15h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      ) : (
+        /* Plus icon when collapsed */
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M12 6v12M6 12h12" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"/>
+        </svg>
+      )}
+    </button>
           <button
             type="button"
             className="icon-btn"
@@ -469,11 +512,17 @@ export default function LabourRow({
 
     {/* Row 2: Notes only (screen only). The SmartStaff Call Name has moved
         into the primary row in place of the (now hidden) Role field. */}
+         {showNotes && ( 
     <tr className="no-print">
       <td colSpan={8} style={{ paddingTop: 0, paddingBottom: 8 }}>
         <textarea
           className="labour-notes-input"
+          data-notes-for={line.id} 
           onFocus={(e) => e.currentTarget.select()}
+           onBlur={() => {
+          // Collapse if user typed nothing and then clicked away
+          if (!line.notes?.trim()) setNotesExpanded(false);
+        }}
           placeholder="Notes (optional)"
           maxLength={300}
           rows={2}
@@ -489,6 +538,7 @@ export default function LabourRow({
         />
       </td>
     </tr>
+         )}
     </>
   );
 }
