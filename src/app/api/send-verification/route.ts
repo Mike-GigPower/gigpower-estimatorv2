@@ -1,7 +1,14 @@
-import { supabaseData } from "@/src/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Service role client — bypasses RLS, server-side only
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false, autoRefreshToken: false } }
+);
 
 function generateCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -19,14 +26,14 @@ export async function POST(request: Request) {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
     // Invalidate any existing unused codes for this email
-    await supabaseData
+    await supabase
       .from("verification_codes")
       .update({ used: true })
       .eq("email", email.toLowerCase())
       .eq("used", false);
 
     // Insert new code
-    const { error } = await supabaseData.from("verification_codes").insert({
+    const { error } = await supabase.from("verification_codes").insert({
       email: email.toLowerCase(),
       code,
       expires_at: expiresAt,
@@ -34,7 +41,7 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      console.error("Failed to store verification code:", error);
+      console.error("Failed to store verification code:", error.message);
       return Response.json({ success: false, error: "Failed to generate code" }, { status: 500 });
     }
 

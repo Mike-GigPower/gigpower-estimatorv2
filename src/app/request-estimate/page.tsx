@@ -162,12 +162,17 @@ export default function RequestEstimatePage() {
   }
 
   async function sendVerificationCode() {
-    const res = await fetch("/api/send-verification", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: request.email }),
-    });
-    return res.ok;
+    try {
+      const res = await fetch("/api/send-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: request.email }),
+      });
+      return res.ok;
+    } catch (err) {
+      console.error("[sendVerificationCode] fetch error:", err);
+      return false;
+    }
   }
 
   function startResendCooldown() {
