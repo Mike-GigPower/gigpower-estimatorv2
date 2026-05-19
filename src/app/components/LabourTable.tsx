@@ -1,5 +1,22 @@
+import { Fragment } from "react";
 import LabourRow from "./LabourRow";
 import { parseStartTime, parseDurationHours } from "@/src/lib/estimator/calc";
+
+/**
+ * Format a YYYY-MM-DD shift date as "Mon 23 Jun 2026" for the day
+ * separator label. Returns the raw value back if it isn't parseable.
+ */
+function formatDaySeparatorLabel(shiftDate: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(shiftDate)) return shiftDate;
+  const d = new Date(`${shiftDate}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return shiftDate;
+
+  const weekday = d.toLocaleDateString("en-AU", { weekday: "short" });
+  const day = d.getDate();
+  const month = d.toLocaleDateString("en-AU", { month: "short" });
+  const year = d.getFullYear();
+  return `${weekday} ${day} ${month} ${year}`;
+}
 
 type LabourLine = {
   id: string;
@@ -109,6 +126,9 @@ export default function LabourTable({
         <table className="entry-table labour-table print-labour-table">
           <thead>
             <tr>
+              <th style={{ width: 32, minWidth: 32 }} className="labour-row-num-head">
+      <span className="no-print">#</span>
+    </th>
               <th style={{ minWidth: 200 }}>
                 {/* Screen: editable Call Name. Print: derived rate role. */}
                 <span className="no-print">Call Name</span>
@@ -140,30 +160,49 @@ export default function LabourTable({
           </thead>
 
           <tbody>
-            {labour.map((line, idx) => (
-              <LabourRow
-  key={line.id}
-  line={line}
-  resultLine={labourResultById[line.id]}
-  roleOptions={roleOptions}
-  startTimeText={startTimeText}
-  setStartTimeText={setStartTimeText}
-  isAdmin={isAdmin}
-  durationText={durationText}
-  setDurationText={setDurationText}
-  updateLabour={updateLabour}
-  duplicateLabour={duplicateLabour}
-  removeLabour={removeLabour}
-  addLabour={addLabour}
-  isLastRow={idx === labour.length - 1}
-  formatDateDDMMYYYY={formatDateDDMMYYYY}
-  normaliseHHMM={normaliseHHMM}
-  hoursToHHMM={hoursToHHMM}
-  autoColonHHMM={autoColonHHMM}
-  money={money}
-  minBillableHours={minBillableHours}
-/>
-            ))}
+            {labour.map((line, idx) => {
+              const prev = idx > 0 ? labour[idx - 1] : null;
+              const isFirstOfDay = !prev || prev.shiftDate !== line.shiftDate;
+
+              return (
+               <Fragment key={line.id}>
+                  {isFirstOfDay && line.shiftDate && (
+                    <tr className="labour-day-separator no-print" aria-hidden="true">
+                      <td colSpan={9}>
+                        <div className="labour-day-separator-inner">
+                          <span className="labour-day-separator-label">
+                            {formatDaySeparatorLabel(line.shiftDate)}
+                          </span>
+                          <span className="labour-day-separator-line" />
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  <LabourRow
+                    line={line}
+                    resultLine={labourResultById[line.id]}
+                    rowNumber={idx + 1}
+                    roleOptions={roleOptions}
+                    startTimeText={startTimeText}
+                    setStartTimeText={setStartTimeText}
+                    isAdmin={isAdmin}
+                    durationText={durationText}
+                    setDurationText={setDurationText}
+                    updateLabour={updateLabour}
+                    duplicateLabour={duplicateLabour}
+                    removeLabour={removeLabour}
+                    addLabour={addLabour}
+                    isLastRow={idx === labour.length - 1}
+                    formatDateDDMMYYYY={formatDateDDMMYYYY}
+                    normaliseHHMM={normaliseHHMM}
+                    hoursToHHMM={hoursToHHMM}
+                    autoColonHHMM={autoColonHHMM}
+                    money={money}
+                    minBillableHours={minBillableHours}
+                  />
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>

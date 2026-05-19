@@ -21,6 +21,7 @@ type LabourResultLine = {
 type LabourRowProps = {
   line: LabourLine;
   resultLine?: LabourResultLine;
+  rowNumber: number; 
   /**
    * Kept on the props for backwards compatibility with LabourTable. The role
    * field is no longer user-selectable, so the list is unused inside the row,
@@ -48,6 +49,7 @@ type LabourRowProps = {
 export default function LabourRow({
   line,
   resultLine,
+   rowNumber, 
   roleOptions: _roleOptions,
   startTimeText,
   setStartTimeText,
@@ -209,6 +211,9 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
   return (
     <>
       <tr>
+        <td className="labour-row-num">
+    <span>{rowNumber}</span>
+  </td>
         <td>
           <div className="labour-role-cell">
             <span className="print-only">
@@ -514,7 +519,7 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
         into the primary row in place of the (now hidden) Role field. */}
          {showNotes && ( 
     <tr className="no-print">
-      <td colSpan={8} style={{ paddingTop: 0, paddingBottom: 8 }}>
+      <td colSpan={9} style={{ paddingTop: 0, paddingBottom: 8 }}>
         <textarea
           className="labour-notes-input"
           data-notes-for={line.id} 
