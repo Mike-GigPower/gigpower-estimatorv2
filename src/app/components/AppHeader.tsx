@@ -4,7 +4,7 @@ import { defaultConfig } from "@/src/lib/config";
 type AppHeaderProps = {
   draftName: string;
   quoteNumber: string;
- requestNumber?: string;
+  requestNumber?: string;
   quoteDate: string;
   validUntil: string;
   onValidUntilChange?: (value: string) => void;
@@ -15,7 +15,8 @@ type AppHeaderProps = {
   contactEmail?: string;
   contactPhone?: string;
   venue?: string;
-    status?: string;
+  eventName?: string;
+  status?: string;
 };
 
 export default function AppHeader({
@@ -32,6 +33,7 @@ export default function AppHeader({
   contactEmail,
   contactPhone,
   venue,
+  eventName,
   status,
 }: AppHeaderProps) {
   return (
@@ -134,6 +136,11 @@ export default function AppHeader({
 
       {/* Print-only customer details */}
       <div className="print-header-details print-only">
+        {eventName && (
+          <div>
+            <strong>Event:</strong> {eventName}
+          </div>
+        )}
         {companyName && (
           <div>
             <strong>Company:</strong> {companyName}

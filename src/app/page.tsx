@@ -1229,7 +1229,7 @@ const hasAnyData = hasLabourData || hasNonLabourData;
   <AppHeader
   draftName={draftName}
   quoteNumber={input.quoteNumber}
-   requestNumber={input.requestNumber}
+  requestNumber={input.requestNumber}
   quoteDate={input.quoteDate}
   validUntil={input.validUntil}
   onValidUntilChange={(value) => {
@@ -1241,12 +1241,13 @@ const hasAnyData = hasLabourData || hasNonLabourData;
 }}
   version={selectedDraftMeta?.currentVersion ?? 1}
   status={input.status}
-    preparedBy={preparedBy}
+  preparedBy={preparedBy}
   companyName={input.companyName}
   contactName={input.contactName}
   contactEmail={input.contactEmail}
   contactPhone={input.contactPhone}
   venue={input.venue}
+  eventName={input.eventName}
 />
 
       <div className="toolbar-section">

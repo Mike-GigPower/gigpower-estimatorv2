@@ -369,7 +369,8 @@ const detailsY = doc.y;
 
 doc.fontSize(9).fillColor("#111").font("Helvetica");
 
-// Use fallbacks to match your actual model
+doc.text(`Event: ${input.eventName || "-"}`, 40, detailsY + 80);
+
 doc.text(
   `Company: ${input.companyName || "-"}`,
   40,
@@ -388,12 +389,14 @@ doc.text(
 
 doc.text(`Venue: ${input.venue || "-"}`, 40, detailsY + 64);
 
+
+
 // Right side
 doc.text(`Quote Date: ${input.quoteDate || "-"}`, 340, detailsY);
 doc.text(`Valid Until: ${input.validUntil || "-"}`, 340, detailsY + 16);
 doc.text(`Status: ${input.status || "Draft"}`, 340, detailsY + 32);
 
-doc.y = detailsY + 88;
+doc.y = detailsY + 104;
 
   // Labour
 const labourLines = input.labour || [];
