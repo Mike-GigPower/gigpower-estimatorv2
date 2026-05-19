@@ -187,11 +187,14 @@ export default function LabourRow({
     startTimeDraft.trim() !== "" &&
     parseStartTime(startTimeDraft) === null;
 
-  // Call Name is now mandatory.
+  // Call Name is required input — drives the field-level red border below.
   const callNameMissing = !line.callName;
 
+  // Row invalid means we can't price it. Missing Call Name doesn't block pricing
+  // when role is already set (legacy rows where role pre-dates Call Name).
+  const roleMissing = !line.role;
   const rowInvalid =
-    shiftDateInvalid || startTimeInvalid || durationDraftInvalid || callNameMissing;
+    shiftDateInvalid || startTimeInvalid || durationDraftInvalid || roleMissing;
 
   function handleCallNameChange(nextCallName: string) {
     const typedCallName = nextCallName as CrewFinderCallName | "";
