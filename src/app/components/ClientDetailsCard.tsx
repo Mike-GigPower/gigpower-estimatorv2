@@ -13,6 +13,7 @@ type ClientDetailsCardProps = {
         | "venue"
         | "notes"
         | "eventName"
+        | "eventDate"
         | "onsiteContact"
       >
     >
@@ -92,6 +93,20 @@ export default function ClientDetailsCard({
             value={input.eventName ?? ""}
             onChange={(e) => onUpdateHeader({ eventName: e.target.value })}
             placeholder="e.g. Coldplay – Music of the Spheres Tour"
+          />
+        </div>
+        
+        <div className="col">
+          <label>
+            Event date{" "}
+            <span style={{ fontWeight: 400, color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
+              (defaults first labour line)
+            </span>
+          </label>
+          <input
+            type="date"
+            value={input.eventDate ?? ""}
+            onChange={(e) => onUpdateHeader({ eventDate: e.target.value })}
           />
         </div>
 

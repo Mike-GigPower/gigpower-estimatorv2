@@ -537,11 +537,24 @@ const todayIso = today.toISOString().slice(0, 10);
     patch: Partial<
       Pick<
         QuoteInput,
-        "companyName" | "contactName" | "contactEmail" | "contactPhone" | "venue" | "notes" | "eventName" | "onsiteContact"
+        "companyName" | "contactName" | "contactEmail" | "contactPhone" | "venue" | "notes" | "eventName" | "eventDate" | "onsiteContact"
       >
     >
   ) {
-    const next = { ...input, ...patch };
+    let next = { ...input, ...patch };
+
+    // When the event date is set/changed, default the FIRST labour line's
+    // shift date to it — but only if that line doesn't already have a date
+    // (don't clobber a date the user has explicitly typed).
+    if (patch.eventDate && next.labour.length > 0 && !next.labour[0].shiftDate) {
+      next = {
+        ...next,
+        labour: next.labour.map((line, i) =>
+          i === 0 ? { ...line, shiftDate: patch.eventDate as string } : line
+        ),
+      };
+    }
+
     recalc(next);
   }
   
@@ -557,7 +570,7 @@ function resetToBlankQuote() {
     quoteNumber: "",
     quoteDate: formatDateDDMMYYYY(today),
     validUntil: formatDateDDMMYYYY(valid),
-    labour: [emptyLabourLine(config.rates[0]?.role ?? "", config.minBillableHours, todayIso)],
+    labour: [emptyLabourLine(config.rates[0]?.role ?? "", config.minBillableHours, "")],
     nonLabour: [emptyNonLabourLine()],
   };
 

@@ -117,6 +117,7 @@ export type QuoteInput = {
   venue: string;
   notes: string;
   eventName?: string;
+  eventDate?: string;
   onsiteContact?: string;
   labour: LabourLine[];
   nonLabour: NonLabourLine[];
