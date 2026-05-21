@@ -1,4 +1,4 @@
-import type { AppConfig, LabourLine, QuoteInput } from "./types";
+import type { AppConfig, LabourCostSegment, LabourLine, QuoteInput } from "./types";
 
 export function ddmmyyyyToIso(value: string): string | null {
   const m = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
@@ -236,6 +236,7 @@ export function calculateLabourLine(
     ot10DayHrs: number;
     ot10NightHrs: number;
   };
+  segments: LabourCostSegment[];
 } {
   const errors: string[] = [];
 
@@ -270,6 +271,7 @@ export function calculateLabourLine(
         ot10DayHrs: 0,
         ot10NightHrs: 0,
       },
+      segments: [],
     };
   }
 
@@ -296,6 +298,7 @@ export function calculateLabourLine(
         ot10DayHrs: 0,
         ot10NightHrs: 0,
       },
+      segments: [],
     };
   }
 
@@ -362,9 +365,61 @@ export function calculateLabourLine(
     return parts.reduce((acc, p) => acc + p.dayHrs * dayFn(p.dateISO) + p.nightHrs * nightFn(p.dateISO), 0);
   }
 
+  // Build per-segment detail (one row per date × day/night within a tier),
+  // reusing the SAME rate functions the cost path uses so the segment rate and
+  // cost always reconcile to costExGst. Contiguous slivers that share
+  // tier+date+day/night are merged. Zero-hour entries are dropped.
+  function buildSegments(
+    parts: Array<{ dateISO: string; dayHrs: number; nightHrs: number }>,
+    tier: "base" | "ot8" | "ot10",
+    dayFn: (d: string) => number,
+    nightFn: (d: string) => number
+  ): LabourCostSegment[] {
+    const acc = new Map<string, LabourCostSegment>();
+
+    for (const p of parts) {
+      const entries: Array<{ period: "day" | "night"; hours: number; rate: number }> = [];
+      if (p.dayHrs > 0) entries.push({ period: "day", hours: p.dayHrs, rate: dayFn(p.dateISO) });
+      if (p.nightHrs > 0) entries.push({ period: "night", hours: p.nightHrs, rate: nightFn(p.dateISO) });
+
+      for (const e of entries) {
+        // Key on rate too, so the rare case of differing rates for the same
+        // date/period (shouldn't happen, but is theoretically possible if rate
+        // logic changes) stays as separate, honest rows rather than blending.
+        const key = `${tier}|${p.dateISO}|${e.period}|${e.rate}`;
+        const existing = acc.get(key);
+        if (existing) {
+          existing.hours += e.hours;
+          existing.costExGst += e.hours * e.rate;
+        } else {
+          acc.set(key, {
+            tier,
+            period: e.period,
+            dateISO: p.dateISO,
+            hours: e.hours,
+            rate: e.rate,
+            costExGst: e.hours * e.rate,
+          });
+        }
+      }
+    }
+
+    return Array.from(acc.values()).map((s) => ({
+      ...s,
+      hours: round2(s.hours),
+      costExGst: round2(s.costExGst),
+    }));
+  }
+
   const costBase = costParts(baseParts, maxDay, maxNight);
   const costOt8 = costParts(ot8Parts, maxOt8Day, maxOt8Night);
   const costOt10 = costParts(ot10Parts, maxOt10Day, maxOt10Night);
+
+  const segments: LabourCostSegment[] = [
+    ...buildSegments(baseParts, "base", maxDay, maxNight),
+    ...buildSegments(ot8Parts, "ot8", maxOt8Day, maxOt8Night),
+    ...buildSegments(ot10Parts, "ot10", maxOt10Day, maxOt10Night),
+  ];
 
   const costExGst = round2(line.qty * (costBase + costOt8 + costOt10));
 
@@ -381,6 +436,7 @@ export function calculateLabourLine(
       ot10DayHrs: round2(ot10Sum.day),
       ot10NightHrs: round2(ot10Sum.night),
     },
+    segments,
   };
 }
 
@@ -407,6 +463,7 @@ export function calculateQuoteTotals(input: QuoteInput, config: AppConfig) {
     gst: round2(result.costExGst * config.gstRate),
     totalIncGst: round2(result.costExGst * (1 + config.gstRate)),
     breakdown: result.breakdown,
+    segments: result.segments,
   }));
 
   const validationErrors = labourEvaluations.flatMap(({ result }) =>

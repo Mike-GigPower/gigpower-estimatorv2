@@ -12,10 +12,20 @@ import {
   parseStartTime,
 } from "@/src/lib/estimator/calc";
 
+type LabourCostSegment = {
+  tier: "base" | "ot8" | "ot10";
+  period: "day" | "night";
+  dateISO: string;
+  hours: number;
+  rate: number;
+  costExGst: number;
+};
+
 type LabourResultLine = {
   id: string;
   costExGst: number;
   totalIncGst: number;
+  segments?: LabourCostSegment[];
 };
 
 type LabourRowProps = {
@@ -63,13 +73,57 @@ export default function LabourRow({
   isLastRow,
   formatDateDDMMYYYY,
   normaliseHHMM,
-  hoursToHHMM,
+  hoursToHHMM: _hoursToHHMM,
   autoColonHHMM,
   money,
   minBillableHours,
 }: LabourRowProps) {
   const [notesExpanded, setNotesExpanded] = React.useState(false);
 const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
+
+  // Cost breakdown tooltip open state + viewport anchor. Positioned with
+  // `fixed` so it escapes the labour table's horizontal scroll container
+  // (overflow-x: auto would otherwise clip an absolutely-positioned panel).
+  const [costTipAnchor, setCostTipAnchor] = React.useState<{
+    top: number;
+    right: number;
+  } | null>(null);
+
+  function openCostTip(el: HTMLElement) {
+    const r = el.getBoundingClientRect();
+    setCostTipAnchor({ top: r.bottom + 8, right: window.innerWidth - r.right });
+  }
+  function closeCostTip() {
+    setCostTipAnchor(null);
+  }
+
+  // Display a stored duration (a number of hours) as a compact decimal string,
+  // e.g. 4.5 -> "4.5", 8 -> "8", 4.25 -> "4.25". Trailing zeros are trimmed so
+  // whole hours read cleanly. This is display-only; durationHours stays a number
+  // in state and the input still accepts both decimal and HH:MM on entry.
+  function hoursToDecimal(hours: number): string {
+    if (!Number.isFinite(hours)) return "0";
+    return parseFloat(hours.toFixed(2)).toString();
+  }
+
+  // ── Cost breakdown tooltip (#5) ──────────────────────────────────────
+  // Surfaces the per-segment detail the calc engine produces (date × tier ×
+  // day/night) so staff can see how a line cost was derived. Display-only.
+  const TIER_LABEL: Record<"base" | "ot8" | "ot10", string> = {
+    base: "Base",
+    ot8: "OT (8h+)",
+    ot10: "OT (10h+)",
+  };
+
+  function segmentDateLabel(dateISO: string): string {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) return dateISO;
+    const d = new Date(`${dateISO}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return dateISO;
+    const weekday = d.toLocaleDateString("en-AU", { weekday: "short" });
+    const day = d.getDate();
+    const month = d.toLocaleDateString("en-AU", { month: "short" });
+    return `${weekday} ${day} ${month}`;
+  }
   function focusNext(current: HTMLElement) {
     const focusable = Array.from(
       document.querySelectorAll<HTMLElement>(
@@ -353,11 +407,11 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
       </td>
 
       <td>
-        <span className="print-only">{hoursToHHMM(line.durationHours)}</span>
+        <span className="print-only">{hoursToDecimal(line.durationHours)} hrs</span>
 
        {(() => {
   function commitDuration() {
-    const raw = (durationText[line.id] ?? hoursToHHMM(line.durationHours)).trim();
+    const raw = (durationText[line.id] ?? hoursToDecimal(line.durationHours)).trim();
     const parsed = parseDurationHours(raw);
 
     const isAllowedDuration =
@@ -380,12 +434,13 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
   }
 
           return (
+            <span className="labour-duration-wrap no-print">
             <input
-              className={`no-print labour-field labour-time-input${durationDraftInvalid ? " field-error" : ""}`}
+              className={`labour-field labour-time-input labour-duration-input${durationDraftInvalid ? " field-error" : ""}`}
               type="text"
-              inputMode="numeric"
-              placeholder="HH:MM"
-              value={durationText[line.id] ?? hoursToHHMM(line.durationHours)}
+              inputMode="decimal"
+              placeholder="e.g. 4.5"
+              value={durationText[line.id] ?? hoursToDecimal(line.durationHours)}
               onFocus={(e) => e.currentTarget.select()}
               onChange={(e) =>
                 setDurationText((prev) => ({
@@ -398,7 +453,7 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
                 if (e.key === "Enter") {
                   e.preventDefault();
 
-                  const raw = durationText[line.id] ?? hoursToHHMM(line.durationHours);
+                  const raw = durationText[line.id] ?? hoursToDecimal(line.durationHours);
                   const parsed = parseDurationHours(raw);
 
                   commitDuration();
@@ -422,13 +477,78 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
                 }
               }}
             />
+            <span className="labour-duration-suffix" aria-hidden="true">h</span>
+            </span>
           );
         })()}
       </td>
 
       <td className="text-right">
   {resultLine && !rowInvalid ? (
-    money(resultLine.costExGst)
+    (() => {
+      const segments = resultLine.segments ?? [];
+      const hasBreakdown = segments.length > 0;
+
+      if (!hasBreakdown) {
+        return money(resultLine.costExGst);
+      }
+
+      const perCrew = segments.reduce((a, s) => a + s.costExGst, 0);
+      const tipOpen = costTipAnchor !== null;
+
+      return (
+        <span
+          className="labour-cost-trigger"
+          tabIndex={0}
+          aria-label={`Cost ${money(resultLine.costExGst)}. Show cost breakdown.`}
+          onMouseEnter={(e) => openCostTip(e.currentTarget)}
+          onMouseLeave={closeCostTip}
+          onFocus={(e) => openCostTip(e.currentTarget)}
+          onBlur={closeCostTip}
+        >
+          <span className="labour-cost-value">{money(resultLine.costExGst)}</span>
+          {tipOpen && (
+            <span
+              className="labour-cost-tip"
+              role="tooltip"
+              style={{ top: costTipAnchor.top, right: costTipAnchor.right }}
+            >
+              <span className="labour-cost-tip-title">Cost breakdown — per crew</span>
+              <span className="labour-cost-tip-table">
+                {segments.map((s, i) => (
+                  <span className="labour-cost-tip-row" key={i}>
+                    <span className="lc-date">{segmentDateLabel(s.dateISO)}</span>
+                    <span className="lc-tier">{TIER_LABEL[s.tier]}</span>
+                    <span className="lc-period">{s.period === "day" ? "Day" : "Night"}</span>
+                    <span className="lc-hrs">{hoursToDecimal(s.hours)}h</span>
+                    <span className="lc-rate">@ {money(s.rate)}</span>
+                    <span className="lc-sub">{money(s.costExGst)}</span>
+                  </span>
+                ))}
+              </span>
+              <span className="labour-cost-tip-foot">
+                <span className="labour-cost-tip-footrow">
+                  <span>Per crew</span>
+                  <span>{money(perCrew)}</span>
+                </span>
+                {line.qty > 1 && (
+                  <>
+                    <span className="labour-cost-tip-footrow muted">
+                      <span>× {line.qty} crew</span>
+                      <span></span>
+                    </span>
+                    <span className="labour-cost-tip-footrow labour-cost-tip-total">
+                      <span>Line total</span>
+                      <span>{money(resultLine.costExGst)}</span>
+                    </span>
+                  </>
+                )}
+              </span>
+            </span>
+          )}
+        </span>
+      );
+    })()
   ) : (
     <span className="muted">—</span>
   )}

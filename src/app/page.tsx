@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 /**
  * Main page-level UI components
@@ -192,6 +192,25 @@ const [validUntilManuallyEdited, setValidUntilManuallyEdited] = useState(false);
 const [pendingLoadId, setPendingLoadId] = useState<string | null>(null);
 const [currentUserRole, setCurrentUserRole] = useState("");
 const isAdmin = currentUserRole === "admin";
+
+// Undo toast for labour-row deletion (#6). Holds the removed line plus the
+// index it occupied, so Undo restores it to the same position. A token lets
+// the auto-dismiss timer ignore stale timeouts when toasts are replaced.
+const [deletedLabour, setDeletedLabour] = useState<
+  { line: LabourLine; index: number; token: number } | null
+>(null);
+
+// Auto-dismiss the undo toast ~7s after it appears. Keyed on token so a new
+// deletion resets the timer and replaces any in-flight one (#6).
+useEffect(() => {
+  if (!deletedLabour) return;
+  const t = setTimeout(() => {
+    setDeletedLabour((current) =>
+      current && current.token === deletedLabour.token ? null : current
+    );
+  }, 7000);
+  return () => clearTimeout(t);
+}, [deletedLabour]);
 
 useEffect(() => {
   const stored = localStorage.getItem("loadedEstimateRequest");
@@ -480,11 +499,41 @@ const todayIso = today.toISOString().slice(0, 10);
   }
 
   /**
-   * Remove a labour row by id.
+   * Remove a labour row by id. Captures the removed line and its position so
+   * the deletion can be undone via the toast (#6).
    */
   function removeLabour(id: string) {
+    const index = input.labour.findIndex((l) => l.id === id);
+    if (index === -1) return;
+
+    const removed = input.labour[index];
     const next = { ...input, labour: input.labour.filter((l) => l.id !== id) };
     recalc(next);
+
+    setDeletedLabour({ line: removed, index, token: Date.now() });
+  }
+
+  /**
+   * Restore the most recently deleted labour row to its original position.
+   */
+  function restoreLabour() {
+    if (!deletedLabour) return;
+
+    const restored = [...input.labour];
+    const at = Math.min(deletedLabour.index, restored.length);
+    restored.splice(at, 0, deletedLabour.line);
+
+    const next = { ...input, labour: restored };
+    recalc(next);
+
+    setDeletedLabour(null);
+  }
+
+  /**
+   * Dismiss the undo toast, committing the deletion.
+   */
+  function dismissDeletedToast() {
+    setDeletedLabour(null);
   }
 
   /**
@@ -1466,6 +1515,31 @@ setStatus={(value: "Draft" | "Sent" | "Approved" | "Exported to Operations") =>
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {deletedLabour && (
+        <div className="gp-toast" role="status" aria-live="polite">
+          <span className="gp-toast-msg">Labour line deleted.</span>
+          <div className="gp-toast-actions">
+            <button
+              type="button"
+              className="gp-toast-undo"
+              onClick={restoreLabour}
+            >
+              Undo
+            </button>
+            <button
+              type="button"
+              className="gp-toast-close"
+              onClick={dismissDeletedToast}
+              aria-label="Dismiss"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+              </svg>
+            </button>
           </div>
         </div>
       )}

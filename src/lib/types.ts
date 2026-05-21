@@ -124,6 +124,15 @@ export type QuoteInput = {
   status?: "Draft" | "Sent" | "Approved" | "Exported to Operations";
 };
 
+export type LabourCostSegment = {
+  tier: "base" | "ot8" | "ot10";
+  period: "day" | "night";
+  dateISO: string;
+  hours: number;
+  rate: number;
+  costExGst: number;
+};
+
 export type LabourLineResult = {
   id: string;
   role: string;
@@ -143,6 +152,7 @@ export type LabourLineResult = {
     ot10DayHrs: number;
     ot10NightHrs: number;
   };
+  segments: LabourCostSegment[];
 };
 
 export type NonLabourLineResult = {

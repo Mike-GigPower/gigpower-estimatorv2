@@ -665,6 +665,222 @@ th {
   text-align: right;   
 }
 
+/* Duration cell: numeric input with a persistent "h" unit suffix so the
+   value (e.g. "4.5h") can't be mistaken for the HH:MM clock time in the
+   adjacent Start column. The suffix is decorative (aria-hidden) — the column
+   header carries the unit for assistive tech. */
+.labour-duration-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.labour-duration-input {
+  width: 56px;
+  max-width: 56px;
+  text-align: right;
+}
+
+.labour-duration-suffix {
+  font-size: 13px;
+  font-family: monospace;
+  color: var(--muted, #97a3b6);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ── Cost breakdown tooltip (#5) ─────────────────────────────────────
+   Hover/focus on the cost cell reveals per-segment derivation. The trigger
+   carries a subtle dotted underline to signal it's inspectable. */
+.labour-cost-trigger {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+  outline: none;
+}
+
+.labour-cost-value {
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.35);
+  padding-bottom: 1px;
+}
+
+.labour-cost-trigger:focus-visible .labour-cost-value {
+  box-shadow: 0 0 0 3px var(--gp-focus);
+  border-radius: 3px;
+}
+
+.labour-cost-tip {
+  position: fixed;
+  z-index: 1000;
+  min-width: 320px;
+  max-width: 380px;
+  padding: 12px 14px;
+  text-align: left;
+  background: #14181f;
+  border: 1px solid var(--gp-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  cursor: default;
+  white-space: normal;
+}
+
+.labour-cost-tip-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--gp-gold);
+  margin-bottom: 8px;
+}
+
+.labour-cost-tip-table {
+  display: block;
+}
+
+.labour-cost-tip-row {
+  display: grid;
+  grid-template-columns: minmax(64px, auto) minmax(56px, auto) 40px 44px 64px 1fr;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12.5px;
+  font-family: ui-monospace, "JetBrains Mono", monospace;
+  color: #e8eef8;
+  padding: 3px 0;
+}
+
+.labour-cost-tip-row .lc-date {
+  color: var(--muted, #97a3b6);
+}
+.labour-cost-tip-row .lc-tier {
+  color: #e8eef8;
+}
+.labour-cost-tip-row .lc-period {
+  color: var(--muted, #97a3b6);
+}
+.labour-cost-tip-row .lc-hrs,
+.labour-cost-tip-row .lc-rate {
+  text-align: right;
+  color: #cfd6e2;
+}
+.labour-cost-tip-row .lc-sub {
+  text-align: right;
+  font-weight: 700;
+  color: #fff;
+}
+
+.labour-cost-tip-foot {
+  display: block;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--gp-border);
+}
+
+.labour-cost-tip-footrow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-family: ui-monospace, "JetBrains Mono", monospace;
+  padding: 2px 0;
+  color: #e8eef8;
+}
+
+.labour-cost-tip-footrow.muted {
+  color: var(--muted, #97a3b6);
+}
+
+.labour-cost-tip-total {
+  font-weight: 800;
+  color: var(--gp-gold);
+}
+
+/* ── Undo toast for labour-row deletion (#6) ─────────────────────────
+   Bottom-centre transient toast. Introduces a toast convention for the app
+   (none existed previously); uses the dark surface + gold accent language. */
+.gp-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 280px;
+  max-width: calc(100vw - 32px);
+  padding: 12px 12px 12px 18px;
+  background: #14181f;
+  border: 1px solid var(--gp-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  animation: gp-toast-in 0.18s ease-out;
+}
+
+@keyframes gp-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.gp-toast-msg {
+  font-size: 14px;
+  color: #e8eef8;
+}
+
+.gp-toast-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gp-toast-undo {
+  background: transparent;
+  border: 1px solid rgba(245, 166, 35, 0.5);
+  color: var(--gp-gold);
+  font-weight: 800;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gp-toast-undo:hover {
+  background: rgba(245, 166, 35, 0.15);
+  border-color: var(--gp-gold);
+}
+
+.gp-toast-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.gp-toast-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@media print {
+  .gp-toast {
+    display: none !important;
+  }
+}
+
 .labour-table-wrap {
   overflow-x: auto;
   margin-top: 10px;
@@ -1562,4 +1778,3 @@ img,
   font-weight: 700 !important;
 }
 }
-

@@ -27,10 +27,20 @@ type LabourLine = {
   durationHours: number;
 };
 
+type LabourCostSegment = {
+  tier: "base" | "ot8" | "ot10";
+  period: "day" | "night";
+  dateISO: string;
+  hours: number;
+  rate: number;
+  costExGst: number;
+};
+
 type LabourResultLine = {
   id: string;
   costExGst: number;
   totalIncGst: number;
+  segments?: LabourCostSegment[];
 };
 
 type LabourResult = {
@@ -145,7 +155,7 @@ export default function LabourTable({
               </th>
               <th style={{ minWidth: 90 }}>
                 <span className="th-top">Duration</span>
-                <span className="th-sub">HH:MM</span>
+                <span className="th-sub">decimal hrs</span>
               </th>
               <th style={{ minWidth: 100 }} className="text-right">
                 <span className="th-top">Cost</span>
