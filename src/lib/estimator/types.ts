@@ -4,4 +4,5 @@ export type {
   NonLabourLine,
   QuoteResult,
   AppConfig,
+  LabourCostSegment,
 } from "../types";
