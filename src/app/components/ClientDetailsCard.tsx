@@ -15,6 +15,7 @@ type ClientDetailsCardProps = {
         | "eventName"
         | "eventDate"
         | "onsiteContact"
+        | "onsiteContactPhone"
       >
     >
   ) => void;
@@ -84,34 +85,6 @@ export default function ClientDetailsCard({
 
         <div className="col">
           <label>
-            Event name{" "}
-            <span style={{ fontWeight: 400, color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
-              (CrewFinder booking name)
-            </span>
-          </label>
-          <input
-            value={input.eventName ?? ""}
-            onChange={(e) => onUpdateHeader({ eventName: e.target.value })}
-            placeholder="e.g. Coldplay – Music of the Spheres Tour"
-          />
-        </div>
-        
-        <div className="col">
-          <label>
-            Event date{" "}
-            <span style={{ fontWeight: 400, color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
-              (defaults first labour line)
-            </span>
-          </label>
-          <input
-            type="date"
-            value={input.eventDate ?? ""}
-            onChange={(e) => onUpdateHeader({ eventDate: e.target.value })}
-          />
-        </div>
-
-        <div className="col">
-          <label>
             Onsite contact{" "}
             <span style={{ fontWeight: 400, color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
               (CrewFinder)
@@ -121,6 +94,20 @@ export default function ClientDetailsCard({
             value={input.onsiteContact ?? ""}
             onChange={(e) => onUpdateHeader({ onsiteContact: e.target.value })}
             placeholder="Name of onsite contact"
+          />
+        </div>
+
+        <div className="col">
+          <label>
+            Onsite contact phone{" "}
+            <span style={{ fontWeight: 400, color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
+              (CrewFinder)
+            </span>
+          </label>
+          <input
+            value={input.onsiteContactPhone ?? ""}
+            onChange={(e) => onUpdateHeader({ onsiteContactPhone: e.target.value })}
+            placeholder="0400 000 000"
           />
         </div>
       </div>

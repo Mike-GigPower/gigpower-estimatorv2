@@ -13,7 +13,7 @@ type DraftToolbarProps = {
   setQuoteSearch: (value: string) => void;
   selectedDraftId: string;
   setSelectedDraftId: (value: string) => void;
-  filteredDrafts: DraftOption[];
+  filteredDrafts?: DraftOption[];
   onLoadDraftById: (id: string) => void;
   statusFilter: string;
   status: string;
@@ -32,8 +32,8 @@ type DraftToolbarProps = {
   onPrint: () => void;
   onDownloadPdf?: () => void;
   onExportCrewFinder?: () => void;
-  onRecalculate: () => void;
-  busy: boolean;
+  eventDate?: string;
+  onEventDateChange?: (value: string) => void;
 };
 
 export default function DraftToolbar({
@@ -50,7 +50,7 @@ export default function DraftToolbar({
   lastSavedAt,
   selectedDraftId,
   setSelectedDraftId,
-  filteredDrafts,
+  filteredDrafts = [],
   onLoadDraftById,
   onSaveNew,
   onUpdateSaved,
@@ -61,8 +61,8 @@ export default function DraftToolbar({
   onPrint,
   onDownloadPdf,
   onExportCrewFinder,
-  onRecalculate,
-  busy,
+  eventDate,
+  onEventDateChange,
   estimatorVisible,
 }: DraftToolbarProps) {
 return (
@@ -286,103 +286,84 @@ return (
         </p>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        
-
-        <button
-          className="btn-secondary"
-          onClick={onUpdateSaved}
-          disabled={!selectedDraftId}
-          title={
-            selectedDraftId
-              ? "Overwrite selected estimate"
-              : "Select an estimate first"
-          }
-        >
-          Save Changes
-        </button>
-
-        <button className="btn-secondary" onClick={onSaveNew}>
-          Save As New Estimate
-        </button>
-
-        
-
-        <button className="btn-print" onClick={onPrint}>
-          Print
-        </button>
-
-        {onDownloadPdf && (
-          <button type="button" onClick={onDownloadPdf}>
-            Download PDF
+      <div className="estimate-actions">
+        {/* Save cluster — primary, most-used, lowest risk */}
+        <div className="estimate-actions-group">
+          <button
+            className="primary"
+            onClick={onUpdateSaved}
+            disabled={!selectedDraftId}
+            title={
+              selectedDraftId
+                ? "Overwrite selected estimate"
+                : "Select an estimate first"
+            }
+          >
+            Save Changes
           </button>
-        )}
 
+          <button className="btn-secondary" onClick={onSaveNew}>
+            Save As New Estimate
+          </button>
+        </div>
+
+        <span className="estimate-actions-divider" aria-hidden="true" />
+
+        {/* Output cluster — read-only, no side effects */}
+        <div className="estimate-actions-group">
+          <button className="btn-print" onClick={onPrint}>
+            Print
+          </button>
+
+          {onDownloadPdf && (
+            <button type="button" className="btn-secondary" onClick={onDownloadPdf}>
+              Download PDF
+            </button>
+          )}
+        </div>
+
+        {/* Export to CrewFinder — the quote→booking moment, kept distinct */}
         {onExportCrewFinder && (
           <button
             type="button"
+            className="btn-export-crewfinder"
             onClick={onExportCrewFinder}
             title={
               status !== "Approved"
                 ? "Only available when status is Approved"
                 : "Export JSON for CrewFinder / SmartStaff"
             }
-            style={{
-              background: status === "Approved" ? "#1e40af" : undefined,
-              color: status === "Approved" ? "#fff" : undefined,
-              borderColor: status === "Approved" ? "#3b82f6" : undefined,
-              opacity: status !== "Approved" ? 0.45 : 1,
-              cursor: status !== "Approved" ? "not-allowed" : "pointer",
-            }}
+            data-enabled={status === "Approved" ? "true" : "false"}
+            disabled={status !== "Approved"}
           >
             Export to CrewFinder
           </button>
         )}
 
-        <button className="primary" disabled={busy} onClick={onRecalculate}>
-          {busy ? "Calculating…" : "Recalculate"}
-        </button>
-        
-        <button
-  onClick={onClearAll}
-  style={{
-    background: "#16a34a",
-    color: "#fff",
-    borderColor: "#22c55e",
-  }}
->
-  Start New Estimate
-</button>
-      
-      <button
-  className="btn-danger"
-  disabled={!selectedDraftId}
-  style={{
-    background: "#b91c1c",
-    color: "#fff",
-    borderColor: "#ef4444",
-  }}
-  onClick={() => {
-    if (!selectedDraftId) return;
+        {/* Destructive cluster — pushed to the right, away from regular work */}
+        <div className="estimate-actions-group estimate-actions-danger">
+          <button className="btn-start-new" onClick={onClearAll}>
+            Start New Estimate
+          </button>
 
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this estimate?\n\nThis action cannot be undone."
-    );
+          <button
+            className="btn-danger"
+            disabled={!selectedDraftId}
+            onClick={() => {
+              if (!selectedDraftId) return;
 
-    if (confirmed) {
-      onDeleteSelected();
-    }
-  }}
->
-  Delete Estimate
-</button>
+              const confirmed = window.confirm(
+                "Are you sure you want to delete this estimate?\n\nThis action cannot be undone."
+              );
+
+              if (confirmed) {
+                onDeleteSelected();
+              }
+            }}
+          >
+            Delete Estimate
+          </button>
+        </div>
       </div>
       
       
@@ -390,10 +371,10 @@ return (
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 220px",
+          gridTemplateColumns: "1fr 180px 220px",
           gap: 16,
           alignItems: "end",
-          maxWidth: 720,
+          maxWidth: 820,
         }}
       >
         <div>
@@ -406,6 +387,18 @@ return (
             onChange={(e) => setDraftName(e.target.value)}
             placeholder="Estimate name"
             style={{ width: "100%" }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontWeight: 600, marginBottom: 4 }}>
+            Event date
+          </label>
+          <input
+            type="date"
+            value={eventDate ?? ""}
+            onChange={(e) => onEventDateChange?.(e.target.value)}
+            style={{ width: "100%", height: 42 }}
           />
         </div>
 

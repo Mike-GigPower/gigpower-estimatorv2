@@ -24,6 +24,7 @@ export type CrewFinderPayload = {
     venue_name: string;
     venue_address: string;
     onsite_contact: string;
+    onsite_contact_phone: string;
     event_notes: string;
     access_notes: string;
     operational_notes: string;
@@ -93,6 +94,7 @@ export function buildCrewFinderPayload(
       venue_name: input.venue,
       venue_address: "",
       onsite_contact: input.onsiteContact || "",
+      onsite_contact_phone: input.onsiteContactPhone || "",
       event_notes: "",
       access_notes: "",
       operational_notes: input.notes || "",

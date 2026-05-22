@@ -216,6 +216,70 @@ button.ghost {
   color: white;
 }
 
+/* ── Estimate Details action bar grouping (#4) ───────────────────────
+   Buttons grouped by consequence: save cluster (primary) | outputs |
+   export (distinct) | destructive (pushed right, separated). */
+.estimate-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.estimate-actions-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Thin vertical rule between the save cluster and the output cluster. */
+.estimate-actions-divider {
+  width: 1px;
+  align-self: stretch;
+  min-height: 24px;
+  background: var(--gp-border, rgba(255, 255, 255, 0.14));
+  margin: 0 2px;
+}
+
+/* Destructive cluster: shoved to the far right, away from regular work. */
+.estimate-actions-danger {
+  margin-left: auto;
+  padding-left: 14px;
+  border-left: 1px solid var(--gp-border, rgba(255, 255, 255, 0.14));
+}
+
+/* Start New — neutral (not gold, not red). A reset, mildly cautionary. */
+.btn-start-new {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-weight: 700;
+}
+.btn-start-new:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* Export to CrewFinder — the quote→booking moment. Distinct blue when
+   enabled (status Approved); muted + disabled otherwise. */
+.btn-export-crewfinder {
+  background: #1e40af;
+  color: #fff;
+  border: 1px solid #3b82f6;
+  font-weight: 800;
+}
+.btn-export-crewfinder:hover {
+  filter: brightness(1.08);
+}
+.btn-export-crewfinder[data-enabled="false"],
+.btn-export-crewfinder:disabled {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.14);
+  cursor: not-allowed;
+  filter: none;
+}
+
 .icon-btn {
   display: inline-flex;
   align-items: center;

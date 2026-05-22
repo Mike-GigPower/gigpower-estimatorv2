@@ -119,6 +119,7 @@ export type QuoteInput = {
   eventName?: string;
   eventDate?: string;
   onsiteContact?: string;
+  onsiteContactPhone?: string;
   labour: LabourLine[];
   nonLabour: NonLabourLine[];
   status?: "Draft" | "Sent" | "Approved" | "Exported to Operations";

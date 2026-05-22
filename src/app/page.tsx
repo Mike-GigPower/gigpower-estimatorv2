@@ -200,6 +200,12 @@ const [deletedLabour, setDeletedLabour] = useState<
   { line: LabourLine; index: number; token: number } | null
 >(null);
 
+// Snapshot of the last loaded/saved estimate (serialised QuoteInput), used to
+// detect *unsaved changes*. Distinct from "is the quote empty": a saved,
+// untouched estimate is non-empty but has no unsaved changes, so loading
+// another over it should NOT warn. null = no baseline (fresh/blank session).
+const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
+
 // Auto-dismiss the undo toast ~7s after it appears. Keyed on token so a new
 // deletion resets the timer and replaces any in-flight one (#6).
 useEffect(() => {
@@ -370,8 +376,11 @@ const todayIso = today.toISOString().slice(0, 10);
   const [result, setResult] = useState<QuoteResult | null>(null);
 
   /**
-   * Simple busy flag used by toolbar/UI.
+   * Tracks whether a recalculation is in progress. Set around the auto-recalc
+   * effect. (The manual "Recalculate" button was removed — calc is automatic —
+   * but the flag is retained for any future in-progress UI indicator.)
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [busy, setBusy] = useState(false);
 
   /**
@@ -586,7 +595,7 @@ const todayIso = today.toISOString().slice(0, 10);
     patch: Partial<
       Pick<
         QuoteInput,
-        "companyName" | "contactName" | "contactEmail" | "contactPhone" | "venue" | "notes" | "eventName" | "eventDate" | "onsiteContact"
+        "companyName" | "contactName" | "contactEmail" | "contactPhone" | "venue" | "notes" | "eventName" | "eventDate" | "onsiteContact" | "onsiteContactPhone"
       >
     >
   ) {
@@ -627,18 +636,38 @@ function resetToBlankQuote() {
   setSelectedDraftId("");
   setInput(freshInput);
   setResult(calculateCurrentQuote(freshInput));
+  setSavedSnapshot(null);
   setDurationText({});
   setStartTimeText({});
 }
 
+/**
+ * True when the current quote has changes that would be lost if discarded.
+ *
+ * - Empty quote -> never "unsaved" (nothing to lose).
+ * - A loaded/saved estimate left untouched -> NOT unsaved (matches the saved
+ *   snapshot), so loading another over it shouldn't warn.
+ * - Non-empty with no saved baseline (typed but never saved) -> treated as
+ *   unsaved.
+ * - Non-empty and differs from the saved snapshot -> unsaved.
+ */
+function hasUnsavedChanges(): boolean {
+  const empty = isQuoteEmpty({
+    input,
+    draftName,
+    minBillableHours: config.minBillableHours,
+  });
+  if (empty) return false;
+
+  // Non-empty but never saved/loaded: there's content worth protecting.
+  if (savedSnapshot === null) return true;
+
+  // Non-empty with a baseline: dirty only if it differs from what was saved.
+  return JSON.stringify(input) !== savedSnapshot;
+}
+
 function handleStartNew() {
-  if (
-    isQuoteEmpty({
-      input,
-      draftName,
-      minBillableHours: config.minBillableHours,
-    })
-  ) {
+  if (!hasUnsavedChanges()) {
     resetToBlankQuote();
     setValidUntilManuallyEdited(false);
     setEstimatorVisible(true);
@@ -649,13 +678,7 @@ function handleStartNew() {
 }
 
 function handleLoadEstimate(id: string) {
-  const isEmpty = isQuoteEmpty({
-    input,
-    draftName,
-    minBillableHours: config.minBillableHours,
-  });
-
-  if (!estimatorVisible || isEmpty) {
+  if (!estimatorVisible || !hasUnsavedChanges()) {
     loadDraftById(id);
     return;
   }
@@ -886,6 +909,7 @@ const ensuredInput: QuoteInput = {
     }
 
     setInput(ensuredInput);
+    setSavedSnapshot(JSON.stringify(ensuredInput));
     alert(`Estimate updated. Version ${nextVersion} saved.`);
     await loadAllDrafts();
     return;
@@ -941,6 +965,7 @@ request_number: ensuredInput.requestNumber || null,
     }
 
     setInput(ensuredInput);
+    setSavedSnapshot(JSON.stringify(ensuredInput));
     setSelectedDraftId(insertedQuote.id);
     alert("Estimate saved (shared across users). Version 1 created.");
     await loadAllDrafts();
@@ -1022,8 +1047,14 @@ const hydrated: QuoteInput = {
     ...hydrated,
     eventName: hydrated.eventName || loadedName,
   };
-  setInput(hydratedWithEvent);
-  recalc(hydratedWithEvent);
+  // Use the normalised form for BOTH state and the saved-snapshot baseline, so
+  // a freshly loaded (untouched) estimate compares as having no unsaved changes.
+  const normalisedLoaded = ready
+    ? normaliseInputRoles(hydratedWithEvent, config)
+    : hydratedWithEvent;
+  setInput(normalisedLoaded);
+  setResult(calculateCurrentQuote(normalisedLoaded));
+  setSavedSnapshot(JSON.stringify(normalisedLoaded));
   setValidUntilManuallyEdited(!!hydrated.validUntil);
   setEstimatorVisible(true);
 }
@@ -1356,10 +1387,10 @@ setStatus={(value: "Draft" | "Sent" | "Approved" | "Exported to Operations") =>
           onClearAll={handleStartNew}
           onCreateNew={handleCreateNewEstimate}
           onPrint={() => window.print()}
-          onRecalculate={() => recalc(input)}
           onDownloadPdf={downloadQuotePdf}
           onExportCrewFinder={exportToCrewFinder}
-          busy={busy}
+          eventDate={input.eventDate}
+          onEventDateChange={(v) => updateHeader({ eventDate: v })}
         />
       </div>
       
