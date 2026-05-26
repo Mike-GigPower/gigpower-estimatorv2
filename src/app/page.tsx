@@ -1461,6 +1461,7 @@ const hasAnyData = hasLabourData || hasNonLabourData;
   <AppHeader
   draftName={draftName}
   onLogout={handleLogout}
+   isAdmin={isAdmin}
   quoteNumber={input.quoteNumber}
   requestNumber={input.requestNumber}
   quoteDate={input.quoteDate}

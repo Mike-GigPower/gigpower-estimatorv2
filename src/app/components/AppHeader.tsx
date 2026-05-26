@@ -18,6 +18,7 @@ type AppHeaderProps = {
   eventName?: string;
   status?: string;
   onLogout?: () => void;
+  isAdmin?: boolean;
 };
 
 export default function AppHeader({
@@ -37,6 +38,7 @@ export default function AppHeader({
   eventName,
   status,
   onLogout,
+  isAdmin,
 }: AppHeaderProps) {
   return (
     <>
@@ -99,16 +101,40 @@ export default function AppHeader({
       
       {/* Screen header */}
 <div className="gp-header no-print" style={{ position: "relative" }}>
-  {onLogout && (
-    <button
-      type="button"
-      className="btn-secondary"
-      onClick={onLogout}
-      style={{ position: "absolute", top: 0, right: 0 }}
-    >
-      Log out
-    </button>
-  )}
+  <div
+    style={{
+      position: "absolute",
+      top: 0,
+      right: 0,
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+    }}
+  >
+    {isAdmin && (
+      <button
+        type="button"
+        className="btn-secondary"
+        onClick={() => window.open("/admin", "_blank", "noopener,noreferrer")}
+      >
+        Admin
+      </button>
+    )}
+    {isAdmin && (
+      <button
+        type="button"
+        className="btn-secondary"
+        onClick={() => window.open("/admin/requests", "_blank", "noopener,noreferrer")}
+      >
+        Requests
+      </button>
+    )}
+    {onLogout && (
+      <button type="button" className="btn-secondary" onClick={onLogout}>
+        Log out
+      </button>
+    )}
+  </div>
   
   <div className="gp-brand">
     <Image
