@@ -19,6 +19,19 @@ function money(value: number | undefined) {
   });
 }
 
+// Format a YYYY-MM-DD date string as DD/MM/YYYY (Australian format).
+// Parses the string directly (no Date object) to avoid timezone shifts.
+// Returns "-" for empty/invalid input, and passes through anything that
+// isn't in the expected YYYY-MM-DD shape unchanged.
+function formatAuDate(value: string | undefined) {
+  if (!value) return "-";
+
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return value;
+
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
 function checkPage(doc: PDFKit.PDFDocument, needed = 60) {
   if (doc.y + needed > 760) {
     doc.addPage();
@@ -85,7 +98,7 @@ function labourHeader(doc: PDFKit.PDFDocument, grouped = false) {
   doc.fillColor("#fcb900").fontSize(8);
 
   if (grouped) {
-    doc.text("Role", 46, y + 5, { width: 125 });
+    doc.text("Call Name", 46, y + 5, { width: 125 });
    doc.text("Qty", 176, y + 5, { width: 35, align: "right" });
 doc.text("Start", 235, y + 5, { width: 50, align: "center" });
     doc.text("Duration", 270, y + 5, { width: 60, align: "right" });
@@ -93,7 +106,7 @@ doc.text("Start", 235, y + 5, { width: 50, align: "center" });
     doc.text("Cost (ex GST)", 470, y + 5, { width: 78, align: "right" });
   } else {
     doc.text("Date", 46, y + 5, { width: 70 });
-    doc.text("Role", 116, y + 5, { width: 105 });
+    doc.text("Call Name", 116, y + 5, { width: 105 });
     doc.text("Qty", 224, y + 5, { width: 35, align: "right" });
     doc.text("Start", 267, y + 5, { width: 45 });
     doc.text("Duration", 317, y + 5, { width: 60, align: "right" });
@@ -121,7 +134,7 @@ function labourLine(
   doc.fontSize(8).fillColor("#111");
 
   if (grouped) {
-    doc.text(line.role || "-", 46, y, { width: 125 });
+    doc.text(line.callName || line.role || "-", 46, y, { width: 125 });
 
 doc.text(String(line.qty || 0), 176, y, {
   width: 35,
@@ -160,7 +173,7 @@ doc.text(money(lineCostExGst), 455, y, {
 
   doc.text(line.shiftDate || "-", 46, y, { width: 70 });
 
-doc.text(line.role || "-", 116, y, { width: 105 });
+doc.text(line.callName || line.role || "-", 116, y, { width: 105 });
 
 doc.text(String(line.qty || 0), 224, y, {
   width: 35,
@@ -260,26 +273,38 @@ function nonLabourLine(
   const resultLine = nonLabourResultById.get(String(line.id));
   const lineAmountExGst = resultLine?.lineAmountExGst ?? 0;
 
-  doc.fontSize(8).fillColor("#111").font("Helvetica");
+  const title = (line.title || "").trim();
+  const description = (line.description || "").trim();
+  const itemName = title || description || "-";
 
-  doc.text(line.description || "-", 46, y, { width: 250 });
-  doc.text(String(line.qty || 0), 310, y, {
-    width: 50,
-    align: "center",
-  });
-  doc.text(money(lineAmountExGst), 420, y, {
-    width: 128,
-    align: "right",
-  });
+  // Title (item name) — bold, primary line
+  doc.fontSize(8).fillColor("#111").font("Helvetica-Bold");
+  doc.text(itemName, 46, y, { width: 250 });
+  const titleHeight = doc.heightOfString(itemName, { width: 250 });
+
+  // Description — smaller, greyer, beneath the title (only when both exist)
+  let descHeight = 0;
+  if (title && description) {
+    doc.fontSize(7).fillColor("#666").font("Helvetica");
+    doc.text(description, 46, y + titleHeight + 1, { width: 250 });
+    descHeight = doc.heightOfString(description, { width: 250 }) + 1;
+  }
+
+  // Qty and Cost — aligned to top of row, normal weight
+  doc.fontSize(8).fillColor("#111").font("Helvetica");
+  doc.text(String(line.qty || 0), 310, y, { width: 50, align: "center" });
+  doc.text(money(lineAmountExGst), 420, y, { width: 128, align: "right" });
+
+  const rowHeight = Math.max(titleHeight + descHeight, 12);
 
   doc
-    .moveTo(40, y + 17)
-    .lineTo(555, y + 17)
+    .moveTo(40, y + rowHeight + 5)
+    .lineTo(555, y + rowHeight + 5)
     .strokeColor("#e6e6e6")
     .lineWidth(0.5)
     .stroke();
 
-  doc.y = y + 24;
+  doc.y = y + rowHeight + 10;
 }
 
 export async function POST(request: Request) {
@@ -370,6 +395,8 @@ const detailsY = doc.y;
 doc.fontSize(9).fillColor("#111").font("Helvetica");
 
 doc.text(`Event: ${input.eventName || "-"}`, 40, detailsY + 80);
+
+doc.text(`Event Date: ${formatAuDate(input.eventDate)}`, 340, detailsY + 80);
 
 doc.text(
   `Company: ${input.companyName || "-"}`,
@@ -463,11 +490,12 @@ if (!labourLines.length) {
 
   // Non-labour
   const nonLabourLines = (input.nonLabour || []).filter((line: any) => {
+  const hasTitle = line.title && line.title.trim() !== "";
   const hasDescription = line.description && line.description.trim() !== "";
   const hasQty = Number(line.qty || 0) > 0;
   const hasAmount = Number(line.amountExGst || 0) > 0;
 
-  return hasDescription && (hasQty || hasAmount);
+  return (hasTitle || hasDescription) && (hasQty || hasAmount);
 });
 
   
