@@ -91,7 +91,7 @@ export function isQuoteEmpty(params: {
   draftName: string;
   minBillableHours: number;
 }): boolean {
-  const { input, draftName, minBillableHours } = params;
+  const { input, draftName } = params;
 
   const hasHeaderData =
     (input.companyName || "").trim() !== "" ||
@@ -112,10 +112,7 @@ export function isQuoteEmpty(params: {
     (line) =>
       (line.callName || "").trim() !== "" ||
       (line.notes || "").trim() !== "" ||
-      (line.qty ?? 1) !== 1 ||
-      (line.startTime || "") !== "08:00" ||
-      (line.durationHours ?? minBillableHours) !== minBillableHours ||
-      (line.shiftDate || "").trim() !== ""
+      (line.qty ?? 1) !== 1
   );
 
   const hasNonLabourData = input.nonLabour.some(
