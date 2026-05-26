@@ -101,10 +101,16 @@ export function isQuoteEmpty(params: {
     (input.venue || "").trim() !== "" ||
     (input.notes || "").trim() !== "" ||
     ((draftName || "").trim() !== "" && draftName !== "Untitled Estimate");
-
+// A labour line counts as user-entered data when the user has actually
+  // picked a Call Name or changed a field — NOT when it merely carries an
+  // auto-derived/default role. Role is now derived from Call Name via
+  // roleForCallName() and falls back to "Standard Crew", and the
+  // resetToBlankQuote() factory seeds the first line with the first rate
+  // role, so testing `role` here would flag a brand-new blank quote as
+  // non-empty and wrongly trigger the "Unsaved Changes" dialog.
   const hasLabourData = input.labour.some(
     (line) =>
-      (line.role || "").trim() !== "" ||
+      (line.callName || "").trim() !== "" ||
       (line.notes || "").trim() !== "" ||
       (line.qty ?? 1) !== 1 ||
       (line.startTime || "") !== "08:00" ||
