@@ -34,6 +34,8 @@ type DraftToolbarProps = {
   onExportCrewFinder?: () => void;
   eventDate?: string;
   onEventDateChange?: (value: string) => void;
+  eventNameError?: string;
+  eventDateError?: string;
 };
 
 export default function DraftToolbar({
@@ -63,6 +65,8 @@ export default function DraftToolbar({
   onExportCrewFinder,
   eventDate,
   onEventDateChange,
+  eventNameError,
+  eventDateError,
   estimatorVisible,
 }: DraftToolbarProps) {
 return (
@@ -291,12 +295,11 @@ return (
         <div className="estimate-actions-group">
           <button
             className="primary"
-            onClick={onUpdateSaved}
-            disabled={!selectedDraftId}
+            onClick={selectedDraftId ? onUpdateSaved : onSaveNew}
             title={
               selectedDraftId
-                ? "Overwrite selected estimate"
-                : "Select an estimate first"
+                ? "Save changes to this estimate"
+                : "Save this new estimate"
             }
           >
             Save Changes
@@ -376,26 +379,42 @@ return (
         <div>
           <label style={{ display: "block", fontWeight: 600, marginBottom: 4 }}>
             Estimate name
+            <span className="required-star" aria-hidden="true">*</span>
           </label>
           <input
+            id="field-eventName"
+            className={eventNameError ? "field-error" : undefined}
             type="text"
             value={draftName}
             onChange={(e) => setDraftName(e.target.value)}
             placeholder="Estimate name"
             style={{ width: "100%" }}
+            aria-required="true"
+            aria-invalid={eventNameError ? true : undefined}
           />
+          {eventNameError && (
+            <small className="field-error-text">{eventNameError}</small>
+          )}
         </div>
 
         <div>
           <label style={{ display: "block", fontWeight: 600, marginBottom: 4 }}>
             Event date
+            <span className="required-star" aria-hidden="true">*</span>
           </label>
           <input
+            id="field-eventDate"
+            className={eventDateError ? "field-error" : undefined}
             type="date"
             value={eventDate ?? ""}
             onChange={(e) => onEventDateChange?.(e.target.value)}
             style={{ width: "100%", height: 42 }}
+            aria-required="true"
+            aria-invalid={eventDateError ? true : undefined}
           />
+          {eventDateError && (
+            <small className="field-error-text">{eventDateError}</small>
+          )}
         </div>
 
         <div>

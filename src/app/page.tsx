@@ -92,6 +92,17 @@ function money(n: number, currency: string) {
 
 const SELECTED_DRAFT_KEY = "gigpower-selected-estimate";
 
+// Stable display/scroll order for mandatory header-field errors. Keys match
+// the DOM ids assigned to each field (id="field-<key>").
+const HEADER_FIELD_ORDER = [
+  "companyName",
+  "contactName",
+  "contactEmail",
+  "eventName",
+  "eventDate",
+  "venue",
+] as const;
+
 /**
  * Create a new blank labour line with sensible defaults.
  */
@@ -207,6 +218,15 @@ const [deletedLabour, setDeletedLabour] = useState<
 // another over it should NOT warn. null = no baseline (fresh/blank session).
 const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
 
+// Inline validation for mandatory header fields. Populated on a save attempt;
+// each entry is keyed by field (companyName, contactEmail, …) with a human-
+// readable message. While populated, the fields highlight and a summary banner
+// shows. Entries prune themselves as fields become valid (see effect below).
+// `triggeredSave` gates the pruning effect so highlights only appear *after*
+// the user has tried to save — not while first filling the form in.
+const [headerErrors, setHeaderErrors] = useState<Record<string, string>>({});
+const [triggeredSave, setTriggeredSave] = useState(false);
+
 // Auto-dismiss the undo toast ~7s after it appears. Keyed on token so a new
 // deletion resets the timer and replaces any in-flight one (#6).
 useEffect(() => {
@@ -218,6 +238,29 @@ useEffect(() => {
   }, 7000);
   return () => clearTimeout(t);
 }, [deletedLabour]);
+
+// Once the user has attempted a save, keep the inline header-field errors in
+// sync as they fix things: recompute on every edit and clear entries that are
+// now valid. Does nothing until the first save attempt, so the form doesn't
+// light up red while it's still being filled in for the first time.
+useEffect(() => {
+  if (!triggeredSave) return;
+
+  const next = collectHeaderErrors({
+    ...input,
+    eventName: input.eventName || draftName,
+  });
+
+  setHeaderErrors((prev) => {
+    const prevKeys = Object.keys(prev);
+    const nextKeys = Object.keys(next);
+    const sameLength = prevKeys.length === nextKeys.length;
+    const sameEntries = sameLength && nextKeys.every((k) => prev[k] === next[k]);
+    // Avoid setting state (and re-rendering) when nothing actually changed.
+    return sameEntries ? prev : next;
+  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [input, draftName, triggeredSave]);
 
 useEffect(() => {
   const stored = localStorage.getItem("loadedEstimateRequest");
@@ -640,6 +683,8 @@ function resetToBlankQuote() {
   setSavedSnapshot(null);
   setDurationText({});
   setStartTimeText({});
+  setHeaderErrors({});
+  setTriggeredSave(false);
 }
 
 /**
@@ -835,23 +880,41 @@ async function downloadQuotePdf() {
    *  - At least one priceable line overall (labour or non-labour). Non-labour-
    *    only estimates are allowed.
    */
-  function validateBeforeSave(candidate: QuoteInput): string[] {
-    const errors: string[] = [];
+  // Keyed mandatory-header-field validation. This is the single source of
+  // truth for header rules: validateBeforeSave folds these into its flat list,
+  // and the inline banner/highlight/scroll uses the same keys. Keys match the
+  // DOM ids assigned to each field (id="field-<key>") so the first error can be
+  // scrolled into view.
+  function collectHeaderErrors(candidate: QuoteInput): Record<string, string> {
+    const headerErrs: Record<string, string> = {};
     const isBlank = (v?: string) => !v || !v.trim();
 
-    // ── Mandatory header fields ──────────────────────────────────────────
-    if (isBlank(candidate.companyName)) errors.push("Company Name is required.");
-    if (isBlank(candidate.contactName)) errors.push("Contact Name is required.");
+    if (isBlank(candidate.companyName)) headerErrs.companyName = "Company Name is required.";
+    if (isBlank(candidate.contactName)) headerErrs.contactName = "Contact Name is required.";
 
     if (isBlank(candidate.contactEmail)) {
-      errors.push("Contact Email is required.");
+      headerErrs.contactEmail = "Contact Email is required.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidate.contactEmail.trim())) {
-      errors.push("Contact Email is not a valid email address.");
+      headerErrs.contactEmail = "Contact Email is not a valid email address.";
     }
 
-    if (isBlank(candidate.eventName)) errors.push("Event/Estimate Name is required.");
-    if (isBlank(candidate.eventDate)) errors.push("Event Date is required.");
-    if (isBlank(candidate.venue)) errors.push("Venue is required.");
+    if (isBlank(candidate.eventName)) headerErrs.eventName = "Event/Estimate Name is required.";
+    if (isBlank(candidate.eventDate)) headerErrs.eventDate = "Event Date is required.";
+    if (isBlank(candidate.venue)) headerErrs.venue = "Venue is required.";
+
+    return headerErrs;
+  }
+
+  function validateBeforeSave(candidate: QuoteInput): string[] {
+    const errors: string[] = [];
+
+    // ── Mandatory header fields ──────────────────────────────────────────
+    // Use the keyed helper so the header rules live in exactly one place, then
+    // append them to the flat list in the established display order.
+    const headerErrs = collectHeaderErrors(candidate);
+    HEADER_FIELD_ORDER.forEach((key) => {
+      if (headerErrs[key]) errors.push(headerErrs[key]);
+    });
 
     // ── Labour lines ─────────────────────────────────────────────────────
     // Reuse the pricing engine to validate every field on every labour line.
@@ -921,6 +984,22 @@ async function downloadQuotePdf() {
   }
 
   /**
+   * Scroll a mandatory header field into view and focus it, used when a save
+   * attempt fails validation. Fields carry id="field-<key>" (e.g.
+   * "field-companyName"). Safe no-op if the element isn't found.
+   */
+  function scrollToField(key: string) {
+    if (typeof document === "undefined") return;
+    const el = document.getElementById(`field-${key}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Focus after the scroll settles so it doesn't fight the smooth scroll.
+    window.setTimeout(() => {
+      (el as HTMLElement).focus({ preventScroll: true });
+    }, 300);
+  }
+
+  /**
    * Save a draft.
    * If overwriteId matches an existing draft, update that draft.
    * Otherwise create a new draft.
@@ -928,11 +1007,32 @@ async function downloadQuotePdf() {
 async function saveDraft(overwriteId?: string) {
   // Validate mandatory fields and every line before doing any work. Abort if
   // anything is invalid.
-  const validationErrors = validateBeforeSave({
+  const candidate = {
     ...input,
     // eventName falls back to the draft name, matching how it is displayed.
     eventName: input.eventName || draftName,
-  });
+  };
+
+  // From now on, header fields show inline validation as they're edited.
+  setTriggeredSave(true);
+
+  // Mandatory header fields get inline treatment: highlight + summary banner +
+  // scroll to the first offender, instead of a blocking popup.
+  const headerErrs = collectHeaderErrors(candidate);
+  setHeaderErrors(headerErrs);
+
+  if (Object.keys(headerErrs).length > 0) {
+    const firstKey = HEADER_FIELD_ORDER.find((k) => headerErrs[k]);
+    if (firstKey) scrollToField(firstKey);
+    return;
+  }
+
+  // Header is valid — clear any lingering inline errors from a prior attempt.
+  setHeaderErrors({});
+
+  // Header is valid. Line-level (labour / non-labour) problems still use the
+  // existing summary popup for now — those aren't part of the inline pass yet.
+  const validationErrors = validateBeforeSave(candidate);
 
   if (validationErrors.length > 0) {
     alert(
@@ -1187,6 +1287,8 @@ const hydrated: QuoteInput = {
   setSavedSnapshot(JSON.stringify(normalisedLoaded));
   setValidUntilManuallyEdited(!!hydrated.validUntil);
   setEstimatorVisible(true);
+  setHeaderErrors({});
+  setTriggeredSave(false);
 }
 
   /**
@@ -1523,6 +1625,8 @@ setStatus={(value: "Draft" | "Sent" | "Approved" | "Exported to Operations") =>
           onExportCrewFinder={exportToCrewFinder}
           eventDate={input.eventDate}
           onEventDateChange={(v) => updateHeader({ eventDate: v })}
+          eventNameError={headerErrors.eventName}
+          eventDateError={headerErrors.eventDate}
         />
       </div>
       
@@ -1531,9 +1635,60 @@ setStatus={(value: "Draft" | "Sent" | "Approved" | "Exported to Operations") =>
       {estimatorVisible && (
   <>
 
+      {Object.keys(headerErrors).length > 0 && (
+        <div className="gp-validation-banner" role="alert" aria-live="assertive">
+          <div className="gp-validation-banner-head">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M12 8v5M12 16.5v.5M10.3 3.9 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <strong>Please complete the required fields before saving.</strong>
+            <button
+              type="button"
+              className="gp-validation-banner-close"
+              onClick={() => setHeaderErrors({})}
+              aria-label="Dismiss"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M6 6l12 12M18 6L6 18"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </div>
+          <ul className="gp-validation-banner-list">
+            {HEADER_FIELD_ORDER.filter((k) => headerErrors[k]).map((k) => (
+              <li key={k}>
+                <button type="button" onClick={() => scrollToField(k)}>
+                  {headerErrors[k]}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="hr" />
 
-      <ClientDetailsCard input={input} onUpdateHeader={updateHeader} />
+      <ClientDetailsCard
+        input={input}
+        onUpdateHeader={updateHeader}
+        errors={headerErrors}
+      />
 
       <div className="hr" />
 

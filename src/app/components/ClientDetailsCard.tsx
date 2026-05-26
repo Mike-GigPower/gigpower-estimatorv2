@@ -19,11 +19,15 @@ type ClientDetailsCardProps = {
       >
     >
   ) => void;
+  // Inline validation messages keyed by field (companyName, contactName,
+  // contactEmail, venue). Absent/empty = no error for that field.
+  errors?: Record<string, string>;
 };
 
 export default function ClientDetailsCard({
   input,
   onUpdateHeader,
+  errors = {},
 }: ClientDetailsCardProps) {
   return (
   <div className="card no-print" style={{ display: "grid", gap: 16 }}>
@@ -34,35 +38,67 @@ export default function ClientDetailsCard({
   Client Details
 </h3>
       <p style={{ margin: "4px 0 0", color: "rgba(255,255,255,0.6)", fontSize: 13 }}>
-        Enter client and contact information for this estimate.
+        Enter client and contact information for this estimate. Fields marked
+        with <span className="required-star" aria-hidden="true">*</span> are
+        required before the estimate can be saved.
       </p>
     </div>
       <div className="row" style={{ marginTop: 8 }}>
         <div className="col">
-          <label>Company name</label>
+          <label>
+            Company name
+            <span className="required-star" aria-hidden="true">*</span>
+          </label>
           <input
+            id="field-companyName"
+            className={errors.companyName ? "field-error" : undefined}
             value={input.companyName}
             onChange={(e) => onUpdateHeader({ companyName: e.target.value })}
             placeholder="Client company"
+            aria-required="true"
+            aria-invalid={errors.companyName ? true : undefined}
           />
+          {errors.companyName && (
+            <small className="field-error-text">{errors.companyName}</small>
+          )}
         </div>
 
         <div className="col">
-          <label>Contact name</label>
+          <label>
+            Contact name
+            <span className="required-star" aria-hidden="true">*</span>
+          </label>
           <input
+            id="field-contactName"
+            className={errors.contactName ? "field-error" : undefined}
             value={input.contactName}
             onChange={(e) => onUpdateHeader({ contactName: e.target.value })}
             placeholder="Contact person"
+            aria-required="true"
+            aria-invalid={errors.contactName ? true : undefined}
           />
+          {errors.contactName && (
+            <small className="field-error-text">{errors.contactName}</small>
+          )}
         </div>
 
         <div className="col">
-          <label>Contact email</label>
+          <label>
+            Contact email
+            <span className="required-star" aria-hidden="true">*</span>
+          </label>
           <input
+            id="field-contactEmail"
+            className={errors.contactEmail ? "field-error" : undefined}
             value={input.contactEmail}
             onChange={(e) => onUpdateHeader({ contactEmail: e.target.value })}
             placeholder="name@company.com"
+            aria-required="true"
+            aria-invalid={errors.contactEmail ? true : undefined}
           />
+          {errors.contactEmail && (
+            <small className="field-error-text">{errors.contactEmail}</small>
+          )}
         </div>
 
         <div className="col">
@@ -75,12 +111,22 @@ export default function ClientDetailsCard({
         </div>
 
         <div className="col">
-          <label>Venue</label>
+          <label>
+            Venue
+            <span className="required-star" aria-hidden="true">*</span>
+          </label>
           <input
+            id="field-venue"
+            className={errors.venue ? "field-error" : undefined}
             value={input.venue ?? ""}
             onChange={(e) => onUpdateHeader({ venue: e.target.value })}
-            placeholder="Optional"
+            placeholder="Event venue"
+            aria-required="true"
+            aria-invalid={errors.venue ? true : undefined}
           />
+          {errors.venue && (
+            <small className="field-error-text">{errors.venue}</small>
+          )}
         </div>
 
         <div className="col">

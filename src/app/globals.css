@@ -1061,6 +1061,97 @@ th {
   border-color: #ff6b6b !important;
   box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.18);
 }
+
+/* Inline per-field validation message shown under an errored input. */
+.field-error-text {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #ff8585;
+}
+
+/* Summary banner listing all missing/invalid mandatory header fields. Shown
+   above the estimate after a failed save attempt. Mirrors the dark-surface
+   language of .gp-toast but sits inline rather than fixed. */
+.gp-validation-banner {
+  border: 1px solid rgba(255, 107, 107, 0.45);
+  background: rgba(255, 107, 107, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 4px;
+  animation: gp-toast-in 0.18s ease-out;
+}
+
+.gp-validation-banner-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ff8585;
+  font-size: 14px;
+}
+
+.gp-validation-banner-head strong {
+  flex: 1;
+  color: #ffd9d9;
+  font-weight: 700;
+}
+
+.gp-validation-banner-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.gp-validation-banner-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.gp-validation-banner-list {
+  margin: 10px 0 0;
+  padding: 0 0 0 2px;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.gp-validation-banner-list li {
+  margin: 0;
+}
+
+.gp-validation-banner-list button {
+  background: transparent;
+  border: none;
+  padding: 2px 0;
+  color: #ffb3b3;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 179, 179, 0.4);
+  text-underline-offset: 2px;
+}
+
+.gp-validation-banner-list button:hover {
+  color: #fff;
+}
+
+@media print {
+  .gp-validation-banner {
+    display: none !important;
+  }
+}
+
   
 /* =========================================================
    10. REQUEST FORM / MOBILE LAYOUT
