@@ -17,6 +17,7 @@ type AppHeaderProps = {
   venue?: string;
   eventName?: string;
   status?: string;
+  onLogout?: () => void;
 };
 
 export default function AppHeader({
@@ -35,6 +36,7 @@ export default function AppHeader({
   venue,
   eventName,
   status,
+  onLogout,
 }: AppHeaderProps) {
   return (
     <>
@@ -96,7 +98,18 @@ export default function AppHeader({
 
       
       {/* Screen header */}
-<div className="gp-header no-print">
+<div className="gp-header no-print" style={{ position: "relative" }}>
+  {onLogout && (
+    <button
+      type="button"
+      className="btn-secondary"
+      onClick={onLogout}
+      style={{ position: "absolute", top: 0, right: 0 }}
+    >
+      Log out
+    </button>
+  )}
+  
   <div className="gp-brand">
     <Image
       src="/brand/gigpower-mark.png"

@@ -728,6 +728,14 @@ function handleCreateNewEstimate() {
   setEstimatorVisible(true);
 }
 
+async function handleLogout() {
+  const confirmed = window.confirm("Are you sure you want to log out?");
+  if (!confirmed) return;
+
+  await authClient.auth.signOut();
+  router.replace("/login");
+}
+
 async function exportToCrewFinder() {
   if (input.status !== "Approved") {
     alert("Only Approved estimates can be exported to CrewFinder.");
@@ -1452,6 +1460,7 @@ const hasAnyData = hasLabourData || hasNonLabourData;
       
   <AppHeader
   draftName={draftName}
+  onLogout={handleLogout}
   quoteNumber={input.quoteNumber}
   requestNumber={input.requestNumber}
   quoteDate={input.quoteDate}
