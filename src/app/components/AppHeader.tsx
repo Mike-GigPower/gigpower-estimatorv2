@@ -100,42 +100,7 @@ export default function AppHeader({
 
       
       {/* Screen header */}
-<div className="gp-header no-print" style={{ position: "relative" }}>
-  <div
-    style={{
-      position: "absolute",
-      top: 0,
-      right: 0,
-      display: "flex",
-      gap: 8,
-      alignItems: "center",
-    }}
-  >
-    {isAdmin && (
-      <button
-        type="button"
-        className="btn-secondary"
-        onClick={() => window.open("/admin", "_blank", "noopener,noreferrer")}
-      >
-        Admin
-      </button>
-    )}
-    {isAdmin && (
-      <button
-        type="button"
-        className="btn-secondary"
-        onClick={() => window.open("/admin/requests", "_blank", "noopener,noreferrer")}
-      >
-        Requests
-      </button>
-    )}
-    {onLogout && (
-      <button type="button" className="btn-secondary" onClick={onLogout}>
-        Log out
-      </button>
-    )}
-  </div>
-  
+<div className="gp-header no-print">
   <div className="gp-brand">
     <Image
       src="/brand/gigpower-mark.png"
@@ -152,25 +117,54 @@ export default function AppHeader({
       </small>
     </div>
   </div>
-  <div style={{ marginTop: "8px", fontSize: "13px" }}>
-  <div>
-  <strong>Estimate #:</strong> {quoteNumber || "—"}
-  {requestNumber && <> · From Request {requestNumber}</>}
-  {" "}· Version {version ?? 1}
-</div>
 
-<div style={{ marginTop: "6px" }}>
-  <strong>Status:</strong> {status || "Draft"} ·{" "}
-  <strong>Valid Until:</strong>{" "}
-  <input
-    type="text"
-    value={validUntil || ""}
-    onChange={(e) => onValidUntilChange?.(e.target.value)}
-    className="ml-2 border rounded px-2 py-1"
-    style={{ width: "120px" }}
-  />
-</div>
-</div>
+  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
+    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      {isAdmin && (
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => window.open("/admin", "_blank", "noopener,noreferrer")}
+        >
+          Admin
+        </button>
+      )}
+      {isAdmin && (
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => window.open("/admin/requests", "_blank", "noopener,noreferrer")}
+        >
+          Requests
+        </button>
+      )}
+      {onLogout && (
+        <button type="button" className="btn-secondary" onClick={onLogout}>
+          Log out
+        </button>
+      )}
+    </div>
+
+    <div style={{ fontSize: "13px", textAlign: "right" }}>
+      <div>
+        <strong>Estimate #:</strong> {quoteNumber || "—"}
+        {requestNumber && <> · From Request {requestNumber}</>}
+        {" "}· Version {version ?? 1}
+      </div>
+
+      <div style={{ marginTop: "6px" }}>
+        <strong>Status:</strong> {status || "Draft"} ·{" "}
+        <strong>Valid Until:</strong>{" "}
+        <input
+          type="text"
+          value={validUntil || ""}
+          onChange={(e) => onValidUntilChange?.(e.target.value)}
+          className="ml-2 border rounded px-2 py-1"
+          style={{ width: "120px" }}
+        />
+      </div>
+    </div>
+  </div>
 </div>
 
       {/* Print-only customer details */}
