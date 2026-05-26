@@ -182,23 +182,12 @@ button.ghost {
 }
 
 .btn,
-.btn-print,
 .btn-secondary {
   border-radius: 14px;
   font-weight: 800;
 }
 
-.btn-print {
-  background: linear-gradient(180deg, #f5a623, #d48a00);
-  color: #000;
-  border: none;
-  box-shadow: 0 4px 14px rgba(245,166,35,0.4);
-}
 
-.btn-print:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(245,166,35,0.5);
-}
 
 .btn-secondary {
   background: rgba(255,255,255,0.08);
@@ -1427,7 +1416,6 @@ th {
   .no-print,
   button,
   .btn,
-  .btn-print,
   .btn-secondary,
   .icon-btn {
     display: none !important;

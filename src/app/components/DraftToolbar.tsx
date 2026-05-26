@@ -311,11 +311,7 @@ return (
 
         {/* Output cluster — read-only, no side effects */}
         <div className="estimate-actions-group">
-          <button className="btn-print" onClick={onPrint}>
-            Print
-          </button>
-
-          {onDownloadPdf && (
+                {onDownloadPdf && (
             <button type="button" className="btn-secondary" onClick={onDownloadPdf}>
               Download PDF
             </button>
