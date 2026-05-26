@@ -1,0 +1,172 @@
+import Image from "next/image";
+import { defaultConfig } from "@/src/lib/config";
+
+type AppHeaderProps = {
+  draftName: string;
+  quoteNumber: string;
+  requestNumber?: string;
+  quoteDate: string;
+  validUntil: string;
+  onValidUntilChange?: (value: string) => void;
+  preparedBy?: string;
+  version?: number;
+  companyName?: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  venue?: string;
+  eventName?: string;
+  status?: string;
+};
+
+export default function AppHeader({
+  draftName,
+  quoteNumber,
+  requestNumber,
+  quoteDate,
+  validUntil,
+  onValidUntilChange,
+  version,
+  preparedBy,
+  companyName,
+  contactName,
+  contactEmail,
+  contactPhone,
+  venue,
+  eventName,
+  status,
+}: AppHeaderProps) {
+  return (
+    <>
+      {/* Print-only header */}
+      <div className="print-header print-only">
+        <div className="print-header-top">
+          <div className="print-title-row">
+            <Image
+              src="/brand/gigpower-mark.png"
+              alt="GigPower"
+              width={44}
+              height={44}
+              priority
+            />
+            <h1 style={{ margin: 0 }}>GigPower Estimate</h1>
+          </div>
+
+          <div className="print-abn-block">
+  			<div className="print-company-name">Gig Power Pty Ltd</div>
+  			<div className="print-abn">ABN 92 052 306 706</div>
+		  </div>
+        </div>
+
+        
+
+        <div className="quote-meta">
+  {draftName && (
+    <div>
+      <strong>Event:</strong> {draftName}
+    </div>
+  )}
+  <div>
+  <div>
+  <strong>Estimate #:</strong> {quoteNumber || "—"}
+{requestNumber && (
+  <> · From Request {requestNumber}</>
+)}
+ · Version {version ?? 1} ·{" "}
+<strong>Status:</strong> {status || "Draft"} ·{" "}
+<strong>Valid Until:</strong> {validUntil || "—"}
+</div>
+  <input
+    type="text"
+    value={validUntil || ""}
+    onChange={(e) => onValidUntilChange?.(e.target.value)}
+    className="ml-2 border rounded px-2 py-1"
+    style={{ width: "120px" }}
+  />
+</div>
+
+<div>
+  <strong>Date:</strong> {quoteDate || "—"}
+</div>
+  <div>
+  <strong>Prepared by:</strong> {preparedBy || "—"}
+</div>
+</div>
+      </div>
+
+      
+      {/* Screen header */}
+<div className="gp-header no-print">
+  <div className="gp-brand">
+    <Image
+      src="/brand/gigpower-mark.png"
+      alt="GigPower"
+      width={44}
+      height={44}
+      priority
+    />
+    <div className="gp-brand-text">
+      <h1 className="gp-title">Quote Estimator</h1>
+      <div className="gp-tagline">The entertainment labour specialists</div>
+      <small className="gp-subnote">
+        Day starts {defaultConfig.dayStart}, Night starts {defaultConfig.nightStart}. Min billable per line: {defaultConfig.minBillableHours}h.
+      </small>
+    </div>
+  </div>
+  <div style={{ marginTop: "8px", fontSize: "13px" }}>
+  <div>
+  <strong>Estimate #:</strong> {quoteNumber || "—"}
+  {requestNumber && <> · From Request {requestNumber}</>}
+  {" "}· Version {version ?? 1}
+</div>
+
+<div style={{ marginTop: "6px" }}>
+  <strong>Status:</strong> {status || "Draft"} ·{" "}
+  <strong>Valid Until:</strong>{" "}
+  <input
+    type="text"
+    value={validUntil || ""}
+    onChange={(e) => onValidUntilChange?.(e.target.value)}
+    className="ml-2 border rounded px-2 py-1"
+    style={{ width: "120px" }}
+  />
+</div>
+</div>
+</div>
+
+      {/* Print-only customer details */}
+      <div className="print-header-details print-only">
+        {eventName && (
+          <div>
+            <strong>Event:</strong> {eventName}
+          </div>
+        )}
+        {companyName && (
+          <div>
+            <strong>Company:</strong> {companyName}
+          </div>
+        )}
+        {contactName && (
+          <div>
+            <strong>Contact:</strong> {contactName}
+          </div>
+        )}
+        {contactEmail && (
+          <div>
+            <strong>Email:</strong> {contactEmail}
+          </div>
+        )}
+        {contactPhone && (
+          <div>
+            <strong>Phone:</strong> {contactPhone}
+          </div>
+        )}
+        {venue && (
+          <div>
+            <strong>Venue:</strong> {venue}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
