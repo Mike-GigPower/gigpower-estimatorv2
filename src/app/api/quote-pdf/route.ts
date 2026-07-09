@@ -171,7 +171,7 @@ doc.text(money(lineCostExGst), 455, y, {
     return;
   }
 
-  doc.text(line.shiftDate || "-", 46, y, { width: 70 });
+ doc.text(formatAuDate(line.shiftDate), 46, y, { width: 70 });
 
 doc.text(line.callName || line.role || "-", 116, y, { width: 105 });
 
