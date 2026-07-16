@@ -1602,7 +1602,7 @@ const hasAnyData = hasLabourData || hasNonLabourData;
           estimatorVisible={estimatorVisible}
           currentVersion={selectedDraftMeta?.currentVersion ?? 1}
 lastSavedAt={selectedDraftMeta?.updatedAt || selectedDraftMeta?.savedAt || null}
-setStatus={(value: "Draft" | "Sent" | "Approved" | "Exported to Operations") =>
+setStatus={(value: "Draft" | "Sent" | "Approved" | "Declined" | "Exported to Operations") =>
   setInput({ ...input, status: value })
 }
           setQuoteSearch={setQuoteSearch}

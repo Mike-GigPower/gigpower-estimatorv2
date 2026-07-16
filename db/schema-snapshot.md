@@ -120,7 +120,7 @@
 | CONSTRAINTS | quote_versions             | quote_versions_pkey                                | PRIMARY KEY (id)                                                                                              |
 | CONSTRAINTS | quote_versions             | quote_versions_quote_id_fkey                       | FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE CASCADE                                                |
 | CONSTRAINTS | quotes                     | quotes_pkey                                        | PRIMARY KEY (id)                                                                                              |
-| CONSTRAINTS | quotes                     | quotes_status_check                                | CHECK ((status = ANY (ARRAY['Draft'::text, 'Sent'::text, 'Approved'::text, 'Exported to Operations'::text]))) |
+| CONSTRAINTS | quotes | quotes_status_check | CHECK ((status = ANY (ARRAY['Draft'::text, 'Sent'::text, 'Approved'::text, 'Declined'::text, 'Exported to Operations'::text]))) |
 | CONSTRAINTS | rate_cards                 | rate_cards_category_check                          | CHECK ((category = ANY (ARRAY['standard'::text, 'fixed'::text])))                                             |
 | CONSTRAINTS | rate_cards                 | rate_cards_pkey                                    | PRIMARY KEY (id)                                                                                              |
 | CONSTRAINTS | verification_codes         | verification_codes_pkey                            | PRIMARY KEY (id)                                                                                              |

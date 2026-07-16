@@ -19,7 +19,7 @@ type DraftToolbarProps = {
   status: string;
   createdByName?: string;
   estimatorVisible: boolean;
-  setStatus: (value: "Draft" | "Sent" | "Approved" | "Exported to Operations") => void;
+  setStatus: (value: "Draft" | "Sent" | "Approved" | "Declined" | "Exported to Operations") => void;
   currentVersion?: number;
   lastSavedAt?: string | null;
   setStatusFilter: (value: string) => void;
@@ -237,6 +237,7 @@ return (
             <option value="Draft">Draft</option>
             <option value="Sent">Sent</option>
             <option value="Approved">Approved</option>
+            <option value="Declined">Declined</option>
             <option value="Exported to Operations">Exported to Operations</option>
           </select>
         </div>
@@ -424,13 +425,14 @@ return (
           <select
             value={status || "Draft"}
             onChange={(e) =>
-              setStatus(e.target.value as "Draft" | "Sent" | "Approved" | "Exported to Operations")
+              setStatus(e.target.value as "Draft" | "Sent" | "Approved" | "Declined" | "Exported to Operations")
             }
             style={{ width: "100%", height: 42 }}
           >
             <option value="Draft">Draft</option>
             <option value="Sent">Sent</option>
             <option value="Approved">Approved</option>
+            <option value="Declined">Declined</option>
             <option value="Exported to Operations">Exported to Operations</option>
           </select>
         </div>

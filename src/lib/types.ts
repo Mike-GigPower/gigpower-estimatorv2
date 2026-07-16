@@ -132,7 +132,7 @@ export type QuoteInput = {
   onsiteContactPhone?: string;
   labour: LabourLine[];
   nonLabour: NonLabourLine[];
-  status?: "Draft" | "Sent" | "Approved" | "Exported to Operations";
+  status?: "Draft" | "Sent" | "Approved" | "Declined" | "Exported to Operations";
 };
 
 export type LabourLineResult = {
