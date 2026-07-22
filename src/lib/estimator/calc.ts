@@ -161,8 +161,24 @@ function isPublicHoliday(dateISO: string, config: AppConfig): boolean {
   return config.publicHolidays.some((h) => h.date === dateISO);
 }
 
-function getRateRow(role: string, config: AppConfig) {
-  return config.rates.find((r) => r.role === role);
+// Pick the rate version that applies to a given shift date: the one whose
+// effective_from is the LATEST date still on or before the shift date. If the
+// shift date falls before every version (e.g. legacy edge data), fall back to
+// the earliest version so there are never gaps. ISO YYYY-MM-DD dates compare
+// correctly as plain strings.
+function getRateRow(role: string, shiftDate: string, config: AppConfig) {
+  const candidates = config.rates.filter((r) => r.role === role);
+  if (candidates.length === 0) return undefined;
+
+  const applicable = candidates
+    .filter((r) => !r.effectiveFrom || r.effectiveFrom <= shiftDate)
+    .sort((a, b) => (b.effectiveFrom || "").localeCompare(a.effectiveFrom || ""));
+
+  if (applicable.length > 0) return applicable[0];
+
+  return [...candidates].sort((a, b) =>
+    (a.effectiveFrom || "").localeCompare(b.effectiveFrom || "")
+  )[0];
 }
 
 function round2(n: number): number {
@@ -251,7 +267,7 @@ export function calculateLabourLine(
 } {
   const errors: string[] = [];
 
-  if (!line.role || !getRateRow(line.role, config)) errors.push(`Role is invalid for line ${line.id}.`);
+  if (!line.role || !getRateRow(line.role, line.shiftDate, config)) errors.push(`Role is invalid for line ${line.id}.`);
   if (!Number.isFinite(line.qty) || line.qty <= 0) errors.push(`Crew qty must be > 0 for line ${line.id}.`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(line.shiftDate)) errors.push(`Shift date is invalid for line ${line.id}.`);
 
@@ -265,7 +281,7 @@ export function calculateLabourLine(
     errors.push(`Duration is below minimum (${config.minBillableHours}h) for line ${line.id}. (Will bill minimum)`);
   }
 
-  const rateRow = getRateRow(line.role, config);
+  const rateRow = getRateRow(line.role, line.shiftDate, config);
   const fatalErrors = errors.filter((e) => !e.includes("below minimum"));
 
   if (!rateRow || fatalErrors.length) {

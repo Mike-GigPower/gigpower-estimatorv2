@@ -182,6 +182,11 @@ export type QuoteResult = {
   };
 };
 
+// The far-past date every existing rate is backfilled to. A rate with this
+// effective_from is treated as "always in effect" until a newer version exists.
+// MUST match the sentinel in the rate_cards_effective_from.sql migration.
+export const RATE_EFFECTIVE_FROM_SENTINEL = "2000-01-01";
+
 export type RateRow = {
   role: string;
   day: number;
@@ -190,6 +195,11 @@ export type RateRow = {
   publicHoliday: number;
   over8: number;
   over10: number;
+  // "With effect from" date (YYYY-MM-DD). Optional so in-memory rows built in
+  // the admin UI still type-check; rows loaded from Supabase always carry it.
+  effectiveFrom?: string;
+   // Display/order key for the role, carried through from rate_cards.sort_order.
+  sortOrder?: number;
 };
 
 export type AppConfig = {

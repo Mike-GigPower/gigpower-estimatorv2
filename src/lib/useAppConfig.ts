@@ -29,7 +29,7 @@ const { data: settingsData, error: settingsError } = await authClient
       const { data: ratesData, error: ratesError } = await authClient
   .from("rate_cards")
         .select(
-          "role_name, day_rate, night_rate, sunday_rate, public_holiday_rate, ot_8_day_rate, ot_10_day_rate"
+          "role_name, day_rate, night_rate, sunday_rate, public_holiday_rate, ot_8_day_rate, ot_10_day_rate, effective_from, sort_order"
         )
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
@@ -67,6 +67,8 @@ console.log(
           publicHoliday: row.public_holiday_rate,
           over8: row.ot_8_day_rate,
           over10: row.ot_10_day_rate,
+          effectiveFrom: row.effective_from,
+          sortOrder: row.sort_order,
         })),
       });
 
