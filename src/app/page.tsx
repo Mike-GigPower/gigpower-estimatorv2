@@ -288,6 +288,8 @@ useEffect(() => {
     sourceRequestId,
     requestNumber,
     status: "Draft",
+    eventName: payload.eventName || "",
+    eventDate: payload.eventDate || "",
     companyName: payload.companyName || "",
     contactName: payload.customerName || "",
     contactEmail: payload.email || "",
@@ -311,6 +313,10 @@ useEffect(() => {
     }),
   }));
 
+  setDraftName(payload.eventName || "Untitled Estimate");
+  setSelectedDraftId("");
+  setEstimatorVisible(true);
+  
   localStorage.setItem("convertedEstimateRequestId", sourceRequestId);
 
   localStorage.removeItem("loadedEstimateRequest");
