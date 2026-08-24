@@ -1,5 +1,5 @@
 import type { QuoteInput } from "./types";
-import { parseDurationHours } from "./calc";
+import { parseDurationHours, parseStartTime } from "./calc";
 import {
   roleForCallName,
   type CrewFinderCallName,
@@ -60,7 +60,13 @@ export function publicRequestToQuoteInput(
         callName,
         qty: Number(line.qty),
         shiftDate: line.shiftDate,
-        startTime: line.startTime,
+        // Normalise here, not just in the UI. The public form only normalises
+        // on blur, and its validate() accepts any non-empty start time, so a
+        // submit that skips the blur (Enter key in the field) or a direct POST
+        // can deliver "8". Left raw, parseTimeHHMM reads that as 00:00 and
+        // prices a full shift at night rates. Unparseable values are passed
+        // through unchanged so the engine still rejects them loudly.
+        startTime: parseStartTime(line.startTime) ?? line.startTime,
         durationHours: parseDurationHours(line.duration) ?? 0,
         notes: line.notes,
       };

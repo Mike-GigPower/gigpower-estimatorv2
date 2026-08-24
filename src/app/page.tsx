@@ -13,7 +13,7 @@ import QuoteTotalsCard from "./components/QuoteTotalsCard";
 import TermsConditionsBox from "./components/TermsConditionsBox";
 import { supabaseData } from "@/src/lib/supabase";
 import { createClient } from "@/src/lib/supabase/client";
-import { parseDurationHours } from "@/src/lib/estimator/calc";
+import { parseDurationHours, parseStartTime } from "@/src/lib/estimator/calc";
 
 /**
  * React hooks
@@ -306,7 +306,10 @@ useEffect(() => {
         callName,
         qty: Number(line.qty),
         shiftDate: line.shiftDate,
-        startTime: line.startTime,
+        // Same normalisation as publicRequestToQuoteInput — a request row can
+        // carry an un-normalised start time, and the row would otherwise show
+        // no field error while pricing from midnight.
+        startTime: parseStartTime(line.startTime) ?? line.startTime,
         durationHours: parseDurationHours(line.duration) ?? 0,
         notes: line.notes,
       };

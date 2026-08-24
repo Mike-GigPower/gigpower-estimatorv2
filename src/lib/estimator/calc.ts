@@ -140,10 +140,15 @@ function parseTimeHHMM(t: string): { h: number; m: number } | null {
   // digit before attempting numeric coercion.
   if (!/\d/.test(raw)) return null;
 
+  // Only a true fraction of a day (0 <= n < 1) is accepted, e.g. 0.5 -> 12:00.
+  // The previous `asNum % 1` fallback mapped any bare integer to midnight, so
+  // "8" priced a full shift from 00:00 at night rates rather than 08:00 at day
+  // rates — a ~27% over-quote that raised no validation error because the
+  // parse succeeded. A bare integer now returns null and is caught by the
+  // "Start time must be HH:MM" check in calculateLabourLine.
   const asNum = Number(raw);
-  if (Number.isFinite(asNum)) {
-    const frac = asNum >= 0 && asNum < 1 ? asNum : asNum % 1;
-    const totalMinutes = Math.round(frac * 24 * 60);
+  if (Number.isFinite(asNum) && asNum >= 0 && asNum < 1) {
+    const totalMinutes = Math.round(asNum * 24 * 60);
     const h = Math.floor(totalMinutes / 60) % 24;
     const m = totalMinutes % 60;
     if (h >= 0 && h <= 23 && m >= 0 && m <= 59) return { h, m };
