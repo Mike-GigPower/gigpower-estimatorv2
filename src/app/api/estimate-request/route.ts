@@ -7,6 +7,7 @@ import { estimateQuote } from "@/src/lib/calc";
 import { parseDurationHours } from "@/src/lib/estimator/calc";
 import type { QuoteInput } from "@/src/lib/estimator";
 import { publicRequestToQuoteInput } from "@/src/lib/estimator/publicRequest";
+import { loadAppConfigServer } from "@/src/lib/serverConfig";
 
 
 function generateEstimateNumber() {
@@ -27,10 +28,18 @@ export async function POST(request: Request) {
     const body = await request.json();
     const requestNumber = generateEstimateNumber();
     const quoteInput = publicRequestToQuoteInput(body);
-const result = estimateQuote(quoteInput);
-const shouldShowEstimateTotal = !body.needsCrewAdvice;
+// Price against live Supabase config. estimateQuote's config parameter
+// defaults to defaultConfig, which is a pre-load placeholder sitting
+// 4.6-14.5% below the live rate card - passing it implicitly under-quoted
+// every public request. loadAppConfigServer returns null if the config
+// cannot be read; in that case the request is still saved and emailed, but
+// with no total rather than a wrong one.
+const config = await loadAppConfigServer();
+const result = config ? estimateQuote(quoteInput, config) : null;
+
+const shouldShowEstimateTotal = !body.needsCrewAdvice && result !== null;
 const displayedTotal = shouldShowEstimateTotal
-  ? result.totals?.grandTotalIncGst
+  ? result?.totals?.grandTotalIncGst
   : undefined;
 
     const { data, error } = await supabaseData.from("estimate_requests").insert([
@@ -50,14 +59,16 @@ const displayedTotal = shouldShowEstimateTotal
         payload: {
   ...body,
   requestNumber,
-  estimate: {
-  totalIncGst: result.totals?.grandTotalIncGst,
-  displayedToCustomer: shouldShowEstimateTotal,
-  labourExGst: result.totals?.labourExGst,
-  nonLabourExGst: result.totals?.nonLabourExGst,
-  gst: result.totals?.gst,
-  subTotalExGst: result.totals?.subTotalExGst,
-},
+    estimate: result
+    ? {
+        totalIncGst: result.totals?.grandTotalIncGst,
+        displayedToCustomer: shouldShowEstimateTotal,
+        labourExGst: result.totals?.labourExGst,
+        nonLabourExGst: result.totals?.nonLabourExGst,
+        gst: result.totals?.gst,
+        subTotalExGst: result.totals?.subTotalExGst,
+      }
+    : { pricingUnavailable: true, displayedToCustomer: false },
 },
       },
     ])
