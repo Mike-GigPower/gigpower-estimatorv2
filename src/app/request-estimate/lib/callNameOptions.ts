@@ -50,6 +50,7 @@ export const CALL_NAME_GROUPS: CallNameGroup[] = [
       { label: "Show operator (show call)", value: "Show Call" },
       { label: "Backline / instrument tech", value: "Backline" },
       { label: "Wardrobe assistant", value: "Wardrobe" },
+      { label: "Seamstress / wardrobe repairs", value: "Seamstress" },
       { label: "Crew supervisor (crew boss)", value: "Crew Boss" },
     ],
   },

@@ -7,6 +7,15 @@ decision is made. Newest entries can go at the top of each section.
 
 ## Data model
 
+### Wardrobe and Seamstress are separate Call Names
+`Wardrobe` was originally the only wardrobe-side call name and mapped to the
+`Seamstress` role. Sep 2026: SmartStaff recognises `Seamstress` as a call name
+in its own right, so it was added and mapped to the `Seamstress` role, and
+`Wardrobe` was remapped to `Show Crew` (wardrobe assist is a show-running call,
+not sewing work). Quotes saved before this keep their stored `role` —
+`normaliseInputRoles()` does not re-derive role from callName — so historical
+pricing is unaffected unless someone re-picks the Call Name on an old line.
+
 ### Role is derived from Call Name
 A labour line has both `callName` (what the user picks, e.g. "Load In") and
 `role` (the rate category, e.g. "Standard Crew"). `role` is derived from
