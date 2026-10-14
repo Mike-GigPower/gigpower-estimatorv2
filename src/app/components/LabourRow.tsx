@@ -1,13 +1,7 @@
 import React from "react";
 
 import type { LabourLine } from "@/src/lib/estimator";
-import {
-  ESTIMATOR_UI_CALL_NAMES,
-  roleForCallName,
-  type CrewFinderCallName,
-  type RateRow,
-} from "@/src/lib/types";
-import { isCallNameOnCard } from "@/src/lib/rateCards";
+import { roleForCallName, type RateRow } from "@/src/lib/types";
 
 import {
   parseDurationHours,
@@ -45,6 +39,11 @@ type LabourRowProps = {
    * null while the card isn't chosen yet (Australian Open unanswered).
    */
   cardRates: RateRow[] | null;
+  /**
+   * Call Names the quote's card offers (see cardCallNames): on a customer
+   * card only its role names, otherwise the standard call names.
+   */
+  callNameOptions: string[];
   /** Set when this line's call name isn't on the quote's card. */
   callNameIssue?: string;
   startTimeText: Record<string, string>;
@@ -71,6 +70,7 @@ export default function LabourRow({
    rowNumber, 
   roleOptions: _roleOptions,
   cardRates,
+  callNameOptions: cardCallNameOptions,
   callNameIssue,
   startTimeText,
   setStartTimeText,
@@ -260,12 +260,12 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
   const callNameMissing = !line.callName;
   const callNameFlagged = callNameMissing || !!callNameIssue;
 
-  // Customer-card call names (Training, Field of Play) are offered only when
-  // the quote's card lists them. Before the card is chosen, only Standard
-  // call names are offered. A flagged line keeps its call name visible.
-  const callNameOptions = ESTIMATOR_UI_CALL_NAMES.filter(
-    (name) => name === line.callName || isCallNameOnCard(name, cardRates ?? [])
-  );
+  // Only the card's call names are offered. A flagged line (its call name
+  // isn't on the card) keeps its call name visible so it isn't blanked.
+  const callNameOptions =
+    line.callName && !cardCallNameOptions.includes(line.callName)
+      ? [line.callName, ...cardCallNameOptions]
+      : cardCallNameOptions;
 
   // Row invalid means we can't price it. Missing Call Name doesn't block pricing
   // when role is already set (legacy rows where role pre-dates Call Name).
@@ -274,10 +274,9 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
     shiftDateInvalid || startTimeInvalid || durationDraftInvalid || roleMissing;
 
   function handleCallNameChange(nextCallName: string) {
-    const typedCallName = nextCallName as CrewFinderCallName | "";
     updateLabour(line.id, {
-      callName: typedCallName,
-      role: roleForCallName(typedCallName, cardRates),
+      callName: nextCallName,
+      role: roleForCallName(nextCallName, cardRates),
     });
   }
 

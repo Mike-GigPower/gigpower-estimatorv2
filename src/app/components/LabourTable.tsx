@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import LabourRow from "./LabourRow";
 import { parseStartTime, parseDurationHours } from "@/src/lib/estimator/calc";
-import type { CrewFinderCallName, RateRow } from "@/src/lib/types";
+import type { RateRow } from "@/src/lib/types";
 
 /**
  * Format a YYYY-MM-DD shift date as "Mon 23 Jun 2026" for the day
@@ -26,7 +26,7 @@ type LabourLine = {
   shiftDate: string;
   startTime: string;
   durationHours: number;
-  callName?: CrewFinderCallName | "";
+  callName?: string;
 };
 
 type LabourCostSegment = {
@@ -56,6 +56,8 @@ type LabourTableProps = {
   result?: LabourResult | null;
   roleOptions: string[];
   cardRates: RateRow[] | null;
+  /** Call Names the quote's card offers (see cardCallNames). */
+  callNameOptions: string[];
   /** Per-line messages, keyed by line id, for call names not on the card. */
   callNameIssues: Record<string, string>;
   startTimeText: Record<string, string>;
@@ -81,6 +83,7 @@ export default function LabourTable({
   result,
   roleOptions,
   cardRates,
+  callNameOptions,
   callNameIssues,
   startTimeText,
   setStartTimeText,
@@ -204,6 +207,7 @@ export default function LabourTable({
                     rowNumber={idx + 1}
                     roleOptions={roleOptions}
                     cardRates={cardRates}
+                    callNameOptions={callNameOptions}
                     callNameIssue={callNameIssues[line.id]}
                     startTimeText={startTimeText}
                     setStartTimeText={setStartTimeText}

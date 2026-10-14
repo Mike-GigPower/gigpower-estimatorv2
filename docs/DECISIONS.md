@@ -23,17 +23,23 @@ its role.)
 Oct 2026, BRIEF-estimator-customer-rate-cards. `rate_cards.set_id` points at
 `rate_card_sets`; Standard has the fixed id `STANDARD_SET_ID`. A quote's
 `rateCard` answers (MOPT → mandatory Australian Open) choose the card;
-`ratesForQuote()` returns Standard + that card, and any call name the card
-doesn't list prices from Standard (the "Other" clause). Role names stay
+`ratesForQuote()` returns Standard + that card. Role names stay
 unique across all cards, so the engine still looks rates up by role and the
 admin upsert keeps `onConflict: role_name,effective_from`.
 - The anon key can't read customer rows or `rate_card_sets`, so
   `serverConfig.ts` filters `set_id = STANDARD_SET_ID` with no join.
 - A null overtime tier means "no tier", never 0 and never a copy of the base
   rate. Blank OT in the admin form saves as null.
+- A customer-card quote offers **only that card's role names** as Call Names
+  (Amendment 2, 14 Oct 2026); there is no "Other" fallback to Standard. Each
+  customer row's `call_names` is `[its own role_name]` (the admin saves it that
+  way), and `cardCallNames()` builds the dropdown from the data, so a new
+  customer card needs no code change. The export's `call_name` then carries
+  the role name (e.g. "Field of Play Operations").
 - Switching card never swaps a line to "the first role". A line whose Call
-  Name the card doesn't offer (e.g. Field of Play with Australian Open = No)
-  keeps it and is flagged, and export is blocked.
+  Name the card doesn't offer (Load In after MOPT is ticked, a MOPT role after
+  it's unticked, Field of Play Operations with Australian Open = No) keeps it
+  and is flagged, and export is blocked.
 - No fallback to `defaultConfig` when the live config fails to load: the quote
   screen says "Rates couldn't be loaded" and prices nothing.
 

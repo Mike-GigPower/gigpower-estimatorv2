@@ -54,6 +54,7 @@ import type {
 import { STANDARD_SET_CODE, roleForCallName, type QuoteRateCard } from "@/src/lib/types";
 import {
   callNameNotOnCardMessage,
+  cardCallNames,
   isCallNameOnCard,
   rateCardLabel,
   ratesForQuote,
@@ -989,7 +990,7 @@ async function downloadQuotePdf() {
       if (
         line.callName &&
         candidateCardRates &&
-        !isCallNameOnCard(line.callName, candidateCardRates)
+        !isCallNameOnCard(line.callName, candidate.rateCard, candidateCardRates)
       ) {
         errors.push(`${label}: ${callNameNotOnCardMessage(line.callName)}`);
       }
@@ -1478,12 +1479,16 @@ if (!profile || profile.role !== "admin") {
   // unanswered on a MOPT booking.
   const cardRates = ready ? ratesForQuote(config, input.rateCard) : null;
 
-  // Lines whose Call Name the quote's card doesn't offer (e.g. Field of Play
-  // after Australian Open is set to No). Flagged, never rewritten.
+  // The Call Names the line dropdown offers: the card's role names on a
+  // customer card, the standard call names otherwise.
+  const callNameOptions = cardCallNames(input.rateCard, cardRates);
+
+  // Lines whose Call Name the quote's card doesn't offer (e.g. Load In after
+  // MOPT is ticked). Flagged, never rewritten.
   const callNameIssues: Record<string, string> = {};
   if (cardRates) {
     for (const line of input.labour) {
-      if (line.callName && !isCallNameOnCard(line.callName, cardRates)) {
+      if (line.callName && !callNameOptions.includes(line.callName)) {
         callNameIssues[line.id] = callNameNotOnCardMessage(line.callName);
       }
     }
@@ -1816,6 +1821,7 @@ setStatus={(value: "Draft" | "Sent" | "Approved" | "Declined" | "Exported to Ope
     }
     roleOptions={roleOptions}
     cardRates={cardRates}
+    callNameOptions={callNameOptions}
     callNameIssues={callNameIssues}
     startTimeText={startTimeText}
     setStartTimeText={setStartTimeText}

@@ -62,8 +62,8 @@ export function hhmmToHours(value: string): number {
  *   saved quotes keep their historical pricing (see DECISIONS: Wardrobe).
  * - Otherwise, and always when `rederive` is set (the card was just changed),
  *   the role is re-derived from the call name under the card.
- * - A line whose call name the card doesn't offer (e.g. Field of Play after
- *   Australian Open is set to No) keeps its call name AND role; the caller
+ * - A line whose call name the card doesn't offer (e.g. Load In after MOPT is
+ *   ticked, or Field of Play Operations after Australian Open is set to No) keeps its call name AND role; the caller
  *   flags it and the engine reports its role as invalid. It is never priced
  *   as something else.
  * - A line with no call name (legacy) keeps its role; an unknown role is
@@ -87,7 +87,7 @@ export function normaliseInputRoles(
     labour: labour.map((line) => {
       const callName = line.callName || "";
       if (!callName) return line;
-      if (!isCallNameOnCard(callName, cardRates)) return line;
+      if (!isCallNameOnCard(callName, next.rateCard, cardRates)) return line;
       if (!opts.rederive && cardRoles.has(line.role)) return line;
       const role = roleForCallName(callName, cardRates);
       return role === line.role ? line : { ...line, role };
