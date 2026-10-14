@@ -1,8 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AppConfig, RateRow } from "@/src/lib/types";
-import { RATE_EFFECTIVE_FROM_SENTINEL } from "@/src/lib/types";
+import {
+  CREWFINDER_CALL_NAMES,
+  RATE_EFFECTIVE_FROM_SENTINEL,
+  STANDARD_SET_CODE,
+  STANDARD_SET_ID,
+} from "@/src/lib/types";
+import { RATE_CARD_COLUMNS, mapRateCardRow } from "@/src/lib/rateCards";
 import { createClient } from "@/src/lib/supabase/client";
 
 type SupabaseBrowserClient = ReturnType<typeof createClient>;
@@ -30,9 +36,20 @@ const RATE_FIELDS: { key: RateFieldKey; label: string }[] = [
   { key: "night", label: "Night" },
   { key: "sunday", label: "Sunday" },
   { key: "publicHoliday", label: "Public Holiday" },
-  { key: "over8", label: "Over 8 hrs" },
-  { key: "over10", label: "Over 10 hrs" },
+  { key: "over8", label: "Over 8 hrs (blank = no tier)" },
+  { key: "over10", label: "Over 10 hrs (blank = no tier)" },
 ];
+
+// A card set from rate_card_sets, for the picker and for set_id on writes.
+type RateCardSet = { id: string; code: string; name: string; kind: string };
+
+// Shown if rate_card_sets can't be read, so Standard stays editable.
+const STANDARD_SET: RateCardSet = {
+  id: STANDARD_SET_ID,
+  code: STANDARD_SET_CODE,
+  name: "Standard",
+  kind: "standard",
+};
 
 type RateFieldKey = "day" | "night" | "sunday" | "publicHoliday" | "over8" | "over10";
 type RateFieldStrings = Record<RateFieldKey, string>;
@@ -40,7 +57,10 @@ type RateFieldStrings = Record<RateFieldKey, string>;
 // ---- small helpers -------------------------------------------------------
 
 const num = (v: string) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-const fmtNum = (n: number | undefined) => String(n ?? 0);
+// Overtime tiers: blank saves as null ("no tier"), never 0.
+const numOrNull = (v: string) => (v.trim() === "" ? null : num(v));
+// null displays as blank (no tier); undefined (an unset draft) as 0.
+const fmtNum = (n: number | null | undefined) => (n === null ? "" : String(n ?? 0));
 const isSentinel = (iso?: string) => iso === RATE_EFFECTIVE_FROM_SENTINEL;
 
 // Today as a local YYYY-MM-DD string (NOT toISOString, which is UTC and can be
@@ -92,6 +112,7 @@ export default function RateSchedule({
     role: string;
     date: string;
     fields: RateFieldStrings;
+    callNames: string[];
   } | null>(null);
   // The open "add role" draft, or null.
   const [newRole, setNewRole] = useState<{ role: string; fields: RateFieldStrings } | null>(
@@ -99,11 +120,37 @@ export default function RateSchedule({
   );
   const [historyOpen, setHistoryOpen] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
+  // Edited call_names for a customer-card version, keyed by vkey. Absent =
+  // unchanged.
+  const [callNameEdits, setCallNameEdits] = useState<Record<string, string[]>>({});
 
-  // Group config.rates by role and classify each role's versions.
+  // Card sets for the picker. The schedule shows one set at a time.
+  const [sets, setSets] = useState<RateCardSet[]>([STANDARD_SET]);
+  const [selectedSetCode, setSelectedSetCode] = useState(STANDARD_SET_CODE);
+  const selectedSet = sets.find((x) => x.code === selectedSetCode) ?? STANDARD_SET;
+  const isCustomerSet = selectedSet.kind === "customer";
+
+  useEffect(() => {
+    async function loadSets() {
+      const { data, error } = await authClient
+        .from("rate_card_sets")
+        .select("id, code, name, kind")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      if (error) {
+        console.error("Failed to load rate card sets:", error);
+        return;
+      }
+      if (data && data.length) setSets(data as RateCardSet[]);
+    }
+    loadSets();
+  }, [authClient]);
+
+  // Group the chosen set's rates by role and classify each role's versions.
   const roles = useMemo(() => {
     const map = new Map<string, RateRow[]>();
     for (const r of config.rates) {
+      if (r.setCode !== selectedSetCode) continue;
       if (!map.has(r.role)) map.set(r.role, []);
       map.get(r.role)!.push(r);
     }
@@ -124,17 +171,17 @@ export default function RateSchedule({
     // in that order regardless of Map iteration quirks.
     out.sort((a, b) => a.sortOrder - b.sortOrder);
     return out;
-  }, [config.rates, today]);
+  }, [config.rates, today, selectedSetCode]);
 
-  // Re-fetch rate_cards from Supabase and push into config so the UI (and the
-  // estimator on its next load) reflect the change. Mirrors the loader query.
+  // Re-fetch rate_cards (all active sets) from Supabase and push into config
+  // so the UI (and the estimator on its next load) reflect the change.
+  // Mirrors the useAppConfig loader query.
   async function reloadRates() {
     const { data, error } = await authClient
       .from("rate_cards")
-      .select(
-        "role_name, day_rate, night_rate, sunday_rate, public_holiday_rate, ot_8_day_rate, ot_10_day_rate, effective_from, sort_order"
-      )
+      .select(`${RATE_CARD_COLUMNS}, rate_card_sets!inner(code, is_active)`)
       .eq("is_active", true)
+      .eq("rate_card_sets.is_active", true)
       .order("sort_order", { ascending: true });
 
     if (error) {
@@ -142,17 +189,9 @@ export default function RateSchedule({
       return;
     }
 
-    const mapped: RateRow[] = (data || []).map((row: any) => ({
-      role: row.role_name,
-      day: row.day_rate,
-      night: row.night_rate,
-      sunday: row.sunday_rate,
-      publicHoliday: row.public_holiday_rate,
-      over8: row.ot_8_day_rate,
-      over10: row.ot_10_day_rate,
-      effectiveFrom: row.effective_from,
-      sortOrder: row.sort_order,
-    }));
+    const mapped: RateRow[] = (data || []).map((row: any) =>
+      mapRateCardRow(row, row.rate_card_sets.code)
+    );
 
     updateConfig({ ...config, rates: mapped });
   }
@@ -186,18 +225,38 @@ export default function RateSchedule({
     };
   }
 
-  // Insert or update one version (one row per role + effective_from).
+  // The call_names a version will be saved with: an edit if any, otherwise
+  // what it has now.
+  function callNamesFor(key: string, version: RateRow): string[] {
+    return callNameEdits[key] ?? version.callNames ?? [];
+  }
+
+  function toggleCallName(key: string, version: RateRow, callName: string) {
+    setCallNameEdits((prev) => {
+      const current = prev[key] ?? version.callNames ?? [];
+      const next = current.includes(callName)
+        ? current.filter((c) => c !== callName)
+        : [...current, callName];
+      return { ...prev, [key]: next };
+    });
+  }
+
+  // Insert or update one version (one row per role + effective_from) in the
+  // chosen set. Role names are unique across sets, so the conflict target
+  // stays role_name,effective_from.
   async function persistVersion(
     role: string,
     effectiveFrom: string,
     fields: RateFieldStrings,
-    sortOrder: number
+    sortOrder: number,
+    callNames: string[]
   ): Promise<boolean> {
     setBusy(true);
 
     const { data: before } = await authClient
       .from("rate_cards")
       .select("*")
+      .eq("set_id", selectedSet.id)
       .eq("role_name", role)
       .eq("effective_from", effectiveFrom)
       .maybeSingle();
@@ -207,8 +266,10 @@ export default function RateSchedule({
       night: num(fields.night),
       sunday: num(fields.sunday),
       publicHoliday: num(fields.publicHoliday),
-      over8: num(fields.over8),
-      over10: num(fields.over10),
+      over8: numOrNull(fields.over8),
+      over10: numOrNull(fields.over10),
+      // Standard rows use the code map, so they never carry call_names.
+      callNames: isCustomerSet ? callNames : [],
     };
 
     const { error } = await authClient.from("rate_cards").upsert(
@@ -226,6 +287,8 @@ export default function RateSchedule({
         sort_order: sortOrder,
         is_active: true,
         effective_from: effectiveFrom,
+        set_id: selectedSet.id,
+        call_names: rateObj.callNames,
       },
       { onConflict: "role_name,effective_from" }
     );
@@ -239,7 +302,7 @@ export default function RateSchedule({
 
     await writeAuditLog({
       changeType: "rate_card",
-      targetKey: `${role} @ ${effectiveFrom}`,
+      targetKey: `${selectedSet.code} / ${role} @ ${effectiveFrom}`,
       beforeValue: before,
       afterValue: rateObj,
     });
@@ -253,10 +316,16 @@ export default function RateSchedule({
       role,
       version.effectiveFrom || RATE_EFFECTIVE_FROM_SENTINEL,
       gatherFields(key, version),
-      version.sortOrder ?? 0
+      version.sortOrder ?? 0,
+      callNamesFor(key, version)
     );
     if (ok) {
       setEdits((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      setCallNameEdits((prev) => {
         const next = { ...prev };
         delete next[key];
         return next;
@@ -280,6 +349,7 @@ export default function RateSchedule({
     const { data: before } = await authClient
       .from("rate_cards")
       .select("*")
+      .eq("set_id", selectedSet.id)
       .eq("role_name", role)
       .eq("effective_from", effectiveFrom)
       .maybeSingle();
@@ -287,6 +357,7 @@ export default function RateSchedule({
     const { error } = await authClient
       .from("rate_cards")
       .update({ is_active: false })
+      .eq("set_id", selectedSet.id)
       .eq("role_name", role)
       .eq("effective_from", effectiveFrom);
     setBusy(false);
@@ -297,7 +368,7 @@ export default function RateSchedule({
     }
     await writeAuditLog({
       changeType: "rate_card_delete",
-      targetKey: `${role} @ ${effectiveFrom}`,
+      targetKey: `${selectedSet.code} / ${role} @ ${effectiveFrom}`,
       beforeValue: before,
       afterValue: null,
     });
@@ -320,6 +391,7 @@ export default function RateSchedule({
     const { error } = await authClient
       .from("rate_cards")
       .update({ is_active: false })
+      .eq("set_id", selectedSet.id)
       .eq("role_name", role);
     setBusy(false);
 
@@ -329,7 +401,7 @@ export default function RateSchedule({
     }
     await writeAuditLog({
       changeType: "rate_card_delete",
-      targetKey: role,
+      targetKey: `${selectedSet.code} / ${role}`,
       beforeValue: { role },
       afterValue: { is_active: false },
     });
@@ -339,12 +411,17 @@ export default function RateSchedule({
   // ---- schedule-change form ----------------------------------------------
 
   function openSchedule(role: string, current: RateRow) {
-    setSchedule({ role, date: "", fields: toFieldStrings(current) });
+    setSchedule({
+      role,
+      date: "",
+      fields: toFieldStrings(current),
+      callNames: current.callNames ?? [],
+    });
   }
 
   async function saveSchedule() {
     if (!schedule) return;
-    const { role, date, fields } = schedule;
+    const { role, date, fields, callNames } = schedule;
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       alert("Pick an effective-from date for the rate change.");
@@ -366,16 +443,18 @@ export default function RateSchedule({
     }
 
     const sortOrder = roleGroup?.base?.sortOrder ?? 0;
-    const ok = await persistVersion(role, date, fields, sortOrder);
+    const ok = await persistVersion(role, date, fields, sortOrder, callNames);
     if (ok) setSchedule(null);
   }
 
   // ---- add-role form ------------------------------------------------------
 
   function openNewRole() {
+    // Customer cards state their overtime tiers; start them blank (no tier).
+    const ot = isCustomerSet ? "" : "0";
     setNewRole({
       role: "",
-      fields: { day: "0", night: "0", sunday: "0", publicHoliday: "0", over8: "0", over10: "0" },
+      fields: { day: "0", night: "0", sunday: "0", publicHoliday: "0", over8: ot, over10: ot },
     });
   }
 
@@ -386,7 +465,9 @@ export default function RateSchedule({
       alert("Enter a role name.");
       return;
     }
-    const exists = roles.some((r) => r.role.toLowerCase() === role.toLowerCase());
+    // Role names are unique across every card (the upsert's conflict target
+    // is role_name,effective_from), so check all sets, not just this one.
+    const exists = config.rates.some((r) => r.role.toLowerCase() === role.toLowerCase());
     if (exists) {
       alert(`A role named "${role}" already exists.`);
       return;
@@ -396,7 +477,8 @@ export default function RateSchedule({
       role,
       RATE_EFFECTIVE_FROM_SENTINEL,
       newRole.fields,
-      nextSortOrder
+      nextSortOrder,
+      []
     );
     if (ok) setNewRole(null);
   }
@@ -423,10 +505,36 @@ export default function RateSchedule({
               step="0.01"
               className={numberInputClass}
               value={fieldValue(key, version, fk)}
+              placeholder={fk === "over8" || fk === "over10" ? "No tier" : undefined}
               onChange={(e) => setFieldValue(key, version, fk, e.target.value)}
             />
           </div>
         ))}
+      </div>
+    );
+  }
+
+  // call_names multi-select for a customer-card version. Standard rows use
+  // the code map (CALL_NAME_TO_ROLE) and don't show this.
+  function callNameInputs(role: string, version: RateRow) {
+    if (!isCustomerSet) return null;
+    const key = vkey(role, version.effectiveFrom || RATE_EFFECTIVE_FROM_SENTINEL);
+    const selected = callNamesFor(key, version);
+    return (
+      <div>
+        <label className={mobileRateLabelClass}>Call names priced at this role</label>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/80">
+          {CREWFINDER_CALL_NAMES.filter((c) => c !== "Other").map((c) => (
+            <label key={c} className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={selected.includes(c)}
+                onChange={() => toggleCallName(key, version, c)}
+              />
+              {c}
+            </label>
+          ))}
+        </div>
       </div>
     );
   }
@@ -439,7 +547,7 @@ export default function RateSchedule({
           <div key={fk}>
             <label className={mobileRateLabelClass}>{label}</label>
             <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-white/60">
-              {fmtNum(version[fk])}
+              {version[fk] === null ? "No tier" : fmtNum(version[fk])}
             </div>
           </div>
         ))}
@@ -462,6 +570,7 @@ export default function RateSchedule({
               step="0.01"
               className={numberInputClass}
               value={fields[fk]}
+              placeholder={fk === "over8" || fk === "over10" ? "No tier" : undefined}
               onChange={(e) => onChange(fk, e.target.value)}
             />
           </div>
@@ -483,6 +592,25 @@ export default function RateSchedule({
             To change a rate, schedule it from a future date rather than editing
             the current one — that keeps quotes for earlier jobs on the old rate.
           </p>
+          <label className="flex items-center gap-2 text-sm text-white/70">
+            Card
+            <select
+              className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white outline-none focus:border-amber-400"
+              value={selectedSetCode}
+              disabled={busy}
+              onChange={(e) => {
+                setSelectedSetCode(e.target.value);
+                setSchedule(null);
+                setNewRole(null);
+              }}
+            >
+              {sets.map((x) => (
+                <option key={x.code} value={x.code}>
+                  {x.name}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
         <button onClick={openNewRole} className={amberBtn} disabled={busy}>
@@ -566,6 +694,7 @@ export default function RateSchedule({
                   {currentIsBase ? "Base rate" : `Current — from ${formatAu(current.effectiveFrom)}`}
                 </div>
                 {rateInputs(role, current)}
+                {callNameInputs(role, current)}
                 <button
                   onClick={() => saveExistingVersion(role, current)}
                   className={amberBtn}
@@ -582,6 +711,7 @@ export default function RateSchedule({
                     Scheduled — from {formatAu(v.effectiveFrom)}
                   </div>
                   {rateInputs(role, v)}
+                  {callNameInputs(role, v)}
                   <div className="flex gap-2">
                     <button
                       onClick={() => saveExistingVersion(role, v)}

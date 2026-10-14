@@ -19,6 +19,8 @@ export const CREWFINDER_CALL_NAMES = [
   "Site",
   "Utility",
   "General",
+  "Training",
+  "Field of Play",
   "Other",
 ] as const;
 
@@ -56,16 +58,35 @@ export const CALL_NAME_TO_ROLE: Record<CrewFinderCallName, string> = {
   "Site": "Standard Crew",
   "Utility": "Standard Crew",
   "General": "Standard Crew",
+  // Customer-card call names. On a quote with no customer card these fall to
+  // Standard Crew (the card "Other" clause); the Estimator UI only offers them
+  // when the quote's card lists them, so this is a backstop, not a price path.
+  "Training": "Standard Crew",
+  "Field of Play": "Standard Crew",
   "Other": "Standard Crew",
 };
 
 /**
+ * Call Names that only exist on customer rate cards. They are offered in the
+ * Estimator only when the quote's card has a row listing them, and never on
+ * the public Request form.
+ */
+export const CUSTOMER_CARD_CALL_NAMES: readonly CrewFinderCallName[] = [
+  "Training",
+  "Field of Play",
+];
+
+/**
  * Call Names visible in the public Request UI.
- * "Crown Hand" and "Other" are not selectable by customers.
+ * "Crown Hand", "Other" and the customer-card call names are not selectable
+ * by customers.
  */
 export const REQUEST_UI_CALL_NAMES: CrewFinderCallName[] =
   CREWFINDER_CALL_NAMES.filter(
-    (name) => name !== "Crown Hand" && name !== "Other"
+    (name) =>
+      name !== "Crown Hand" &&
+      name !== "Other" &&
+      !CUSTOMER_CARD_CALL_NAMES.includes(name)
   ) as CrewFinderCallName[];
 
 /**
@@ -77,11 +98,25 @@ export const ESTIMATOR_UI_CALL_NAMES: CrewFinderCallName[] =
 
 /**
  * Resolve a Call Name to its mapped rate role.
+ *
+ * With `cardRates` (the rates a quote is priced from, see ratesForQuote), a
+ * customer-card row whose call_names lists the call name wins. Otherwise the
+ * standard CALL_NAME_TO_ROLE map applies, which is the card "Other" clause.
+ *
  * Returns "Standard Crew" as a safe fallback when the call name is unknown
  * or empty.
  */
-export function roleForCallName(callName: string | undefined | null): string {
+export function roleForCallName(
+  callName: string | undefined | null,
+  cardRates?: readonly RateRow[] | null
+): string {
   if (!callName) return "Standard Crew";
+  if (cardRates) {
+    const cardRow = cardRates.find(
+      (r) => r.setCode !== STANDARD_SET_CODE && r.callNames.includes(callName)
+    );
+    if (cardRow) return cardRow.role;
+  }
   const mapped = (CALL_NAME_TO_ROLE as Record<string, string>)[callName];
   return mapped || "Standard Crew";
 }
@@ -116,6 +151,16 @@ export type NonLabourLine = {
   amountExGst: number;
 };
 
+/**
+ * The booking questions that choose a quote's rate card. Absent means the
+ * Standard card, which is how every quote before rate-card sets was priced.
+ * australianOpen is null until answered, and always null when mopt is false.
+ */
+export type QuoteRateCard = {
+  mopt: boolean;
+  australianOpen: boolean | null;
+};
+
 export type QuoteInput = {
   quoteNumber: string;
   quoteDate: string;
@@ -134,6 +179,7 @@ export type QuoteInput = {
   onsiteContactPhone?: string;
   labour: LabourLine[];
   nonLabour: NonLabourLine[];
+  rateCard?: QuoteRateCard;
   status?: "Draft" | "Sent" | "Approved" | "Declined" | "Exported to Operations";
 };
 
@@ -189,14 +235,27 @@ export type QuoteResult = {
 // MUST match the sentinel in the rate_cards_effective_from.sql migration.
 export const RATE_EFFECTIVE_FROM_SENTINEL = "2000-01-01";
 
+// Rate card sets (rate_card_sets). Standard has a fixed id so it can be a
+// column default and a literal filter. MUST match Migration A.
+export const STANDARD_SET_ID = "00000000-0000-0000-0000-000000000001";
+export const STANDARD_SET_CODE = "standard";
+export const MOPT_SET_CODE = "mopt";
+export const MOPT_AO_SET_CODE = "mopt-ao";
+
 export type RateRow = {
   role: string;
   day: number;
   night: number;
   sunday: number;
   publicHoliday: number;
-  over8: number;
-  over10: number;
+  // null = the card has no such overtime tier (never a copy of the base rate).
+  over8: number | null;
+  over10: number | null;
+  // Code of the rate_card_sets row this rate belongs to ("standard", "mopt"…).
+  setCode: string;
+  // Call names this row prices on a customer card. Empty on Standard rows,
+  // which use CALL_NAME_TO_ROLE instead.
+  callNames: string[];
   // "With effect from" date (YYYY-MM-DD). Optional so in-memory rows built in
   // the admin UI still type-check; rows loaded from Supabase always carry it.
   effectiveFrom?: string;

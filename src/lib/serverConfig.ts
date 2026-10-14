@@ -1,6 +1,7 @@
 import { supabaseData } from "./supabase";
 import { defaultConfig } from "./config";
-import type { AppConfig } from "./types";
+import { STANDARD_SET_CODE, STANDARD_SET_ID, type AppConfig } from "./types";
+import { RATE_CARD_COLUMNS, mapRateCardRow } from "./rateCards";
 
 /**
  * Server-side equivalent of useAppConfig's load path, for API routes that
@@ -11,8 +12,13 @@ import type { AppConfig } from "./types";
  * card, so pricing against them under-quotes silently. A caller that cannot
  * get a config must decline to produce a total, not produce a wrong one.
  *
- * The column list and field mapping mirror useAppConfig.ts exactly so the
- * server and the Estimator agree on price. Keep them in sync.
+ * The column list and field mapping are shared with useAppConfig.ts
+ * (rateCards.ts) so the server and the Estimator agree on price.
+ *
+ * Standard card only. This runs with the anon key, which can't read
+ * rate_card_sets (so no join for the set code) and is limited to Standard
+ * rows by RLS. The explicit set_id filter keeps customer rates out of public
+ * pricing even if that policy changes.
  */
 export async function loadAppConfigServer(): Promise<AppConfig | null> {
   const [settingsRes, holidaysRes, ratesRes] = await Promise.all([
@@ -28,10 +34,9 @@ export async function loadAppConfigServer(): Promise<AppConfig | null> {
       .order("holiday_date", { ascending: true }),
     supabaseData
       .from("rate_cards")
-      .select(
-        "role_name, day_rate, night_rate, sunday_rate, public_holiday_rate, ot_8_day_rate, ot_10_day_rate, effective_from, sort_order"
-      )
+      .select(RATE_CARD_COLUMNS)
       .eq("is_active", true)
+      .eq("set_id", STANDARD_SET_ID)
       .order("sort_order", { ascending: true }),
   ]);
 
@@ -59,16 +64,6 @@ export async function loadAppConfigServer(): Promise<AppConfig | null> {
       date: row.holiday_date,
       label: row.name,
     })),
-    rates: ratesRes.data.map((row: any) => ({
-      role: row.role_name,
-      day: Number(row.day_rate),
-      night: Number(row.night_rate),
-      sunday: Number(row.sunday_rate),
-      publicHoliday: Number(row.public_holiday_rate),
-      over8: Number(row.ot_8_day_rate),
-      over10: Number(row.ot_10_day_rate),
-      effectiveFrom: row.effective_from,
-      sortOrder: row.sort_order,
-    })),
+    rates: ratesRes.data.map((row: any) => mapRateCardRow(row, STANDARD_SET_CODE)),
   };
 }

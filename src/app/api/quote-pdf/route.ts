@@ -7,6 +7,7 @@ import {
   shouldGroupLabourByDate,
   sortLabourByDate,
 } from "@/src/lib/estimator/pdfRows";
+import { rateCardLabel } from "@/src/lib/rateCards";
 
 export const runtime = "nodejs";
 
@@ -422,6 +423,10 @@ doc.text(`Venue: ${input.venue || "-"}`, 40, detailsY + 64);
 doc.text(`Quote Date: ${input.quoteDate || "-"}`, 340, detailsY);
 doc.text(`Valid Until: ${input.validUntil || "-"}`, 340, detailsY + 16);
 doc.text(`Status: ${input.status || "Draft"}`, 340, detailsY + 32);
+
+// Only a customer card is named; Standard quotes print as before.
+const cardLabel = rateCardLabel(input.rateCard);
+if (cardLabel) doc.text(`Rates: ${cardLabel}`, 340, detailsY + 48);
 
 doc.y = detailsY + 104;
 

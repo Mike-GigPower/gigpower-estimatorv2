@@ -5,7 +5,9 @@ import {
   ESTIMATOR_UI_CALL_NAMES,
   roleForCallName,
   type CrewFinderCallName,
+  type RateRow,
 } from "@/src/lib/types";
+import { isCallNameOnCard } from "@/src/lib/rateCards";
 
 import {
   parseDurationHours,
@@ -38,6 +40,13 @@ type LabourRowProps = {
    * but removing it from the prop signature would require a wider refactor.
    */
   roleOptions: string[];
+  /**
+   * The rates this quote is priced from (Standard + its customer card), or
+   * null while the card isn't chosen yet (Australian Open unanswered).
+   */
+  cardRates: RateRow[] | null;
+  /** Set when this line's call name isn't on the quote's card. */
+  callNameIssue?: string;
   startTimeText: Record<string, string>;
   setStartTimeText: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   isAdmin?: boolean;
@@ -61,6 +70,8 @@ export default function LabourRow({
   resultLine,
    rowNumber, 
   roleOptions: _roleOptions,
+  cardRates,
+  callNameIssue,
   startTimeText,
   setStartTimeText,
   isAdmin,
@@ -247,6 +258,14 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
 
   // Call Name is required input — drives the field-level red border below.
   const callNameMissing = !line.callName;
+  const callNameFlagged = callNameMissing || !!callNameIssue;
+
+  // Customer-card call names (Training, Field of Play) are offered only when
+  // the quote's card lists them. Before the card is chosen, only Standard
+  // call names are offered. A flagged line keeps its call name visible.
+  const callNameOptions = ESTIMATOR_UI_CALL_NAMES.filter(
+    (name) => name === line.callName || isCallNameOnCard(name, cardRates ?? [])
+  );
 
   // Row invalid means we can't price it. Missing Call Name doesn't block pricing
   // when role is already set (legacy rows where role pre-dates Call Name).
@@ -258,7 +277,7 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
     const typedCallName = nextCallName as CrewFinderCallName | "";
     updateLabour(line.id, {
       callName: typedCallName,
-      role: roleForCallName(typedCallName),
+      role: roleForCallName(typedCallName, cardRates),
     });
   }
 
@@ -275,7 +294,8 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
               {line.notes ? ` — ${line.notes}` : ""}
             </span>
             <select
-              className={`no-print labour-role-select${callNameMissing ? " field-error" : ""}`}
+              className={`no-print labour-role-select${callNameFlagged ? " field-error" : ""}`}
+              aria-invalid={callNameIssue ? true : undefined}
               data-row-id={line.id}
               data-col="callName"
               value={line.callName || ""}
@@ -288,12 +308,15 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
               }}
             >
               <option value="" disabled>— Select Call Name —</option>
-              {ESTIMATOR_UI_CALL_NAMES.map((name) => (
+              {callNameOptions.map((name) => (
                 <option key={name} value={name}>
                   {name}
                 </option>
               ))}
             </select>
+            {callNameIssue && (
+              <small className="no-print field-error-text">{callNameIssue}</small>
+            )}
           </div>
         </td>
 

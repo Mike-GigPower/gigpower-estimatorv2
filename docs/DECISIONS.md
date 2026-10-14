@@ -15,6 +15,27 @@ in its own right, so it was added and mapped to the `Seamstress` role, and
 not sewing work). Quotes saved before this keep their stored `role` —
 `normaliseInputRoles()` does not re-derive role from callName — so historical
 pricing is unaffected unless someone re-picks the Call Name on an old line.
+(Oct 2026: it does re-derive when the quote's rate card is *changed*, or when
+the stored role isn't on the quote's card. Loading a saved quote still keeps
+its role.)
+
+### Rate cards come in sets (Standard + customer cards)
+Oct 2026, BRIEF-estimator-customer-rate-cards. `rate_cards.set_id` points at
+`rate_card_sets`; Standard has the fixed id `STANDARD_SET_ID`. A quote's
+`rateCard` answers (MOPT → mandatory Australian Open) choose the card;
+`ratesForQuote()` returns Standard + that card, and any call name the card
+doesn't list prices from Standard (the "Other" clause). Role names stay
+unique across all cards, so the engine still looks rates up by role and the
+admin upsert keeps `onConflict: role_name,effective_from`.
+- The anon key can't read customer rows or `rate_card_sets`, so
+  `serverConfig.ts` filters `set_id = STANDARD_SET_ID` with no join.
+- A null overtime tier means "no tier", never 0 and never a copy of the base
+  rate. Blank OT in the admin form saves as null.
+- Switching card never swaps a line to "the first role". A line whose Call
+  Name the card doesn't offer (e.g. Field of Play with Australian Open = No)
+  keeps it and is flagged, and export is blocked.
+- No fallback to `defaultConfig` when the live config fails to load: the quote
+  screen says "Rates couldn't be loaded" and prices nothing.
 
 ### Role is derived from Call Name
 A labour line has both `callName` (what the user picks, e.g. "Load In") and

@@ -16,6 +16,8 @@ type AppHeaderProps = {
   contactPhone?: string;
   venue?: string;
   eventName?: string;
+  // Non-Standard rate card in use, printed on the quote. Null/absent = Standard.
+  rateCardLabel?: string | null;
   status?: string;
   onLogout?: () => void;
   isAdmin?: boolean;
@@ -36,6 +38,7 @@ export default function AppHeader({
   contactPhone,
   venue,
   eventName,
+  rateCardLabel,
   status,
   onLogout,
   isAdmin,
@@ -92,6 +95,11 @@ export default function AppHeader({
 <div>
   <strong>Date:</strong> {quoteDate || "—"}
 </div>
+{rateCardLabel && (
+  <div>
+    <strong>Rates:</strong> {rateCardLabel}
+  </div>
+)}
   <div>
   <strong>Prepared by:</strong> {preparedBy || "—"}
 </div>

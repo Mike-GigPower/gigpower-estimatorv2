@@ -5,53 +5,52 @@ import { defaultConfig } from "./config";
 import { supabaseData } from "./supabase";
 import { createClient } from "./supabase/client";
 import type { AppConfig } from "./types";
+import { RATE_CARD_COLUMNS, mapRateCardRow } from "./rateCards";
 
 export function useAppConfig() {
   const [config, setConfig] = useState<AppConfig>(defaultConfig);
   const [ready, setReady] = useState(false);
+  // Set when the live config can't be loaded. ready then stays false: there is
+  // deliberately no fallback to defaultConfig, which is the pre-July card and
+  // 4.6-14.5% below live rates. Callers must block pricing and say why.
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadConfig() {
-      console.log("useAppConfig loadConfig is running");
       const baseConfig = defaultConfig;
-const authClient = createClient();
-const { data: settingsData, error: settingsError } = await authClient
-  .from("app_settings")
-  .select("value")
-  .eq("id", "global")
-  .single();
+      const authClient = createClient();
+      const { data: settingsData, error: settingsError } = await authClient
+        .from("app_settings")
+        .select("value")
+        .eq("id", "global")
+        .single();
       const { data: holidaysData, error: holidaysError } = await supabaseData
         .from("public_holidays")
         .select("holiday_date, name")
         .eq("is_active", true)
         .order("holiday_date", { ascending: true });
 
+      // All active card sets (Standard + customer), so a quote can switch card
+      // without reloading. The embedded set supplies each row's set code.
       const { data: ratesData, error: ratesError } = await authClient
-  .from("rate_cards")
-        .select(
-          "role_name, day_rate, night_rate, sunday_rate, public_holiday_rate, ot_8_day_rate, ot_10_day_rate, effective_from, sort_order"
-        )
+        .from("rate_cards")
+        .select(`${RATE_CARD_COLUMNS}, rate_card_sets!inner(code, is_active)`)
         .eq("is_active", true)
+        .eq("rate_card_sets.is_active", true)
         .order("sort_order", { ascending: true });
 
-      if (settingsError || holidaysError || ratesError) {
+      if (settingsError || holidaysError || ratesError || !ratesData?.length) {
         console.error("Failed to load config from Supabase:", {
           settingsError,
           holidaysError,
           ratesError,
+          rateRows: ratesData?.length ?? 0,
         });
 
-        setConfig(baseConfig);
-        setReady(true);
+        setLoadError("Rates couldn't be loaded. Refresh before pricing.");
         return;
       }
-console.log("Rates loaded from Supabase:", ratesData);
-console.log("Settings loaded from Supabase:", settingsData);
-console.log("Settings value:", settingsData?.value);
-console.log(
-  "Loaded minBillableHours:",
-  settingsData?.value?.minBillableHours
-);
+
       setConfig({
         ...baseConfig,
         ...(settingsData?.value || {}),
@@ -59,17 +58,7 @@ console.log(
           date: row.holiday_date,
           label: row.name,
         })),
-       rates: (ratesData || []).map((row: any) => ({
-          role: row.role_name,
-          day: row.day_rate,
-          night: row.night_rate,
-          sunday: row.sunday_rate,
-          publicHoliday: row.public_holiday_rate,
-          over8: row.ot_8_day_rate,
-          over10: row.ot_10_day_rate,
-          effectiveFrom: row.effective_from,
-          sortOrder: row.sort_order,
-        })),
+        rates: ratesData.map((row: any) => mapRateCardRow(row, row.rate_card_sets.code)),
       });
 
       setReady(true);
@@ -108,7 +97,13 @@ console.log(
 }
 
   async function restoreDefaults() {
-  setConfig(defaultConfig);
+  // Restores the settings only. Rates and holidays live in their own tables;
+  // swapping in defaultConfig's would show the stale pre-July card.
+  setConfig((prev) => ({
+    ...defaultConfig,
+    rates: prev.rates,
+    publicHolidays: prev.publicHolidays,
+  }));
 
   const authClient = createClient();
 
@@ -142,5 +137,6 @@ console.log(
     updateConfig,
     restoreDefaults,
     ready,
+    loadError,
   };
 }

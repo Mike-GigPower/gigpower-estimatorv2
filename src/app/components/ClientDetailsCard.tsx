@@ -1,4 +1,4 @@
-import type { QuoteInput } from "@/src/lib/types";
+import type { QuoteInput, QuoteRateCard } from "@/src/lib/types";
 
 type ClientDetailsCardProps = {
   input: QuoteInput;
@@ -19,16 +19,28 @@ type ClientDetailsCardProps = {
       >
     >
   ) => void;
+  // Booking answers that choose the rate card. The parent re-derives line
+  // roles under the new card.
+  onUpdateRateCard: (next: QuoteRateCard) => void;
   // Inline validation messages keyed by field (companyName, contactName,
-  // contactEmail, venue). Absent/empty = no error for that field.
+  // contactEmail, venue, australianOpen). Absent/empty = no error for that field.
   errors?: Record<string, string>;
 };
 
 export default function ClientDetailsCard({
   input,
   onUpdateHeader,
+  onUpdateRateCard,
   errors = {},
 }: ClientDetailsCardProps) {
+  const mopt = input.rateCard?.mopt === true;
+  const australianOpen = input.rateCard?.australianOpen ?? null;
+  // Shown as soon as MOPT is ticked, not only after a save attempt: until it's
+  // answered the quote has no card, so nothing is priced.
+  const australianOpenError =
+    errors.australianOpen ||
+    (mopt && australianOpen === null ? "Answer Australian Open." : "");
+
   return (
   <div className="card no-print" style={{ display: "grid", gap: 16 }}>
     
@@ -156,6 +168,65 @@ export default function ClientDetailsCard({
             placeholder="0400 000 000"
           />
         </div>
+      </div>
+
+      <div
+        className="row"
+        style={{ marginTop: 8, alignItems: "flex-start" }}
+      >
+        <div className="col">
+          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              id="field-mopt"
+              type="checkbox"
+              style={{ width: "auto" }}
+              checked={mopt}
+              onChange={(e) =>
+                onUpdateRateCard({ mopt: e.target.checked, australianOpen: null })
+              }
+            />
+            MOPT booking
+          </label>
+        </div>
+
+        {mopt && (
+          <div className="col">
+            <fieldset
+              id="field-australianOpen"
+              className={australianOpenError ? "field-error" : undefined}
+              aria-required="true"
+              aria-invalid={australianOpenError ? true : undefined}
+              style={{ border: "none", padding: 0, margin: 0 }}
+            >
+              <legend style={{ padding: 0 }}>
+                Australian Open
+                <span className="required-star" aria-hidden="true">*</span>
+              </legend>
+              <div style={{ display: "flex", gap: 16 }}>
+                {([true, false] as const).map((value) => (
+                  <label
+                    key={String(value)}
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <input
+                      type="radio"
+                      name="australianOpen"
+                      style={{ width: "auto" }}
+                      checked={australianOpen === value}
+                      onChange={() =>
+                        onUpdateRateCard({ mopt: true, australianOpen: value })
+                      }
+                    />
+                    {value ? "Yes" : "No"}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            {australianOpenError && (
+              <small className="field-error-text">{australianOpenError}</small>
+            )}
+          </div>
+        )}
       </div>
 
       <div style={{ marginTop: 16 }}>

@@ -10,12 +10,26 @@ type QuoteTotals = {
 type QuoteTotalsCardProps = {
   totals?: QuoteTotals | null;
   money: (value: number) => string;
+  // When set, no totals are shown at all (not $0): the quote can't be priced.
+  blockedMessage?: string | null;
 };
 
 export default function QuoteTotalsCard({
   totals,
   money,
+  blockedMessage,
 }: QuoteTotalsCardProps) {
+  if (blockedMessage) {
+    return (
+      <div className="card">
+        <h2 style={{ margin: 0, fontSize: 16 }}>Totals</h2>
+        <div className="badge bad" role="alert" style={{ marginTop: 12 }}>
+          {blockedMessage}
+        </div>
+      </div>
+    );
+  }
+
   if (!totals) {
     return (
       <div className="card">

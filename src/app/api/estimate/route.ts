@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { quoteInputSchema } from "../../../lib/schema";
 import { estimateQuote } from "../../../lib/calc";
+import { loadAppConfigServer } from "../../../lib/serverConfig";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
@@ -27,6 +28,15 @@ export async function POST(req: Request) {
   nonLabour: parsed.data.nonLabour,
 };
 
-const result = estimateQuote(normalized);
+// Live Standard card only (anon). No config means no price, not a stale one.
+const config = await loadAppConfigServer();
+if (!config) {
+  return NextResponse.json(
+    { isValid: false, validationErrors: ["Rates couldn't be loaded."] },
+    { status: 503 }
+  );
+}
+
+const result = estimateQuote(normalized, config);
   return NextResponse.json(result);
 }
