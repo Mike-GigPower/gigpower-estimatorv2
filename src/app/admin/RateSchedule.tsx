@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AppConfig, RateRow } from "@/src/lib/types";
 import {
-  CREWFINDER_CALL_NAMES,
   RATE_EFFECTIVE_FROM_SENTINEL,
   STANDARD_SET_CODE,
   STANDARD_SET_ID,
@@ -112,7 +111,6 @@ export default function RateSchedule({
     role: string;
     date: string;
     fields: RateFieldStrings;
-    callNames: string[];
   } | null>(null);
   // The open "add role" draft, or null.
   const [newRole, setNewRole] = useState<{ role: string; fields: RateFieldStrings } | null>(
@@ -120,9 +118,6 @@ export default function RateSchedule({
   );
   const [historyOpen, setHistoryOpen] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
-  // Edited call_names for a customer-card version, keyed by vkey. Absent =
-  // unchanged.
-  const [callNameEdits, setCallNameEdits] = useState<Record<string, string[]>>({});
 
   // Card sets for the picker. The schedule shows one set at a time.
   const [sets, setSets] = useState<RateCardSet[]>([STANDARD_SET]);
@@ -225,22 +220,6 @@ export default function RateSchedule({
     };
   }
 
-  // The call_names a version will be saved with: an edit if any, otherwise
-  // what it has now.
-  function callNamesFor(key: string, version: RateRow): string[] {
-    return callNameEdits[key] ?? version.callNames ?? [];
-  }
-
-  function toggleCallName(key: string, version: RateRow, callName: string) {
-    setCallNameEdits((prev) => {
-      const current = prev[key] ?? version.callNames ?? [];
-      const next = current.includes(callName)
-        ? current.filter((c) => c !== callName)
-        : [...current, callName];
-      return { ...prev, [key]: next };
-    });
-  }
-
   // Insert or update one version (one row per role + effective_from) in the
   // chosen set. Role names are unique across sets, so the conflict target
   // stays role_name,effective_from.
@@ -248,8 +227,7 @@ export default function RateSchedule({
     role: string,
     effectiveFrom: string,
     fields: RateFieldStrings,
-    sortOrder: number,
-    callNames: string[]
+    sortOrder: number
   ): Promise<boolean> {
     setBusy(true);
 
@@ -268,8 +246,10 @@ export default function RateSchedule({
       publicHoliday: num(fields.publicHoliday),
       over8: numOrNull(fields.over8),
       over10: numOrNull(fields.over10),
-      // Standard rows use the code map, so they never carry call_names.
-      callNames: isCustomerSet ? callNames : [],
+      // Standard rows use the code map, so they never carry call_names. A
+      // customer row's only call name is its own role name, which is what
+      // the quote's line dropdown offers on that card.
+      callNames: isCustomerSet ? [role] : [],
     };
 
     const { error } = await authClient.from("rate_cards").upsert(
@@ -316,16 +296,10 @@ export default function RateSchedule({
       role,
       version.effectiveFrom || RATE_EFFECTIVE_FROM_SENTINEL,
       gatherFields(key, version),
-      version.sortOrder ?? 0,
-      callNamesFor(key, version)
+      version.sortOrder ?? 0
     );
     if (ok) {
       setEdits((prev) => {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      });
-      setCallNameEdits((prev) => {
         const next = { ...prev };
         delete next[key];
         return next;
@@ -415,13 +389,12 @@ export default function RateSchedule({
       role,
       date: "",
       fields: toFieldStrings(current),
-      callNames: current.callNames ?? [],
     });
   }
 
   async function saveSchedule() {
     if (!schedule) return;
-    const { role, date, fields, callNames } = schedule;
+    const { role, date, fields } = schedule;
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       alert("Pick an effective-from date for the rate change.");
@@ -443,7 +416,7 @@ export default function RateSchedule({
     }
 
     const sortOrder = roleGroup?.base?.sortOrder ?? 0;
-    const ok = await persistVersion(role, date, fields, sortOrder, callNames);
+    const ok = await persistVersion(role, date, fields, sortOrder);
     if (ok) setSchedule(null);
   }
 
@@ -477,8 +450,7 @@ export default function RateSchedule({
       role,
       RATE_EFFECTIVE_FROM_SENTINEL,
       newRole.fields,
-      nextSortOrder,
-      []
+      nextSortOrder
     );
     if (ok) setNewRole(null);
   }
@@ -510,31 +482,6 @@ export default function RateSchedule({
             />
           </div>
         ))}
-      </div>
-    );
-  }
-
-  // call_names multi-select for a customer-card version. Standard rows use
-  // the code map (CALL_NAME_TO_ROLE) and don't show this.
-  function callNameInputs(role: string, version: RateRow) {
-    if (!isCustomerSet) return null;
-    const key = vkey(role, version.effectiveFrom || RATE_EFFECTIVE_FROM_SENTINEL);
-    const selected = callNamesFor(key, version);
-    return (
-      <div>
-        <label className={mobileRateLabelClass}>Call names priced at this role</label>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/80">
-          {CREWFINDER_CALL_NAMES.filter((c) => c !== "Other").map((c) => (
-            <label key={c} className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={selected.includes(c)}
-                onChange={() => toggleCallName(key, version, c)}
-              />
-              {c}
-            </label>
-          ))}
-        </div>
       </div>
     );
   }
@@ -694,7 +641,6 @@ export default function RateSchedule({
                   {currentIsBase ? "Base rate" : `Current — from ${formatAu(current.effectiveFrom)}`}
                 </div>
                 {rateInputs(role, current)}
-                {callNameInputs(role, current)}
                 <button
                   onClick={() => saveExistingVersion(role, current)}
                   className={amberBtn}
@@ -711,7 +657,6 @@ export default function RateSchedule({
                     Scheduled — from {formatAu(v.effectiveFrom)}
                   </div>
                   {rateInputs(role, v)}
-                  {callNameInputs(role, v)}
                   <div className="flex gap-2">
                     <button
                       onClick={() => saveExistingVersion(role, v)}

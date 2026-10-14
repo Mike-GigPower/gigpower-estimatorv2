@@ -1,10 +1,9 @@
 import {
-  CUSTOMER_CARD_CALL_NAMES,
+  ESTIMATOR_UI_CALL_NAMES,
   MOPT_AO_SET_CODE,
   MOPT_SET_CODE,
   STANDARD_SET_CODE,
   type AppConfig,
-  type CrewFinderCallName,
   type QuoteRateCard,
   type RateRow,
 } from "./types";
@@ -68,19 +67,36 @@ export function ratesForQuote(
 }
 
 /**
- * Whether a call name can be used under the given card rates. Ordinary call
- * names always can (a card that doesn't list them prices them from Standard).
- * Customer-card call names (Training, Field of Play) only when a row on the
- * quote's card lists them.
+ * The Call Names a quote offers. On a customer card, only that card's rows'
+ * call_names (each row's own role name), read from the data so a new customer
+ * card needs no code change; standard call names are not offered. On
+ * Standard, the standard Estimator call names. Empty while the card isn't
+ * priceable (Australian Open unanswered).
+ */
+export function cardCallNames(
+  rateCard: QuoteRateCard | null | undefined,
+  cardRates: readonly RateRow[] | null
+): string[] {
+  const code = rateCardSetCode(rateCard);
+  if (code === null || !cardRates) return [];
+  if (code === STANDARD_SET_CODE) return [...ESTIMATOR_UI_CALL_NAMES];
+  const rows = cardRates
+    .filter((r) => r.setCode === code)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  return Array.from(new Set(rows.flatMap((r) => r.callNames)));
+}
+
+/**
+ * Whether a call name is offered on the quote's card (see cardCallNames).
+ * A Standard call name on a MOPT quote, or a MOPT role name on a Standard
+ * quote, is not: the caller flags the line and blocks export.
  */
 export function isCallNameOnCard(
   callName: string,
-  cardRates: readonly RateRow[]
+  rateCard: QuoteRateCard | null | undefined,
+  cardRates: readonly RateRow[] | null
 ): boolean {
-  if (!CUSTOMER_CARD_CALL_NAMES.includes(callName as CrewFinderCallName)) return true;
-  return cardRates.some(
-    (r) => r.setCode !== STANDARD_SET_CODE && r.callNames.includes(callName)
-  );
+  return cardCallNames(rateCard, cardRates).includes(callName);
 }
 
 /** The per-line message for a call name the quote's card doesn't offer. */

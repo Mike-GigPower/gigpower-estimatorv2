@@ -19,8 +19,6 @@ export const CREWFINDER_CALL_NAMES = [
   "Site",
   "Utility",
   "General",
-  "Training",
-  "Field of Play",
   "Other",
 ] as const;
 
@@ -58,40 +56,23 @@ export const CALL_NAME_TO_ROLE: Record<CrewFinderCallName, string> = {
   "Site": "Standard Crew",
   "Utility": "Standard Crew",
   "General": "Standard Crew",
-  // Customer-card call names. On a quote with no customer card these fall to
-  // Standard Crew (the card "Other" clause); the Estimator UI only offers them
-  // when the quote's card lists them, so this is a backstop, not a price path.
-  "Training": "Standard Crew",
-  "Field of Play": "Standard Crew",
   "Other": "Standard Crew",
 };
 
 /**
- * Call Names that only exist on customer rate cards. They are offered in the
- * Estimator only when the quote's card has a row listing them, and never on
- * the public Request form.
- */
-export const CUSTOMER_CARD_CALL_NAMES: readonly CrewFinderCallName[] = [
-  "Training",
-  "Field of Play",
-];
-
-/**
  * Call Names visible in the public Request UI.
- * "Crown Hand", "Other" and the customer-card call names are not selectable
- * by customers.
+ * "Crown Hand" and "Other" are not selectable by customers.
  */
 export const REQUEST_UI_CALL_NAMES: CrewFinderCallName[] =
   CREWFINDER_CALL_NAMES.filter(
-    (name) =>
-      name !== "Crown Hand" &&
-      name !== "Other" &&
-      !CUSTOMER_CARD_CALL_NAMES.includes(name)
+    (name) => name !== "Crown Hand" && name !== "Other"
   ) as CrewFinderCallName[];
 
 /**
- * Call Names visible in the internal Estimator UI.
+ * Standard Call Names visible in the internal Estimator UI.
  * "Other" is not selectable; "Crown Hand" remains available to admins.
+ * A quote on a customer card offers that card's role names instead (see
+ * cardCallNames).
  */
 export const ESTIMATOR_UI_CALL_NAMES: CrewFinderCallName[] =
   CREWFINDER_CALL_NAMES.filter((name) => name !== "Other") as CrewFinderCallName[];
@@ -100,8 +81,9 @@ export const ESTIMATOR_UI_CALL_NAMES: CrewFinderCallName[] =
  * Resolve a Call Name to its mapped rate role.
  *
  * With `cardRates` (the rates a quote is priced from, see ratesForQuote), a
- * customer-card row whose call_names lists the call name wins. Otherwise the
- * standard CALL_NAME_TO_ROLE map applies, which is the card "Other" clause.
+ * customer-card row whose call_names lists the call name wins. A customer
+ * row's call_names holds its own role name, so on a customer card the call
+ * name is the role. Otherwise the standard CALL_NAME_TO_ROLE map applies.
  *
  * Returns "Standard Crew" as a safe fallback when the call name is unknown
  * or empty.
@@ -129,7 +111,8 @@ export type LabourLine = {
   startTime: string;
   durationHours: number;
   notes?: string;
-  callName?: CrewFinderCallName | "";
+  // A standard CrewFinderCallName, or on a customer card that card's role name.
+  callName?: string;
   publicHolidaySameDay?: boolean;
   publicHolidayNextDay?: boolean;
 };
