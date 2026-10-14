@@ -37,8 +37,11 @@ export const rateRowSchema = z.object({
   night: z.number().min(0),
   sunday: z.number().min(0),
   publicHoliday: z.number().min(0),
-  over8: z.number().min(0),
-  over10: z.number().min(0),
+  // null = no such overtime tier on this card.
+  over8: z.number().min(0).nullable(),
+  over10: z.number().min(0).nullable(),
+  setCode: z.string().min(1).default("standard"),
+  callNames: z.array(z.string()).default([]),
 });
 
 export const appConfigSchema = z.object({

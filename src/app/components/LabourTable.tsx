@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import LabourRow from "./LabourRow";
 import { parseStartTime, parseDurationHours } from "@/src/lib/estimator/calc";
+import type { CrewFinderCallName, RateRow } from "@/src/lib/types";
 
 /**
  * Format a YYYY-MM-DD shift date as "Mon 23 Jun 2026" for the day
@@ -25,6 +26,7 @@ type LabourLine = {
   shiftDate: string;
   startTime: string;
   durationHours: number;
+  callName?: CrewFinderCallName | "";
 };
 
 type LabourCostSegment = {
@@ -53,6 +55,9 @@ type LabourTableProps = {
   labour: LabourLine[];
   result?: LabourResult | null;
   roleOptions: string[];
+  cardRates: RateRow[] | null;
+  /** Per-line messages, keyed by line id, for call names not on the card. */
+  callNameIssues: Record<string, string>;
   startTimeText: Record<string, string>;
   setStartTimeText: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   isAdmin?: boolean;
@@ -75,6 +80,8 @@ export default function LabourTable({
   labour,
   result,
   roleOptions,
+  cardRates,
+  callNameIssues,
   startTimeText,
   setStartTimeText,
   isAdmin,
@@ -111,7 +118,10 @@ export default function LabourTable({
   });
 
   const showFixInputs =
-    (result && !result.isValid) || hasInvalidStartTimeDraft || hasInvalidDurationDraft;
+    (result && !result.isValid) ||
+    hasInvalidStartTimeDraft ||
+    hasInvalidDurationDraft ||
+    Object.keys(callNameIssues).length > 0;
 
   return (
    <div className="card labour-card">
@@ -193,6 +203,8 @@ export default function LabourTable({
                     resultLine={labourResultById[line.id]}
                     rowNumber={idx + 1}
                     roleOptions={roleOptions}
+                    cardRates={cardRates}
+                    callNameIssue={callNameIssues[line.id]}
                     startTimeText={startTimeText}
                     setStartTimeText={setStartTimeText}
                     isAdmin={isAdmin}

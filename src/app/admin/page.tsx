@@ -9,7 +9,7 @@ import { createClient } from "@/src/lib/supabase/client";
 
 
 export default function AdminPage() {
-  const { config, updateConfig, restoreDefaults, ready } = useAppConfig();
+  const { config, updateConfig, restoreDefaults, ready, loadError } = useAppConfig();
     const router = useRouter();
   const [authClient] = useState(() => createClient());
 const [users, setUsers] = useState<any[]>([]);
@@ -115,6 +115,10 @@ async function updateUserProfile(
 
   await loadUsers();
 }
+
+    if (loadError) {
+    return <main className="max-w-5xl mx-auto px-6 py-8">{loadError}</main>;
+  }
 
     if (!ready || isCheckingAccess) {
     return <main className="max-w-5xl mx-auto px-6 py-8">Loading...</main>;

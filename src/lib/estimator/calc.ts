@@ -1,4 +1,6 @@
 import type { AppConfig, LabourLine, LabourCostSegment, QuoteInput } from "./types";
+import { roleForCallName } from "../types";
+import { isCallNameOnCard, ratesForQuote } from "../rateCards";
 
 export function ddmmyyyyToIso(value: string): string | null {
   const m = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
@@ -53,16 +55,43 @@ export function hhmmToHours(value: string): number {
   return h + m / 60;
 }
 
-export function normaliseInputRoles(next: QuoteInput, config: AppConfig): QuoteInput {
-  const validRoles = config.rates.map((r) => r.role);
-  const fallbackRole = validRoles[0] ?? "";
+/**
+ * Keep each labour line's role consistent with the quote's rate card.
+ *
+ * - A line whose stored role is on the card keeps it (unless `rederive`), so
+ *   saved quotes keep their historical pricing (see DECISIONS: Wardrobe).
+ * - Otherwise, and always when `rederive` is set (the card was just changed),
+ *   the role is re-derived from the call name under the card.
+ * - A line whose call name the card doesn't offer (e.g. Field of Play after
+ *   Australian Open is set to No) keeps its call name AND role; the caller
+ *   flags it and the engine reports its role as invalid. It is never priced
+ *   as something else.
+ * - A line with no call name (legacy) keeps its role; an unknown role is
+ *   reported by the engine. A role is never replaced with "the first role".
+ * - While the card isn't priceable (Australian Open unanswered) lines are
+ *   left as they are.
+ */
+export function normaliseInputRoles(
+  next: QuoteInput,
+  config: AppConfig,
+  opts: { rederive?: boolean } = {}
+): QuoteInput {
+  const labour = Array.isArray(next.labour) ? next.labour : [];
+  const cardRates = ratesForQuote(config, next.rateCard);
+  if (!cardRates) return { ...next, labour };
+
+  const cardRoles = new Set(cardRates.map((r) => r.role));
 
   return {
     ...next,
-    labour: (Array.isArray(next.labour) ? next.labour : []).map((line) => ({
-      ...line,
-      role: validRoles.includes(line.role) ? line.role : fallbackRole,
-    })),
+    labour: labour.map((line) => {
+      const callName = line.callName || "";
+      if (!callName) return line;
+      if (!isCallNameOnCard(callName, cardRates)) return line;
+      if (!opts.rederive && cardRoles.has(line.role)) return line;
+      const role = roleForCallName(callName, cardRates);
+      return role === line.role ? line : { ...line, role };
+    }),
   };
 }
 
@@ -365,28 +394,31 @@ export function calculateLabourLine(
     return Math.max(rr.night, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
   }
 
+  // A null over8/over10 means the card has no such tier: it contributes 0 to
+  // the max, so the base (or Sunday/PH) rate applies. Same result as a tier
+  // equal to the base rate; see calc.test.ts.
   function maxOt8Day(dateISO: string): number {
     const sunday = isSunday(dateISO);
     const ph = isPublicHoliday(dateISO, config);
-    return Math.max(rr.over8, rr.day, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
+    return Math.max(rr.over8 ?? 0, rr.day, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
   }
 
   function maxOt8Night(dateISO: string): number {
     const sunday = isSunday(dateISO);
     const ph = isPublicHoliday(dateISO, config);
-    return Math.max(rr.over8, rr.night, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
+    return Math.max(rr.over8 ?? 0, rr.night, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
   }
 
   function maxOt10Day(dateISO: string): number {
     const sunday = isSunday(dateISO);
     const ph = isPublicHoliday(dateISO, config);
-    return Math.max(rr.over10, rr.day, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
+    return Math.max(rr.over10 ?? 0, rr.day, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
   }
 
   function maxOt10Night(dateISO: string): number {
     const sunday = isSunday(dateISO);
     const ph = isPublicHoliday(dateISO, config);
-    return Math.max(rr.over10, rr.night, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
+    return Math.max(rr.over10 ?? 0, rr.night, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
   }
 
   function costParts(

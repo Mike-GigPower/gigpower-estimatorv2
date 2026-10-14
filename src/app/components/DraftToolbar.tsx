@@ -32,6 +32,9 @@ type DraftToolbarProps = {
   onPrint: () => void;
   onDownloadPdf?: () => void;
   onExportCrewFinder?: () => void;
+  // Why export is blocked even when Approved (rates not loaded, card not
+  // chosen, a line not on the card). Absent = not blocked.
+  exportBlockedReason?: string;
   eventDate?: string;
   onEventDateChange?: (value: string) => void;
   eventNameError?: string;
@@ -63,6 +66,7 @@ export default function DraftToolbar({
   onPrint,
   onDownloadPdf,
   onExportCrewFinder,
+  exportBlockedReason,
   eventDate,
   onEventDateChange,
   eventNameError,
@@ -331,10 +335,10 @@ return (
             title={
               status !== "Approved"
                 ? "Only available when status is Approved"
-                : "Export JSON for CrewFinder / SmartStaff"
+                : exportBlockedReason || "Export JSON for CrewFinder / SmartStaff"
             }
-            data-enabled={status === "Approved" ? "true" : "false"}
-            disabled={status !== "Approved"}
+            data-enabled={status === "Approved" && !exportBlockedReason ? "true" : "false"}
+            disabled={status !== "Approved" || !!exportBlockedReason}
           >
             Export to CrewFinder
           </button>

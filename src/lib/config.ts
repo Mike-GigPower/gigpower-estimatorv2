@@ -1,4 +1,4 @@
-import type { AppConfig } from "./types";
+import { STANDARD_SET_CODE, type AppConfig } from "./types";
 import { TERMS_AND_CONDITIONS_TEXT } from "./quoteText";
 
 export const defaultConfig: AppConfig = {
@@ -16,6 +16,8 @@ export const defaultConfig: AppConfig = {
       publicHoliday: 93.6,
       over8: 76.2,
       over10: 93.6,
+      setCode: STANDARD_SET_CODE,
+      callNames: [],
     },
     {
       role: "Show Crew",
@@ -25,6 +27,8 @@ export const defaultConfig: AppConfig = {
       publicHoliday: 93.6,
       over8: 93.6,
       over10: 93.6,
+      setCode: STANDARD_SET_CODE,
+      callNames: [],
     },
     {
       role: "Crew Boss",
@@ -34,6 +38,8 @@ export const defaultConfig: AppConfig = {
       publicHoliday: 107.0,
       over8: 89.95,
       over10: 107.0,
+      setCode: STANDARD_SET_CODE,
+      callNames: [],
     },
     {
       role: "Fork/Truck/EWP",
@@ -43,6 +49,8 @@ export const defaultConfig: AppConfig = {
       publicHoliday: 101.9,
       over8: 85.5,
       over10: 101.9,
+      setCode: STANDARD_SET_CODE,
+      callNames: [],
     },
     {
       role: "Steel Hand",
@@ -52,6 +60,8 @@ export const defaultConfig: AppConfig = {
       publicHoliday: 101.9,
       over8: 85.5,
       over10: 101.9,
+      setCode: STANDARD_SET_CODE,
+      callNames: [],
     },
     {
       role: "Crown Hand",
@@ -61,6 +71,8 @@ export const defaultConfig: AppConfig = {
       publicHoliday: 93.6,
       over8: 93.6,
       over10: 93.6,
+      setCode: STANDARD_SET_CODE,
+      callNames: [],
     },
     {
       role: "Seamstress",
@@ -70,6 +82,8 @@ export const defaultConfig: AppConfig = {
       publicHoliday: 101.9,
       over8: 86.4,
       over10: 101.9,
+      setCode: STANDARD_SET_CODE,
+      callNames: [],
     },
     {
       role: "Truck with Driver",
@@ -79,6 +93,8 @@ export const defaultConfig: AppConfig = {
       publicHoliday: 175.0,
       over8: 150.0,
       over10: 175.0,
+      setCode: STANDARD_SET_CODE,
+      callNames: [],
     },
     {
       role: "Broadcast Rate",
@@ -88,6 +104,8 @@ export const defaultConfig: AppConfig = {
       publicHoliday: 252.7,
       over8: 252.7,
       over10: 252.7,
+      setCode: STANDARD_SET_CODE,
+      callNames: [],
     },
   ],
   publicHolidays: [

@@ -51,7 +51,13 @@ import type {
   QuoteResult,
 } from "@/src/lib/estimator/types";
 
-import { roleForCallName } from "@/src/lib/types";
+import { STANDARD_SET_CODE, roleForCallName, type QuoteRateCard } from "@/src/lib/types";
+import {
+  callNameNotOnCardMessage,
+  isCallNameOnCard,
+  rateCardLabel,
+  ratesForQuote,
+} from "@/src/lib/rateCards";
 
 type SavedDraft = {
   id: string;
@@ -101,6 +107,7 @@ const HEADER_FIELD_ORDER = [
   "eventName",
   "eventDate",
   "venue",
+  "australianOpen",
 ] as const;
 
 /**
@@ -179,12 +186,20 @@ const authClient = supabase;
   /**
    * Load configuration such as rates, GST, min hours, quote text, currency, etc.
    */
-  const { config, ready } = useAppConfig();
+  const { config, ready, loadError } = useAppConfig();
 
   /**
    * Convenience function to format money using the configured currency.
    */
   const moneyFmt = (n: number) => money(n, config.currency);
+
+  /**
+   * Role seeded on a blank labour line before a Call Name is picked. Taken
+   * from the Standard card so a customer row (all sets are loaded) is never
+   * the default.
+   */
+  const defaultLabourRole =
+    config.rates.find((r) => r.setCode === STANDARD_SET_CODE)?.role ?? "";
 
 
   /**
@@ -386,7 +401,7 @@ useEffect(() => {
         ...prev,
         labour: [
           emptyLabourLine(
-  config.rates[0]?.role ?? "",
+  defaultLabourRole,
   isAdmin ? 0 : config.minBillableHours
 ),
         ],
@@ -467,11 +482,33 @@ const todayIso = today.toISOString().slice(0, 10);
     setInput(normalised);
   }
 
-  function calculateCurrentQuote(nextInput: QuoteInput) {
-    const effectiveConfig = isAdmin
-      ? { ...config, minBillableHours: 0 }
-      : config;
+  /**
+   * Price a quote against its own card (Standard + any customer card). Returns
+   * null when the card isn't chosen yet (MOPT ticked, Australian Open
+   * unanswered): nothing is priced until it is.
+   */
+  function calculateCurrentQuote(nextInput: QuoteInput): QuoteResult | null {
+    const cardRates = ratesForQuote(config, nextInput.rateCard);
+    if (!cardRates) return null;
+    const effectiveConfig = {
+      ...config,
+      rates: cardRates,
+      ...(isAdmin ? { minBillableHours: 0 } : {}),
+    };
     return calculateQuoteTotals(nextInput, effectiveConfig);
+  }
+
+  /**
+   * Change the booking answers, then re-derive every line's role from its
+   * Call Name under the new card. Lines whose Call Name the new card doesn't
+   * offer are kept as they are and flagged (callNameIssues), never swapped
+   * for another role.
+   */
+  function updateRateCard(rateCard: QuoteRateCard) {
+    setInput((prev) => {
+      const next = { ...prev, rateCard };
+      return ready ? normaliseInputRoles(next, config, { rederive: true }) : next;
+    });
   }
 
   /**
@@ -554,7 +591,7 @@ const todayIso = today.toISOString().slice(0, 10);
       ...input,
       labour: [
         ...input.labour,
-        emptyLabourLine(config.rates[0]?.role ?? "", config.minBillableHours),
+        emptyLabourLine(defaultLabourRole, config.minBillableHours),
       ],
     };
     recalc(next);
@@ -681,14 +718,15 @@ function resetToBlankQuote() {
     quoteNumber: "",
     quoteDate: formatDateDDMMYYYY(today),
     validUntil: formatDateDDMMYYYY(valid),
-    labour: [emptyLabourLine(config.rates[0]?.role ?? "", config.minBillableHours, "")],
+    labour: [emptyLabourLine(defaultLabourRole, config.minBillableHours, "")],
     nonLabour: [emptyNonLabourLine()],
   };
 
   setDraftName("Untitled Estimate");
   setSelectedDraftId("");
   setInput(freshInput);
-  setResult(calculateCurrentQuote(freshInput));
+  // Never price before live rates load (no fallback card).
+  setResult(ready ? calculateCurrentQuote(freshInput) : null);
   setSavedSnapshot(null);
   setDurationText({});
   setStartTimeText({});
@@ -796,6 +834,11 @@ async function exportToCrewFinder() {
     return;
   }
 
+  if (exportBlockedReason) {
+    alert(exportBlockedReason);
+    return;
+  }
+
   const { data: sessionData, error: sessionError } =
     await authClient.auth.getSession();
 
@@ -832,6 +875,11 @@ async function exportToCrewFinder() {
 }
 
 async function downloadQuotePdf() {
+  if (pricingBlockedMessage) {
+    alert(pricingBlockedMessage);
+    return;
+  }
+
   try {
     const response = await fetch("/api/quote-pdf", {
       method: "POST",
@@ -910,6 +958,9 @@ async function downloadQuotePdf() {
     if (isBlank(candidate.eventName)) headerErrs.eventName = "Event/Estimate Name is required.";
     if (isBlank(candidate.eventDate)) headerErrs.eventDate = "Event Date is required.";
     if (isBlank(candidate.venue)) headerErrs.venue = "Venue is required.";
+    if (candidate.rateCard?.mopt && candidate.rateCard.australianOpen === null) {
+      headerErrs.australianOpen = "Australian Open must be answered.";
+    }
 
     return headerErrs;
   }
@@ -929,10 +980,19 @@ async function downloadQuotePdf() {
     // Reuse the pricing engine to validate every field on every labour line.
     const evaluation = calculateCurrentQuote(candidate);
 
+    const candidateCardRates = ratesForQuote(config, candidate.rateCard);
+
     candidate.labour.forEach((line, index) => {
       const label = `Labour line ${index + 1}`;
 
       if (!line.callName) errors.push(`${label}: a Call Name is required.`);
+      if (
+        line.callName &&
+        candidateCardRates &&
+        !isCallNameOnCard(line.callName, candidateCardRates)
+      ) {
+        errors.push(`${label}: ${callNameNotOnCardMessage(line.callName)}`);
+      }
       if (!Number.isFinite(line.qty) || line.qty <= 0) {
         errors.push(`${label}: crew quantity must be greater than 0.`);
       }
@@ -950,7 +1010,7 @@ async function downloadQuotePdf() {
     // Fold in any remaining fatal pricing errors (e.g. an unknown role) that
     // the per-field checks above didn't already surface. The non-blocking
     // "below minimum" advisory is intentionally excluded.
-    evaluation.validationErrors
+    (evaluation?.validationErrors ?? [])
       .filter((e) => !e.toLowerCase().includes("below minimum"))
       .forEach((e) => {
         if (!errors.includes(e)) errors.push(e);
@@ -1292,7 +1352,8 @@ const hydrated: QuoteInput = {
     ? normaliseInputRoles(hydratedWithEvent, config)
     : hydratedWithEvent;
   setInput(normalisedLoaded);
-  setResult(calculateCurrentQuote(normalisedLoaded));
+  // Never price before live rates load (no fallback card).
+  setResult(ready ? calculateCurrentQuote(normalisedLoaded) : null);
   setSavedSnapshot(JSON.stringify(normalisedLoaded));
   setValidUntilManuallyEdited(!!hydrated.validUntil);
   setEstimatorVisible(true);
@@ -1412,6 +1473,35 @@ if (!profile || profile.role !== "admin") {
    * Frequently used shortcut for totals.
    */
   const totals = result?.totals;
+
+  // Rates the current quote is priced from; null while Australian Open is
+  // unanswered on a MOPT booking.
+  const cardRates = ready ? ratesForQuote(config, input.rateCard) : null;
+
+  // Lines whose Call Name the quote's card doesn't offer (e.g. Field of Play
+  // after Australian Open is set to No). Flagged, never rewritten.
+  const callNameIssues: Record<string, string> = {};
+  if (cardRates) {
+    for (const line of input.labour) {
+      if (line.callName && !isCallNameOnCard(line.callName, cardRates)) {
+        callNameIssues[line.id] = callNameNotOnCardMessage(line.callName);
+      }
+    }
+  }
+
+  // Why no totals can be shown. Totals, PDF and export are blocked while set.
+  const pricingBlockedMessage = loadError
+    ? loadError
+    : ready && !cardRates
+      ? "Answer Australian Open to price this quote."
+      : !ready
+        ? "Loading rates…"
+        : null;
+
+  const firstCallNameIssue = Object.values(callNameIssues)[0];
+  const exportBlockedReason =
+    pricingBlockedMessage ||
+    (firstCallNameIssue ? `${firstCallNameIssue} Change it before exporting.` : undefined);
 
    const hasLabourData = input.labour.some(
   (l) =>
@@ -1593,6 +1683,7 @@ const hasAnyData = hasLabourData || hasNonLabourData;
   contactPhone={input.contactPhone}
   venue={input.venue}
   eventName={input.eventName}
+  rateCardLabel={rateCardLabel(input.rateCard)}
 />
 
       <div className="toolbar-section">
@@ -1632,6 +1723,7 @@ setStatus={(value: "Draft" | "Sent" | "Approved" | "Declined" | "Exported to Ope
           onPrint={() => window.print()}
           onDownloadPdf={downloadQuotePdf}
           onExportCrewFinder={exportToCrewFinder}
+          exportBlockedReason={exportBlockedReason}
           eventDate={input.eventDate}
           onEventDateChange={(v) => updateHeader({ eventDate: v })}
           eventNameError={headerErrors.eventName}
@@ -1693,9 +1785,18 @@ setStatus={(value: "Draft" | "Sent" | "Approved" | "Declined" | "Exported to Ope
 
       <div className="hr" />
 
+      {loadError && (
+        <div className="gp-validation-banner" role="alert" aria-live="assertive">
+          <div className="gp-validation-banner-head">
+            <strong>{loadError}</strong>
+          </div>
+        </div>
+      )}
+
       <ClientDetailsCard
         input={input}
         onUpdateHeader={updateHeader}
+        onUpdateRateCard={updateRateCard}
         errors={headerErrors}
       />
 
@@ -1714,6 +1815,8 @@ setStatus={(value: "Draft" | "Sent" | "Approved" | "Declined" | "Exported to Ope
         : null
     }
     roleOptions={roleOptions}
+    cardRates={cardRates}
+    callNameIssues={callNameIssues}
     startTimeText={startTimeText}
     setStartTimeText={setStartTimeText}
     durationText={durationText}
@@ -1759,8 +1862,9 @@ setStatus={(value: "Draft" | "Sent" | "Approved" | "Declined" | "Exported to Ope
     <div className="hr" />
 
     <QuoteTotalsCard
-      totals={totals ?? null}
+      totals={pricingBlockedMessage ? null : totals ?? null}
       money={moneyFmt}
+      blockedMessage={pricingBlockedMessage}
     />
 
     <TermsConditionsBox body={config.quoteText.termsAndConditions} />

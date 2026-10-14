@@ -1,8 +1,16 @@
 import type { AppConfig, QuoteInput } from "./types";
+import { rateCardSetCode } from "./rateCards";
 
 export type CrewFinderPayload = {
-  schema_version: "1.1";
+  schema_version: "1.2";
   exported_at: string;
+  // The booking answers that chose the card (1.2). australian_open is null
+  // only when mopt is false.
+  rate_card: {
+    set_code: "standard" | "mopt" | "mopt-ao";
+    mopt: boolean;
+    australian_open: boolean | null;
+  };
   estimate: {
     estimate_id: string;
     quote_number: string;
@@ -78,9 +86,22 @@ export function buildCrewFinderPayload(
   input: QuoteInput,
   opts: CrewFinderExportOptions
 ): CrewFinderPayload {
+  const mopt = input.rateCard?.mopt === true;
+  const setCode = rateCardSetCode(input.rateCard);
+  // The UI blocks export while Australian Open is unanswered; refuse here too
+  // rather than export a booking with no card.
+  if (setCode === null) {
+    throw new Error("Australian Open must be answered before export.");
+  }
+
   return {
-    schema_version: "1.1",
+    schema_version: "1.2",
     exported_at: new Date().toISOString(),
+    rate_card: {
+      set_code: setCode as CrewFinderPayload["rate_card"]["set_code"],
+      mopt,
+      australian_open: mopt ? input.rateCard?.australianOpen ?? null : null,
+    },
     estimate: {
       estimate_id: opts.estimateId,
       quote_number: input.quoteNumber,
