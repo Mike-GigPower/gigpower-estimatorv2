@@ -4,6 +4,7 @@ import type { LabourLine } from "@/src/lib/estimator";
 import { roleForCallName, type RateRow } from "@/src/lib/types";
 
 import {
+  minBillableHoursFor,
   parseDurationHours,
   parseStartTime,
 } from "@/src/lib/estimator/calc";
@@ -170,6 +171,12 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
     return null;
   }
 
+  // This line's minimum: the role's own if it has one, else the global
+  // setting (S-3). Admins have none (the parent passes 0 for them).
+  const lineMinBillableHours = isAdmin
+    ? 0
+    : minBillableHoursFor(line.role, line.shiftDate, cardRates ?? [], minBillableHours);
+
   const durationDraft = durationText[line.id];
   const durationDraftInvalid =
     !isAdmin &&
@@ -177,7 +184,7 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
     durationDraft.trim() !== "" &&
     (() => {
       const parsed = parseDurationHours(durationDraft);
-      return parsed !== null && parsed < minBillableHours;
+      return parsed !== null && parsed < lineMinBillableHours;
     })();
 
   function parseStartTime(value: string): string | null {
@@ -441,7 +448,7 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
     const parsed = parseDurationHours(raw);
 
     const isAllowedDuration =
-      parsed !== null && (isAdmin || parsed >= minBillableHours);
+      parsed !== null && (isAdmin || parsed >= lineMinBillableHours);
 
     if (isAllowedDuration) {
       updateLabour(line.id, { durationHours: parsed });
@@ -484,7 +491,7 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
 
                   commitDuration();
 
-                  if (parsed !== null && parsed >= minBillableHours) {
+                  if (parsed !== null && parsed >= lineMinBillableHours) {
                     if (isLastRow) {
                       addLabour();
 

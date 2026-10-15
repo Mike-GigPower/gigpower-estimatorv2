@@ -1,10 +1,11 @@
 // Pricing-rule tests (BRIEF-estimator-pricing-rules-stage0 §5, §9.1): D31
-// double-penalty windows. Expected figures are the brief's, worked out
+// double-penalty windows and the S-3 per-role minimum. Expected figures are the brief's, worked out
 // independently of calc.ts. Run with `npm test`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { calculateLabourLine } from "./calc";
+import { calculateLabourLine, minBillableHoursFor } from "./calc";
+import { mapRateCardRow } from "../rateCards";
 import type { AppConfig, DoublePenaltyWindow, RateRow } from "../types";
 
 function rate(
@@ -15,6 +16,11 @@ function rate(
 }
 
 const STD = rate("Standard Crew", { day: 63, night: 79.9, sunday: 99.95, publicHoliday: 99.95, over8: 79.9, over10: 99.95 });
+const EVENT_OPS = rate("Event Operations", { day: 69.6, night: 69.6, sunday: 95.45, publicHoliday: 95.45, over8: null, over10: 95.45 });
+const TRAINING: RateRow = {
+  ...rate("Online or Onsite Training", { day: 69.6, night: 69.6, sunday: 95.45, publicHoliday: 95.45, over8: null, over10: 95.45 }),
+  minBillableHours: 0.5,
+};
 const SHOW = rate("Show Crew", { day: 84.5, night: 84.5, sunday: 99.95, publicHoliday: 99.95, over8: 84.5, over10: 84.5 });
 
 const WINDOWS: DoublePenaltyWindow[] = [
@@ -29,7 +35,7 @@ function config(windows: DoublePenaltyWindow[]): AppConfig {
     minBillableHours: 4,
     dayStart: "08:00",
     nightStart: "20:00",
-    rates: [STD, SHOW],
+    rates: [STD, SHOW, EVENT_OPS, TRAINING],
     publicHolidays: ["2026-11-03", "2026-12-25", "2026-12-26", "2026-12-28", "2027-01-01"].map((date) => ({
       date,
       label: "",
@@ -124,4 +130,41 @@ test("a window with multiplier ≤ 1 or a malformed date prices nothing extra", 
   ];
   assert.equal(cost("Standard Crew", "2026-12-24", "18:00", 8, bad).costExGst, 645.5);
   assert.equal(cost("Standard Crew", "2026-12-31", "22:00", 4, bad).costExGst, 359.7);
+});
+
+// ---- S-3: per-role minimum -------------------------------------------------
+
+test("C11: per-role minimum — 1h of Training (min 0.5) bills 1h = $69.60", () => {
+  const r = cost("Online or Onsite Training", "2026-10-14", "10:00", 1);
+  assert.equal(r.costExGst, 69.6);
+  assert.equal(r.billableHours, 1);
+});
+
+test("C12: per-role minimum applies below it — 0.25h of Training bills 0.5h = $34.80", () => {
+  const r = cost("Online or Onsite Training", "2026-10-14", "10:00", 0.25);
+  assert.equal(r.costExGst, 34.8);
+  assert.equal(r.billableHours, 0.5);
+});
+
+test("C13: no per-role minimum → the global 4h — 1h of Event Operations = $278.40", () => {
+  const r = cost("Event Operations", "2026-10-14", "10:00", 1);
+  assert.equal(r.costExGst, 278.4);
+  assert.equal(r.billableHours, 4);
+});
+
+test("minBillableHoursFor: the role's own minimum, else the global one", () => {
+  const rates = [STD, TRAINING];
+  assert.equal(minBillableHoursFor("Online or Onsite Training", "2026-10-14", rates, 4), 0.5);
+  assert.equal(minBillableHoursFor("Standard Crew", "2026-10-14", rates, 4), 4);
+  assert.equal(minBillableHoursFor("Unknown", "2026-10-14", rates, 4), 4);
+});
+
+test("loader mapping: a null min_billable_hours stays null, never 0", () => {
+  const row = {
+    role_name: "R", day_rate: 1, night_rate: 1, sunday_rate: 1, public_holiday_rate: 1,
+    ot_8_day_rate: null, ot_10_day_rate: 1, effective_from: "2000-01-01", sort_order: 0, call_names: [],
+  };
+  assert.equal(mapRateCardRow({ ...row, min_billable_hours: null }, "standard").minBillableHours, null);
+  assert.equal(mapRateCardRow(row, "standard").minBillableHours, null);
+  assert.equal(mapRateCardRow({ ...row, min_billable_hours: "0.5" }, "standard").minBillableHours, 0.5);
 });

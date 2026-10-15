@@ -248,6 +248,9 @@ export type RateRow = {
   effectiveFrom?: string;
    // Display/order key for the role, carried through from rate_cards.sort_order.
   sortOrder?: number;
+  // Per-role minimum billable hours (S-3). null/absent = the global
+  // AppConfig.minBillableHours. Never 0.
+  minBillableHours?: number | null;
 };
 
 /**

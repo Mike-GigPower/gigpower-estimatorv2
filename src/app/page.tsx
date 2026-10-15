@@ -492,9 +492,10 @@ const todayIso = today.toISOString().slice(0, 10);
   function calculateCurrentQuote(nextInput: QuoteInput): QuoteResult | null {
     const cardRates = ratesForQuote(config, nextInput.rateCard);
     if (!cardRates) return null;
+    // Admins bill no minimum: neither the global one nor a role's own (S-3).
     const effectiveConfig = {
       ...config,
-      rates: cardRates,
+      rates: isAdmin ? cardRates.map((r) => ({ ...r, minBillableHours: null })) : cardRates,
       ...(isAdmin ? { minBillableHours: 0 } : {}),
     };
     return calculateQuoteTotals(nextInput, effectiveConfig);

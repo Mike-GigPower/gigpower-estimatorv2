@@ -29,14 +29,16 @@ type RateScheduleProps = {
   mobileRateLabelClass: string;
 };
 
-// The six editable numeric rate fields, in display order.
-const RATE_FIELDS: { key: RateFieldKey; label: string }[] = [
+// The editable numeric fields, in display order. `blank` is what an empty
+// value means, for fields that may be left blank (saved as null, never 0).
+const RATE_FIELDS: { key: RateFieldKey; label: string; blank?: string }[] = [
   { key: "day", label: "Day" },
   { key: "night", label: "Night" },
   { key: "sunday", label: "Sunday" },
   { key: "publicHoliday", label: "Public Holiday" },
-  { key: "over8", label: "Over 8 hrs (blank = no tier)" },
-  { key: "over10", label: "Over 10 hrs (blank = no tier)" },
+  { key: "over8", label: "Over 8 hrs (blank = no tier)", blank: "No tier" },
+  { key: "over10", label: "Over 10 hrs (blank = no tier)", blank: "No tier" },
+  { key: "minBillableHours", label: "Minimum (h) (blank = global)", blank: "Global" },
 ];
 
 // A card set from rate_card_sets, for the picker and for set_id on writes.
@@ -50,7 +52,14 @@ const STANDARD_SET: RateCardSet = {
   kind: "standard",
 };
 
-type RateFieldKey = "day" | "night" | "sunday" | "publicHoliday" | "over8" | "over10";
+type RateFieldKey =
+  | "day"
+  | "night"
+  | "sunday"
+  | "publicHoliday"
+  | "over8"
+  | "over10"
+  | "minBillableHours";
 type RateFieldStrings = Record<RateFieldKey, string>;
 
 // ---- small helpers -------------------------------------------------------
@@ -60,6 +69,8 @@ const num = (v: string) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const numOrNull = (v: string) => (v.trim() === "" ? null : num(v));
 // null displays as blank (no tier); undefined (an unset draft) as 0.
 const fmtNum = (n: number | null | undefined) => (n === null ? "" : String(n ?? 0));
+// Per-role minimum: blank (null or unset) means the global setting.
+const fmtMin = (n: number | null | undefined) => (n === null || n === undefined ? "" : String(n));
 const isSentinel = (iso?: string) => iso === RATE_EFFECTIVE_FROM_SENTINEL;
 
 // Today as a local YYYY-MM-DD string (NOT toISOString, which is UTC and can be
@@ -86,6 +97,7 @@ function toFieldStrings(r: Partial<RateRow>): RateFieldStrings {
     publicHoliday: fmtNum(r.publicHoliday),
     over8: fmtNum(r.over8),
     over10: fmtNum(r.over10),
+    minBillableHours: fmtMin(r.minBillableHours),
   };
 }
 
@@ -194,7 +206,7 @@ export default function RateSchedule({
   // Read the current editable value for a field: an in-progress edit if any,
   // otherwise the stored version value.
   function fieldValue(key: string, version: RateRow, field: RateFieldKey): string {
-    return edits[key]?.[field] ?? fmtNum(version[field]);
+    return edits[key]?.[field] ?? toFieldStrings(version)[field];
   }
 
   function setFieldValue(
@@ -217,6 +229,7 @@ export default function RateSchedule({
       publicHoliday: fieldValue(key, version, "publicHoliday"),
       over8: fieldValue(key, version, "over8"),
       over10: fieldValue(key, version, "over10"),
+      minBillableHours: fieldValue(key, version, "minBillableHours"),
     };
   }
 
@@ -229,6 +242,13 @@ export default function RateSchedule({
     fields: RateFieldStrings,
     sortOrder: number
   ): Promise<boolean> {
+    // Blank = the global minimum, saved as null. Never 0 (the column rejects it).
+    const minBillableHours = numOrNull(fields.minBillableHours);
+    if (minBillableHours !== null && !(minBillableHours > 0)) {
+      alert("Minimum (h) must be more than 0, or blank to use the global minimum.");
+      return false;
+    }
+
     setBusy(true);
 
     const { data: before } = await authClient
@@ -246,6 +266,7 @@ export default function RateSchedule({
       publicHoliday: num(fields.publicHoliday),
       over8: numOrNull(fields.over8),
       over10: numOrNull(fields.over10),
+      minBillableHours,
       // Standard rows use the code map, so they never carry call_names. A
       // customer row's only call name is its own role name, which is what
       // the quote's line dropdown offers on that card.
@@ -269,6 +290,7 @@ export default function RateSchedule({
         effective_from: effectiveFrom,
         set_id: selectedSet.id,
         call_names: rateObj.callNames,
+        min_billable_hours: rateObj.minBillableHours,
       },
       { onConflict: "role_name,effective_from" }
     );
@@ -427,7 +449,15 @@ export default function RateSchedule({
     const ot = isCustomerSet ? "" : "0";
     setNewRole({
       role: "",
-      fields: { day: "0", night: "0", sunday: "0", publicHoliday: "0", over8: ot, over10: ot },
+      fields: {
+        day: "0",
+        night: "0",
+        sunday: "0",
+        publicHoliday: "0",
+        over8: ot,
+        over10: ot,
+        minBillableHours: "",
+      },
     });
   }
 
@@ -462,14 +492,14 @@ export default function RateSchedule({
   const ghostBtn =
     "rounded-lg border border-white/15 px-3 py-2 text-sm text-white/80 transition hover:border-amber-400/60 disabled:opacity-50";
   const cardClass = "rounded-xl border border-white/10 bg-white/5 p-4 space-y-3";
-  const gridClass = "grid grid-cols-2 md:grid-cols-6 gap-3";
+  const gridClass = "grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3";
 
-  // Render the six editable number inputs for a version.
+  // Render the editable number inputs for a version.
   function rateInputs(role: string, version: RateRow) {
     const key = vkey(role, version.effectiveFrom || RATE_EFFECTIVE_FROM_SENTINEL);
     return (
       <div className={gridClass}>
-        {RATE_FIELDS.map(({ key: fk, label }) => (
+        {RATE_FIELDS.map(({ key: fk, label, blank }) => (
           <div key={fk}>
             <label className={mobileRateLabelClass}>{label}</label>
             <input
@@ -477,7 +507,7 @@ export default function RateSchedule({
               step="0.01"
               className={numberInputClass}
               value={fieldValue(key, version, fk)}
-              placeholder={fk === "over8" || fk === "over10" ? "No tier" : undefined}
+              placeholder={blank}
               onChange={(e) => setFieldValue(key, version, fk, e.target.value)}
             />
           </div>
@@ -486,15 +516,15 @@ export default function RateSchedule({
     );
   }
 
-  // Render the six read-only values for a past version.
+  // Render the read-only values for a past version.
   function readOnlyRates(version: RateRow) {
     return (
       <div className={gridClass}>
-        {RATE_FIELDS.map(({ key: fk, label }) => (
+        {RATE_FIELDS.map(({ key: fk, label, blank }) => (
           <div key={fk}>
             <label className={mobileRateLabelClass}>{label}</label>
             <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-white/60">
-              {version[fk] === null ? "No tier" : fmtNum(version[fk])}
+              {toFieldStrings(version)[fk] === "" ? blank : toFieldStrings(version)[fk]}
             </div>
           </div>
         ))}
@@ -502,14 +532,14 @@ export default function RateSchedule({
     );
   }
 
-  // Render the six inputs for a draft (schedule / new-role) form.
+  // Render the inputs for a draft (schedule / new-role) form.
   function draftInputs(
     fields: RateFieldStrings,
     onChange: (field: RateFieldKey, value: string) => void
   ) {
     return (
       <div className={gridClass}>
-        {RATE_FIELDS.map(({ key: fk, label }) => (
+        {RATE_FIELDS.map(({ key: fk, label, blank }) => (
           <div key={fk}>
             <label className={mobileRateLabelClass}>{label}</label>
             <input
@@ -517,7 +547,7 @@ export default function RateSchedule({
               step="0.01"
               className={numberInputClass}
               value={fields[fk]}
-              placeholder={fk === "over8" || fk === "over10" ? "No tier" : undefined}
+              placeholder={blank}
               onChange={(e) => onChange(fk, e.target.value)}
             />
           </div>

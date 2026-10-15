@@ -1,4 +1,5 @@
 import type { AppConfig, LabourLine, LabourCostSegment, QuoteInput } from "./types";
+import type { RateRow } from "../types";
 import { roleForCallName } from "../types";
 import { isCallNameOnCard, ratesForQuote } from "../rateCards";
 
@@ -201,7 +202,11 @@ function isPublicHoliday(dateISO: string, config: AppConfig): boolean {
 // the earliest version so there are never gaps. ISO YYYY-MM-DD dates compare
 // correctly as plain strings.
 function getRateRow(role: string, shiftDate: string, config: AppConfig) {
-  const candidates = config.rates.filter((r) => r.role === role);
+  return rateRowFor(role, shiftDate, config.rates);
+}
+
+function rateRowFor(role: string, shiftDate: string, rates: readonly RateRow[]) {
+  const candidates = rates.filter((r) => r.role === role);
   if (candidates.length === 0) return undefined;
 
   const applicable = candidates
@@ -213,6 +218,20 @@ function getRateRow(role: string, shiftDate: string, config: AppConfig) {
   return [...candidates].sort((a, b) =>
     (a.effectiveFrom || "").localeCompare(b.effectiveFrom || "")
   )[0];
+}
+
+/**
+ * The minimum billable hours for a line (S-3): the role's own minimum on the
+ * rate version for its shift date, else the global setting. The UI uses this
+ * to gate durations the same way calculateLabourLine bills them.
+ */
+export function minBillableHoursFor(
+  role: string,
+  shiftDate: string,
+  rates: readonly RateRow[],
+  globalMinBillableHours: number
+): number {
+  return rateRowFor(role, shiftDate, rates)?.minBillableHours ?? globalMinBillableHours;
 }
 
 function round2(n: number): number {
@@ -369,11 +388,14 @@ export function calculateLabourLine(
     errors.push(`Duration must be > 0 for line ${line.id}.`);
   }
 
-  if (Number.isFinite(line.durationHours) && line.durationHours < config.minBillableHours) {
-    errors.push(`Duration is below minimum (${config.minBillableHours}h) for line ${line.id}. (Will bill minimum)`);
+  const rateRow = getRateRow(line.role, line.shiftDate, config);
+  // S-3: the role's own minimum, else the global one.
+  const minBillableHours = Number(rateRow?.minBillableHours ?? config.minBillableHours ?? 0);
+
+  if (Number.isFinite(line.durationHours) && line.durationHours < minBillableHours) {
+    errors.push(`Duration is below minimum (${minBillableHours}h) for line ${line.id}. (Will bill minimum)`);
   }
 
-  const rateRow = getRateRow(line.role, line.shiftDate, config);
   const fatalErrors = errors.filter((e) => !e.includes("below minimum"));
 
   if (!rateRow || fatalErrors.length) {
@@ -395,7 +417,6 @@ export function calculateLabourLine(
   }
 
   const rr = rateRow;
-  const minBillableHours = Number(config.minBillableHours ?? 0);
   const billableHours = Math.max(
     Number(line.durationHours || 0),
     minBillableHours

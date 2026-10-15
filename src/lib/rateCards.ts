@@ -15,7 +15,7 @@ import {
  * read rate_card_sets and filters to Standard instead.
  */
 export const RATE_CARD_COLUMNS =
-  "role_name, day_rate, night_rate, sunday_rate, public_holiday_rate, ot_8_day_rate, ot_10_day_rate, effective_from, sort_order, set_id, call_names";
+  "role_name, day_rate, night_rate, sunday_rate, public_holiday_rate, ot_8_day_rate, ot_10_day_rate, effective_from, sort_order, set_id, call_names, min_billable_hours";
 
 // A null rate means "no tier". Number(null) is 0, which would turn "no tier"
 // into a $0 tier, so null must be kept as null.
@@ -37,6 +37,8 @@ export function mapRateCardRow(row: any, setCode: string): RateRow {
     sortOrder: row.sort_order,
     setCode,
     callNames: Array.isArray(row.call_names) ? row.call_names : [],
+    // null = use the global minimum (same null-not-0 rule as the OT tiers).
+    minBillableHours: rateOrNull(row.min_billable_hours),
   };
 }
 

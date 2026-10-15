@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import LabourRow from "./LabourRow";
-import { parseStartTime, parseDurationHours } from "@/src/lib/estimator/calc";
+import { minBillableHoursFor, parseStartTime, parseDurationHours } from "@/src/lib/estimator/calc";
 import type { RateRow } from "@/src/lib/types";
 
 /**
@@ -121,7 +121,10 @@ export default function LabourTable({
     if (typeof draft !== "string" || draft.trim() === "") return false;
 
     const parsed = parseDurationHours(draft);
-    return parsed !== null && parsed < minBillableHours;
+    const lineMin = isAdmin
+      ? 0
+      : minBillableHoursFor(line.role, line.shiftDate, cardRates ?? [], minBillableHours);
+    return parsed !== null && parsed < lineMin;
   });
 
   const showFixInputs =
@@ -246,8 +249,8 @@ export default function LabourTable({
           </p>
 
           <small className="muted" style={{ display: "block", marginTop: 6 }}>
-            Each line needs a Call Name. Start times must be valid 24-hour times, and labour durations must be at least{" "}
-            {minBillableHours} hours.
+            Each line needs a Call Name. Start times must be valid 24-hour times, and labour durations must be at least the role&apos;s minimum{" "}
+            ({minBillableHours} hours unless the rate card sets its own).
           </small>
         </div>
       )}
