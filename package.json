@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --import ./scripts/test-resolve.mjs --test \"src/**/*.test.ts\""
+    "test": "node --import ./scripts/test-resolve.mjs --test \"src/**/*.test.ts\" \"supabase/functions/**/*.test.ts\""
   },
   "dependencies": {
     "@sparticuz/chromium": "^147.0.2",
