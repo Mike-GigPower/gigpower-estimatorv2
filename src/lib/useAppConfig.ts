@@ -6,6 +6,23 @@ import { supabaseData } from "./supabase";
 import { createClient } from "./supabase/client";
 import type { AppConfig } from "./types";
 import { RATE_CARD_COLUMNS, mapRateCardRow } from "./rateCards";
+ 
+/**
+ * Read the stored settings so a save keeps any key this screen doesn't manage.
+ * Returns null if the read fails: the caller must then not save, or it would
+ * wipe those keys.
+ */
+async function readStoredSettings(
+  client: ReturnType<typeof createClient>
+): Promise<Record<string, any> | null> {
+  const { data, error } = await client
+    .from("app_settings")
+    .select("value")
+    .eq("id", "global")
+    .maybeSingle();
+  if (error) return null;
+  return (data?.value as Record<string, any>) ?? {};
+}
 
 export function useAppConfig() {
   const [config, setConfig] = useState<AppConfig>(defaultConfig);
@@ -71,20 +88,29 @@ export function useAppConfig() {
   setConfig(next);
 
   const authClient = createClient();
+  
+  const stored = await readStoredSettings(authClient);
+  if (!stored) {
+    alert("Couldn't read the current settings, so nothing was saved. Refresh and try again.");
+    return;
+  }
 
-  const { error } = await authClient
+    const { error } = await authClient
     .from("app_settings")
     .upsert(
       {
         id: "global",
         value: {
+          ...stored,
           currency: next.currency,
           gstRate: next.gstRate,
           minBillableHours: next.minBillableHours,
           dayStart: next.dayStart,
           nightStart: next.nightStart,
-          quoteText: { termsAndConditions: next.quoteText.termsAndConditions,
-  },
+          quoteText: {
+            ...(stored.quoteText || {}),
+            termsAndConditions: next.quoteText.termsAndConditions,
+          },
         },
       },
       { onConflict: "id" }
@@ -106,26 +132,34 @@ export function useAppConfig() {
   }));
 
   const authClient = createClient();
+  const stored = await readStoredSettings(authClient);
+  if (!stored) {
+    alert("Couldn't read the current settings, so nothing was restored. Refresh and try again.");
+    return;
+  }
 
-  const { error } = await authClient
+
+    const { error } = await authClient
     .from("app_settings")
     .upsert(
       {
         id: "global",
         value: {
+          ...stored,
           currency: defaultConfig.currency,
           gstRate: defaultConfig.gstRate,
           minBillableHours: defaultConfig.minBillableHours,
           dayStart: defaultConfig.dayStart,
           nightStart: defaultConfig.nightStart,
           quoteText: {
-  termsAndConditions: defaultConfig.quoteText.termsAndConditions,
-},
+            ...(stored.quoteText || {}),
+            termsAndConditions: defaultConfig.quoteText.termsAndConditions,
+          },
         },
       },
       { onConflict: "id" }
     );
-
+    
   if (error) {
     console.error("Failed to restore defaults:", error);
     alert("Failed to restore defaults: " + error.message);
