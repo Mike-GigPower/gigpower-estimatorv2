@@ -821,6 +821,13 @@ th {
   font-weight: 700;
   color: #fff;
 }
+/* D31 window label ("Christmas ×2"), on its own line under the segment. */
+.labour-cost-tip-row .lc-window {
+  grid-column: 2 / -1;
+  margin-top: -2px;
+  font-size: 11.5px;
+  color: #f59e0b;
+}
 
 .labour-cost-tip-foot {
   display: block;

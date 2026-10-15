@@ -15,6 +15,10 @@ type LabourCostSegment = {
   hours: number;
   rate: number;
   costExGst: number;
+  // Set only on a slice inside a D31 window (see calc.ts).
+  doublePenalty?: boolean;
+  windowName?: string;
+  multiplier?: number;
 };
 
 type LabourResultLine = {
@@ -545,6 +549,11 @@ const showNotes = notesExpanded || !!(line.notes && line.notes.trim());
                     <span className="lc-hrs">{hoursToDecimal(s.hours)}h</span>
                     <span className="lc-rate">@ {money(s.rate)}</span>
                     <span className="lc-sub">{money(s.costExGst)}</span>
+                    {s.doublePenalty && (
+                      <span className="lc-window">
+                        {s.windowName} ×{s.multiplier}
+                      </span>
+                    )}
                   </span>
                 ))}
               </span>

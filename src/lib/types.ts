@@ -124,6 +124,10 @@ export type LabourCostSegment = {
   hours: number;
   rate: number;
   costExGst: number;
+  // Set only on a slice inside a D31 window ("Christmas", 2).
+  doublePenalty?: boolean;
+  windowName?: string;
+  multiplier?: number;
 };
 
 export type NonLabourLine = {

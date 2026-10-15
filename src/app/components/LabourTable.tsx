@@ -36,6 +36,10 @@ type LabourCostSegment = {
   hours: number;
   rate: number;
   costExGst: number;
+  // Set only on a slice inside a D31 window (see calc.ts).
+  doublePenalty?: boolean;
+  windowName?: string;
+  multiplier?: number;
 };
 
 type LabourResultLine = {

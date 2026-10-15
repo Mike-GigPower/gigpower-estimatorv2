@@ -219,16 +219,60 @@ function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
+// A slice of a shift that is wholly day or night, on one date, and wholly
+// inside or outside every double-penalty window. multiplier is 1 outside any
+// window; windowName is set only inside one.
+type ShiftPart = {
+  dateISO: string;
+  dayHrs: number;
+  nightHrs: number;
+  multiplier: number;
+  windowName?: string;
+};
+
+// The D31 windows that can touch a date in year y: those starting in y and
+// in y - 1, so 1 Jan picks up the New Year window that began on 31 Dec. An
+// endMd before startMd ends in the following year. Built wall-clock with
+// new Date(y, m, d, h, min), like the day/night boundaries.
+function windowsAround(
+  y: number,
+  config: AppConfig
+): Array<{ startMs: number; endMs: number; name: string; multiplier: number }> {
+  const out: Array<{ startMs: number; endMs: number; name: string; multiplier: number }> = [];
+  for (const w of config.doublePenaltyWindows ?? []) {
+    const sMd = /^(\d{2})-(\d{2})$/.exec(w.startMd);
+    const eMd = /^(\d{2})-(\d{2})$/.exec(w.endMd);
+    const sT = parseTimeHHMM(w.startTime);
+    const eT = parseTimeHHMM(w.endTime);
+    if (!sMd || !eMd || !sT || !eT || !(w.multiplier > 1)) continue;
+    const endYearOffset = w.endMd < w.startMd ? 1 : 0;
+    for (const year of [y - 1, y]) {
+      const startMs = new Date(year, Number(sMd[1]) - 1, Number(sMd[2]), sT.h, sT.m, 0, 0).getTime();
+      const endMs = new Date(
+        year + endYearOffset,
+        Number(eMd[1]) - 1,
+        Number(eMd[2]),
+        eT.h,
+        eT.m,
+        0,
+        0
+      ).getTime();
+      if (endMs > startMs) out.push({ startMs, endMs, name: w.name, multiplier: w.multiplier });
+    }
+  }
+  return out;
+}
+
 function splitIntoDayNightByDate(
   start: Date,
   end: Date,
   config: AppConfig
-): Array<{ dateISO: string; dayHrs: number; nightHrs: number }> {
+): ShiftPart[] {
   const s = start.getTime();
   const e = end.getTime();
   if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) return [];
 
-  const out: Array<{ dateISO: string; dayHrs: number; nightHrs: number }> = [];
+  const out: ShiftPart[] = [];
 
   const dayStart = parseTimeHHMM(config.dayStart) ?? { h: 8, m: 0 };
   const nightStart = parseTimeHHMM(config.nightStart) ?? { h: 20, m: 0 };
@@ -249,10 +293,14 @@ function splitIntoDayNightByDate(
     const dayStartDT = new Date(y, m, d, dayStart.h, dayStart.m, 0, 0);
     const nightStartDT = new Date(y, m, d, nightStart.h, nightStart.m, 0, 0);
     const nextMidnight = new Date(y, m, d + 1, 0, 0, 0, 0);
+    const windows = windowsAround(y, config);
 
-    const candidates = [dayStartDT, nightStartDT, nextMidnight]
-      .map((dt) => dt.getTime())
-      .filter((t) => t > curMs);
+    // Also cut at every window edge, so each part lies wholly inside or
+    // outside each window.
+    const candidates = [
+      ...[dayStartDT, nightStartDT, nextMidnight].map((dt) => dt.getTime()),
+      ...windows.flatMap((w) => [w.startMs, w.endMs]),
+    ].filter((t) => t > curMs);
 
     const nextBoundaryMs = candidates.length ? Math.min(...candidates) : nextMidnight.getTime();
     const segEndMs = Math.min(e, nextBoundaryMs);
@@ -269,10 +317,20 @@ function splitIntoDayNightByDate(
 
     const isDay = curMs >= dayStartDT.getTime() && curMs < nightStartDT.getTime();
 
+    // Overlapping windows: the highest multiplier wins.
+    let inWindow: { name: string; multiplier: number } | undefined;
+    for (const w of windows) {
+      if (curMs >= w.startMs && curMs < w.endMs && w.multiplier > (inWindow?.multiplier ?? 1)) {
+        inWindow = w;
+      }
+    }
+
     out.push({
       dateISO,
       dayHrs: isDay ? segHours : 0,
       nightHrs: isDay ? 0 : segHours,
+      multiplier: inWindow?.multiplier ?? 1,
+      ...(inWindow ? { windowName: inWindow.name } : {}),
     });
 
     cursor = new Date(segEndMs);
@@ -373,7 +431,7 @@ export function calculateLabourLine(
   const ot8Parts = splitIntoDayNightByDate(baseEnd, ot8End, config);
   const ot10Parts = splitIntoDayNightByDate(ot8End, endDT, config);
 
-  const sum = (arr: Array<{ dayHrs: number; nightHrs: number }>) => ({
+  const sum = (arr: ShiftPart[]) => ({
     day: arr.reduce((a, x) => a + x.dayHrs, 0),
     night: arr.reduce((a, x) => a + x.nightHrs, 0),
   });
@@ -382,51 +440,59 @@ export function calculateLabourLine(
   const ot8Sum = sum(ot8Parts);
   const ot10Sum = sum(ot10Parts);
 
-  function maxDay(dateISO: string): number {
-    const sunday = isSunday(dateISO);
-    const ph = isPublicHoliday(dateISO, config);
-    return Math.max(rr.day, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
+  // D31: inside a window every tier, day and night, is at least multiplier ×
+  // the role's public holiday rate (Sunday if it has none), holiday or not.
+  // Outside a window this is 0, so the max below is unchanged.
+  const windowBaseRate = rr.publicHoliday > 0 ? rr.publicHoliday : rr.sunday;
+  function windowRate(p: ShiftPart): number {
+    return p.multiplier > 1 ? p.multiplier * windowBaseRate : 0;
   }
 
-  function maxNight(dateISO: string): number {
-    const sunday = isSunday(dateISO);
-    const ph = isPublicHoliday(dateISO, config);
-    return Math.max(rr.night, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
+  function maxDay(p: ShiftPart): number {
+    const sunday = isSunday(p.dateISO);
+    const ph = isPublicHoliday(p.dateISO, config);
+    return Math.max(rr.day, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0, windowRate(p));
+  }
+
+  function maxNight(p: ShiftPart): number {
+    const sunday = isSunday(p.dateISO);
+    const ph = isPublicHoliday(p.dateISO, config);
+    return Math.max(rr.night, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0, windowRate(p));
   }
 
   // A null over8/over10 means the card has no such tier: it contributes 0 to
   // the max, so the base (or Sunday/PH) rate applies. Same result as a tier
   // equal to the base rate; see calc.test.ts.
-  function maxOt8Day(dateISO: string): number {
-    const sunday = isSunday(dateISO);
-    const ph = isPublicHoliday(dateISO, config);
-    return Math.max(rr.over8 ?? 0, rr.day, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
+  function maxOt8Day(p: ShiftPart): number {
+    const sunday = isSunday(p.dateISO);
+    const ph = isPublicHoliday(p.dateISO, config);
+    return Math.max(rr.over8 ?? 0, rr.day, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0, windowRate(p));
   }
 
-  function maxOt8Night(dateISO: string): number {
-    const sunday = isSunday(dateISO);
-    const ph = isPublicHoliday(dateISO, config);
-    return Math.max(rr.over8 ?? 0, rr.night, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
+  function maxOt8Night(p: ShiftPart): number {
+    const sunday = isSunday(p.dateISO);
+    const ph = isPublicHoliday(p.dateISO, config);
+    return Math.max(rr.over8 ?? 0, rr.night, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0, windowRate(p));
   }
 
-  function maxOt10Day(dateISO: string): number {
-    const sunday = isSunday(dateISO);
-    const ph = isPublicHoliday(dateISO, config);
-    return Math.max(rr.over10 ?? 0, rr.day, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
+  function maxOt10Day(p: ShiftPart): number {
+    const sunday = isSunday(p.dateISO);
+    const ph = isPublicHoliday(p.dateISO, config);
+    return Math.max(rr.over10 ?? 0, rr.day, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0, windowRate(p));
   }
 
-  function maxOt10Night(dateISO: string): number {
-    const sunday = isSunday(dateISO);
-    const ph = isPublicHoliday(dateISO, config);
-    return Math.max(rr.over10 ?? 0, rr.night, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0);
+  function maxOt10Night(p: ShiftPart): number {
+    const sunday = isSunday(p.dateISO);
+    const ph = isPublicHoliday(p.dateISO, config);
+    return Math.max(rr.over10 ?? 0, rr.night, sunday ? rr.sunday : 0, ph ? rr.publicHoliday : 0, windowRate(p));
   }
 
   function costParts(
-    parts: Array<{ dateISO: string; dayHrs: number; nightHrs: number }>,
-    dayFn: (d: string) => number,
-    nightFn: (d: string) => number
+    parts: ShiftPart[],
+    dayFn: (p: ShiftPart) => number,
+    nightFn: (p: ShiftPart) => number
   ): number {
-    return parts.reduce((acc, p) => acc + p.dayHrs * dayFn(p.dateISO) + p.nightHrs * nightFn(p.dateISO), 0);
+    return parts.reduce((acc, p) => acc + p.dayHrs * dayFn(p) + p.nightHrs * nightFn(p), 0);
   }
 
   const costBase = costParts(baseParts, maxDay, maxNight);
@@ -443,15 +509,22 @@ export function calculateLabourLine(
   // compute the costs above, so the segments always reconcile with costExGst.
   function buildSegments(
     tier: "base" | "ot8" | "ot10",
-    parts: Array<{ dateISO: string; dayHrs: number; nightHrs: number }>,
-    dayFn: (d: string) => number,
-    nightFn: (d: string) => number
+    parts: ShiftPart[],
+    dayFn: (p: ShiftPart) => number,
+    nightFn: (p: ShiftPart) => number
   ): LabourCostSegment[] {
     const out: LabourCostSegment[] = [];
 
+    // Window fields only inside a window, so segments outside one are
+    // unchanged.
+    const windowFields = (p: ShiftPart) =>
+      p.windowName !== undefined
+        ? { doublePenalty: true, windowName: p.windowName, multiplier: p.multiplier }
+        : {};
+
     for (const p of parts) {
       if (p.dayHrs > 0) {
-        const rate = dayFn(p.dateISO);
+        const rate = dayFn(p);
         out.push({
           tier,
           period: "day",
@@ -459,10 +532,11 @@ export function calculateLabourLine(
           hours: round2(p.dayHrs),
           rate,
           costExGst: round2(p.dayHrs * rate),
+          ...windowFields(p),
         });
       }
       if (p.nightHrs > 0) {
-        const rate = nightFn(p.dateISO);
+        const rate = nightFn(p);
         out.push({
           tier,
           period: "night",
@@ -470,6 +544,7 @@ export function calculateLabourLine(
           hours: round2(p.nightHrs),
           rate,
           costExGst: round2(p.nightHrs * rate),
+          ...windowFields(p),
         });
       }
     }
