@@ -4,7 +4,6 @@ import { useAppConfig } from "@/src/lib/useAppConfig";
 import RateSchedule from "./RateSchedule";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabaseData } from "@/src/lib/supabase";
 import { createClient } from "@/src/lib/supabase/client";
 
 
@@ -173,7 +172,7 @@ async function handleConfirmClearAllQuotes() {
   
   async function fetchQuoteCount() {
   try {
-    const { count, error } = await supabaseData
+    const { count, error } = await authClient
       .from("quotes")
       .select("*", { count: "exact", head: true });
 
@@ -192,7 +191,7 @@ async function handleConfirmClearAllQuotes() {
 // Be careful: local testing will affect whichever Supabase project your env points to.
 async function clearAllSavedQuotes() {
   try {
-    const { error } = await supabaseData
+    const { error } = await authClient
       .from("quotes")
       .delete()
       .neq("id", "");

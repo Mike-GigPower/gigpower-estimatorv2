@@ -11,7 +11,6 @@ import LabourTable from "./components/LabourTable";
 import NonLabourTable from "./components/NonLabourTable";
 import QuoteTotalsCard from "./components/QuoteTotalsCard";
 import TermsConditionsBox from "./components/TermsConditionsBox";
-import { supabaseData } from "@/src/lib/supabase";
 import { createClient } from "@/src/lib/supabase/client";
 import { parseDurationHours, parseStartTime } from "@/src/lib/estimator/calc";
 
@@ -151,8 +150,10 @@ function downloadPdf() {
  * Generate the quote number.
  * Example: GP-12345
  */
-async function generateQuoteNumber(): Promise<string> {
-  const { data, error } = await supabaseData.rpc("next_quote_number");
+async function generateQuoteNumber(
+  client: ReturnType<typeof createClient>
+): Promise<string> {
+  const { data, error } = await client.rpc("next_quote_number");
 
   if (error || !data) {
     throw new Error(error?.message || "Failed to generate quote number");
@@ -1127,8 +1128,8 @@ const actorId = sessionData.session.user.id;
 const actorLabel = sessionData.session.user.email || "unknown user";
 
   const quoteNumber = overwriteId
-    ? input.quoteNumber || await generateQuoteNumber()
-    : await generateQuoteNumber();
+    ? input.quoteNumber || await generateQuoteNumber(authClient)
+    : await generateQuoteNumber(authClient);
   const quoteDateValue = input.quoteDate || formatDateDDMMYYYY(new Date());
 
 const validUntilValue =
@@ -1150,7 +1151,7 @@ const ensuredInput: QuoteInput = {
 };
   // Update an existing quote and create a new history version
   if (overwriteId) {
-    const { data: existingQuote, error: fetchError } = await supabaseData
+    const { data: existingQuote, error: fetchError } = await authClient
       .from("quotes")
       .select("id, current_version")
       .eq("id", overwriteId)
@@ -1164,7 +1165,7 @@ const ensuredInput: QuoteInput = {
 
     const nextVersion = (existingQuote?.current_version || 1) + 1;
 
-    const { error: updateError } = await supabaseData
+    const { error: updateError } = await authClient
   .from("quotes")
   .update({
     name,
@@ -1190,7 +1191,7 @@ const ensuredInput: QuoteInput = {
   return;
 }
 
-    const { error: versionError } = await supabaseData
+    const { error: versionError } = await authClient
       .from("quote_versions")
       .insert([
         {
@@ -1216,7 +1217,7 @@ const ensuredInput: QuoteInput = {
   }
 
   // Save a new quote and create version 1 history
-  const { data: insertedQuote, error: insertError } = await supabaseData
+  const { data: insertedQuote, error: insertError } = await authClient
     .from("quotes")
     .insert([
       {
@@ -1244,7 +1245,7 @@ request_number: ensuredInput.requestNumber || null,
   return;
     }
 
-    const { error: versionError } = await supabaseData
+    const { error: versionError } = await authClient
       .from("quote_versions")
       .insert([
         {
@@ -1390,7 +1391,7 @@ if (!profile || profile.role !== "admin") {
 
   
 
-  const { error } = await supabaseData
+  const { error } = await authClient
     .from("quotes")
     .update({
       is_deleted: true,
@@ -1448,7 +1449,7 @@ if (!profile || profile.role !== "admin") {
   return;
 }
 
-  const { error } = await supabaseData
+  const { error } = await authClient
     .from("quotes")
     .update({
       is_deleted: true,
@@ -1624,8 +1625,6 @@ if (createdByIds.length > 0) {
  */
 const filteredDrafts = savedDrafts.filter((d) => {
   const q = quoteSearch.trim().toLowerCase();
-
-  const quoteNumber = d.input?.quoteNumber || "";
   const requestNumber = d.input?.requestNumber || "";
   const companyName = d.input?.companyName || "";
   const contactName = d.input?.contactName || "";
