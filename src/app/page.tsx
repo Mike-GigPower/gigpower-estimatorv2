@@ -1625,6 +1625,8 @@ if (createdByIds.length > 0) {
  */
 const filteredDrafts = savedDrafts.filter((d) => {
   const q = quoteSearch.trim().toLowerCase();
+  
+  const quoteNumber = d.input?.quoteNumber || "";
   const requestNumber = d.input?.requestNumber || "";
   const companyName = d.input?.companyName || "";
   const contactName = d.input?.contactName || "";
