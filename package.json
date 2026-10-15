@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "npm run test:pricing",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --import ./scripts/test-resolve.mjs --test \"src/**/*.test.ts\""
+    "test": "node --import ./scripts/test-resolve.mjs --test \"src/**/*.test.ts\"",
+    "test:pricing": "tsx scripts/pricing-tests.ts"
   },
   "dependencies": {
     "@sparticuz/chromium": "^147.0.2",
@@ -29,6 +31,7 @@
     "@types/react-dom": "18.3.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.1.6",
+    "tsx": "4.23.15",
     "typescript": "5.5.4"
   }
 }

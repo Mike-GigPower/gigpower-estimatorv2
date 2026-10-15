@@ -1,0 +1,1265 @@
+[
+  {
+    "code": "C01",
+    "title": "Plain day",
+    "rule": "Plain day",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-10-14",
+        "startTime": "08:00",
+        "durationHours": 4,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 252.0,
+      "billableHours": 4
+    }
+  },
+  {
+    "code": "C02",
+    "title": "Day to night at 20:00",
+    "rule": "Day \u2192 night at 20:00",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-10-14",
+        "startTime": "16:00",
+        "durationHours": 6,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 411.8,
+      "billableHours": 6
+    }
+  },
+  {
+    "code": "C03",
+    "title": "OT8 at night rate, OT10 at Sun/PH",
+    "rule": "Overtime tiers",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-10-14",
+        "startTime": "08:00",
+        "durationHours": 12,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 863.7,
+      "billableHours": 12
+    }
+  },
+  {
+    "code": "C04",
+    "title": "Saturday to Sunday at midnight",
+    "rule": "Midnight split",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-10-17",
+        "startTime": "20:00",
+        "durationHours": 6,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 519.5,
+      "billableHours": 6
+    }
+  },
+  {
+    "code": "C05",
+    "title": "PH starts at 00:00",
+    "rule": "PH from midnight (D6)",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-11-02",
+        "startTime": "22:00",
+        "durationHours": 4,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 359.7,
+      "billableHours": 4
+    }
+  },
+  {
+    "code": "C06",
+    "title": "4 h minimum",
+    "rule": "Global minimum",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-10-14",
+        "startTime": "10:00",
+        "durationHours": 2,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 252.0,
+      "billableHours": 4
+    }
+  },
+  {
+    "code": "C07",
+    "title": "Null over8 (M&OP)",
+    "rule": "No 8-hour tier",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 69.6,
+        "night": 69.6,
+        "sunday": 95.45,
+        "publicHoliday": 95.45,
+        "over8": null,
+        "over10": 95.45
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-10-14",
+        "startTime": "08:00",
+        "durationHours": 12,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 886.9,
+      "billableHours": 12
+    }
+  },
+  {
+    "code": "C08",
+    "title": "Show Crew Sunday 99.95",
+    "rule": "Sunday rate (D5)",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 84.5,
+        "night": 84.5,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 84.5,
+        "over10": 84.5
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-10-18",
+        "startTime": "10:00",
+        "durationHours": 4,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 399.8,
+      "billableHours": 4
+    }
+  },
+  {
+    "code": "C09",
+    "title": "Qty",
+    "rule": "Qty",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-10-14",
+        "startTime": "16:00",
+        "durationHours": 6,
+        "qty": 3
+      }
+    },
+    "expected": {
+      "costExGst": 1235.4,
+      "billableHours": 6
+    }
+  },
+  {
+    "code": "C10",
+    "title": "Weekday night",
+    "rule": "Weekday night",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 69.5,
+        "night": 89.6,
+        "sunday": 106.8,
+        "publicHoliday": 106.8,
+        "over8": 89.6,
+        "over10": 106.8
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-10-14",
+        "startTime": "22:00",
+        "durationHours": 4,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 358.4,
+      "billableHours": 4
+    }
+  },
+  {
+    "code": "X01",
+    "title": "Window starts 20:00 on 24 Dec",
+    "rule": "D31 window",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-12-24",
+        "startTime": "18:00",
+        "durationHours": 8,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 1325.4,
+      "billableHours": 8,
+      "segments": [
+        {
+          "tier": "base",
+          "period": "day",
+          "dateISO": "2026-12-24",
+          "hours": 2,
+          "rate": 63.0,
+          "costExGst": 126.0,
+          "doublePenalty": false
+        },
+        {
+          "tier": "base",
+          "period": "night",
+          "dateISO": "2026-12-24",
+          "hours": 4,
+          "rate": 199.9,
+          "costExGst": 799.6,
+          "doublePenalty": true
+        },
+        {
+          "tier": "base",
+          "period": "night",
+          "dateISO": "2026-12-25",
+          "hours": 2,
+          "rate": 199.9,
+          "costExGst": 399.8,
+          "doublePenalty": true
+        }
+      ]
+    }
+  },
+  {
+    "code": "X02",
+    "title": "Window ends 12:00 on 25 Dec; then ordinary PH",
+    "rule": "D31 window",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-12-25",
+        "startTime": "10:00",
+        "durationHours": 4,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 599.7,
+      "billableHours": 4
+    }
+  },
+  {
+    "code": "X03",
+    "title": "NYE window",
+    "rule": "D31 window",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-12-31",
+        "startTime": "22:00",
+        "durationHours": 4,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 799.6,
+      "billableHours": 4
+    }
+  },
+  {
+    "code": "X04",
+    "title": "Substitute holiday is not doubled",
+    "rule": "D31 window",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-12-28",
+        "startTime": "10:00",
+        "durationHours": 4,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 399.8,
+      "billableHours": 4
+    }
+  },
+  {
+    "code": "X05",
+    "title": "Boxing Day is ordinary PH",
+    "rule": "D31 window",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-12-26",
+        "startTime": "10:00",
+        "durationHours": 4,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 399.8,
+      "billableHours": 4
+    }
+  },
+  {
+    "code": "X06",
+    "title": "Window beats overtime",
+    "rule": "D31 window",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-12-24",
+        "startTime": "12:00",
+        "durationHours": 12,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 1303.6,
+      "billableHours": 12
+    }
+  },
+  {
+    "code": "X07",
+    "title": "NYE window ends 12:00 on 1 Jan (crosses the year)",
+    "rule": "D31 window",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2027-01-01",
+        "startTime": "10:00",
+        "durationHours": 4,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 599.7,
+      "billableHours": 4
+    }
+  },
+  {
+    "code": "X08",
+    "title": "Window uses the role's own PH rate",
+    "rule": "D31 window",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 84.5,
+        "night": 84.5,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 84.5,
+        "over10": 84.5
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-12-24",
+        "startTime": "20:00",
+        "durationHours": 4,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 799.6,
+      "billableHours": 4
+    }
+  },
+  {
+    "code": "X09",
+    "title": "24 Dec before 20:00 is an ordinary day",
+    "rule": "D31 window",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 63.0,
+        "night": 79.9,
+        "sunday": 99.95,
+        "publicHoliday": 99.95,
+        "over8": 79.9,
+        "over10": 99.95
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-12-24",
+        "startTime": "14:00",
+        "durationHours": 4,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 252.0,
+      "billableHours": 4
+    }
+  },
+  {
+    "code": "C11",
+    "title": "Per-role minimum: 1 h of Training bills 1 h, not 4",
+    "rule": "Per-role minimum (S-3)",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 69.6,
+        "night": 69.6,
+        "sunday": 95.45,
+        "publicHoliday": 95.45,
+        "over8": null,
+        "over10": 95.45,
+        "minBillableHours": 0.5
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-10-14",
+        "startTime": "10:00",
+        "durationHours": 1,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 69.6,
+      "billableHours": 1
+    }
+  },
+  {
+    "code": "C12",
+    "title": "Per-role minimum applies below it",
+    "rule": "Per-role minimum (S-3)",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 69.6,
+        "night": 69.6,
+        "sunday": 95.45,
+        "publicHoliday": 95.45,
+        "over8": null,
+        "over10": 95.45,
+        "minBillableHours": 0.5
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-10-14",
+        "startTime": "10:00",
+        "durationHours": 0.25,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 34.8,
+      "billableHours": 0.5
+    }
+  },
+  {
+    "code": "C13",
+    "title": "No per-role minimum: the global 4 h still applies",
+    "rule": "Per-role minimum (S-3)",
+    "scope": "both",
+    "input": {
+      "rate": {
+        "day": 69.6,
+        "night": 69.6,
+        "sunday": 95.45,
+        "publicHoliday": 95.45,
+        "over8": null,
+        "over10": 95.45
+      },
+      "settings": {
+        "dayStart": "08:00",
+        "nightStart": "20:00",
+        "minBillableHours": 4
+      },
+      "publicHolidays": [
+        "2026-11-03",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-28",
+        "2027-01-01"
+      ],
+      "doublePenaltyWindows": [
+        {
+          "name": "Christmas",
+          "startMd": "12-24",
+          "startTime": "20:00",
+          "endMd": "12-25",
+          "endTime": "12:00",
+          "multiplier": 2
+        },
+        {
+          "name": "New Year",
+          "startMd": "12-31",
+          "startTime": "20:00",
+          "endMd": "01-01",
+          "endTime": "12:00",
+          "multiplier": 2
+        }
+      ],
+      "line": {
+        "shiftDate": "2026-10-14",
+        "startTime": "10:00",
+        "durationHours": 1,
+        "qty": 1
+      }
+    },
+    "expected": {
+      "costExGst": 278.4,
+      "billableHours": 4
+    }
+  }
+]
