@@ -1,7 +1,12 @@
 import { supabaseData } from "./supabase";
 import { defaultConfig } from "./config";
 import { STANDARD_SET_CODE, STANDARD_SET_ID, type AppConfig } from "./types";
-import { RATE_CARD_COLUMNS, mapRateCardRow } from "./rateCards";
+import {
+  DOUBLE_PENALTY_WINDOW_COLUMNS,
+  RATE_CARD_COLUMNS,
+  mapDoublePenaltyWindowRow,
+  mapRateCardRow,
+} from "./rateCards";
 
 /**
  * Server-side equivalent of useAppConfig's load path, for API routes that
@@ -21,7 +26,7 @@ import { RATE_CARD_COLUMNS, mapRateCardRow } from "./rateCards";
  * pricing even if that policy changes.
  */
 export async function loadAppConfigServer(): Promise<AppConfig | null> {
-  const [settingsRes, holidaysRes, ratesRes] = await Promise.all([
+  const [settingsRes, holidaysRes, windowsRes, ratesRes] = await Promise.all([
     supabaseData
       .from("app_settings")
       .select("value")
@@ -33,6 +38,10 @@ export async function loadAppConfigServer(): Promise<AppConfig | null> {
       .eq("is_active", true)
       .order("holiday_date", { ascending: true }),
     supabaseData
+      .from("double_penalty_windows")
+      .select(DOUBLE_PENALTY_WINDOW_COLUMNS)
+      .eq("is_active", true),
+    supabaseData
       .from("rate_cards")
       .select(RATE_CARD_COLUMNS)
       .eq("is_active", true)
@@ -40,10 +49,11 @@ export async function loadAppConfigServer(): Promise<AppConfig | null> {
       .order("sort_order", { ascending: true }),
   ]);
 
-  if (settingsRes.error || holidaysRes.error || ratesRes.error) {
+  if (settingsRes.error || holidaysRes.error || windowsRes.error || ratesRes.error) {
     console.error("loadAppConfigServer: Supabase read failed", {
       settingsError: settingsRes.error,
       holidaysError: holidaysRes.error,
+      windowsError: windowsRes.error,
       ratesError: ratesRes.error,
     });
     return null;
@@ -64,6 +74,7 @@ export async function loadAppConfigServer(): Promise<AppConfig | null> {
       date: row.holiday_date,
       label: row.name,
     })),
+    doublePenaltyWindows: (windowsRes.data || []).map(mapDoublePenaltyWindowRow),
     rates: ratesRes.data.map((row: any) => mapRateCardRow(row, STANDARD_SET_CODE)),
   };
 }

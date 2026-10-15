@@ -4,6 +4,7 @@ import {
   MOPT_SET_CODE,
   STANDARD_SET_CODE,
   type AppConfig,
+  type DoublePenaltyWindow,
   type QuoteRateCard,
   type RateRow,
 } from "./types";
@@ -36,6 +37,25 @@ export function mapRateCardRow(row: any, setCode: string): RateRow {
     sortOrder: row.sort_order,
     setCode,
     callNames: Array.isArray(row.call_names) ? row.call_names : [],
+  };
+}
+
+/**
+ * double_penalty_windows columns both loaders read (active rows only), and
+ * the mapping to AppConfig.doublePenaltyWindows. Shared so useAppConfig.ts
+ * and serverConfig.ts price the same windows.
+ */
+export const DOUBLE_PENALTY_WINDOW_COLUMNS =
+  "name, start_md, start_time, end_md, end_time, multiplier";
+
+export function mapDoublePenaltyWindowRow(row: any): DoublePenaltyWindow {
+  return {
+    name: row.name,
+    startMd: row.start_md,
+    startTime: row.start_time,
+    endMd: row.end_md,
+    endTime: row.end_time,
+    multiplier: Number(row.multiplier),
   };
 }
 

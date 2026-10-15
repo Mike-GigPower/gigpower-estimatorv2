@@ -246,6 +246,20 @@ export type RateRow = {
   sortOrder?: number;
 };
 
+/**
+ * A recurring double-penalty window (D31), from double_penalty_windows.
+ * Month-day + wall-clock time in Melbourne. An endMd before startMd ends in
+ * the next year (New Year: 12-31 20:00 → 01-01 12:00).
+ */
+export type DoublePenaltyWindow = {
+  name: string;
+  startMd: string; // "MM-DD"
+  startTime: string; // "HH:MM"
+  endMd: string;
+  endTime: string;
+  multiplier: number;
+};
+
 export type AppConfig = {
   currency: string;
   gstRate: number;
@@ -257,6 +271,8 @@ export type AppConfig = {
   	date: string;
   	label: string;
   }[];
+  // Active windows only. Empty means no window pricing (never invented).
+  doublePenaltyWindows: DoublePenaltyWindow[];
   quoteText: {
     termsAndConditions: string;
   };

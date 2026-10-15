@@ -50,6 +50,7 @@ const CONFIG: AppConfig = {
   nightStart: "20:00",
   rates: RATES,
   publicHolidays: [],
+  doublePenaltyWindows: [],
   quoteText: { termsAndConditions: "" },
 };
 

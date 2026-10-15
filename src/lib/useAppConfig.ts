@@ -5,7 +5,12 @@ import { defaultConfig } from "./config";
 import { supabaseData } from "./supabase";
 import { createClient } from "./supabase/client";
 import type { AppConfig } from "./types";
-import { RATE_CARD_COLUMNS, mapRateCardRow } from "./rateCards";
+import {
+  DOUBLE_PENALTY_WINDOW_COLUMNS,
+  RATE_CARD_COLUMNS,
+  mapDoublePenaltyWindowRow,
+  mapRateCardRow,
+} from "./rateCards";
  
 /**
  * Read the stored settings so a save keeps any key this screen doesn't manage.
@@ -46,6 +51,11 @@ export function useAppConfig() {
         .select("holiday_date, name")
         .eq("is_active", true)
         .order("holiday_date", { ascending: true });
+      // Active only (explicit, like holidays; anon RLS also filters).
+      const { data: windowsData, error: windowsError } = await supabaseData
+        .from("double_penalty_windows")
+        .select(DOUBLE_PENALTY_WINDOW_COLUMNS)
+        .eq("is_active", true);
 
       // All active card sets (Standard + customer), so a quote can switch card
       // without reloading. The embedded set supplies each row's set code.
@@ -56,10 +66,11 @@ export function useAppConfig() {
         .eq("rate_card_sets.is_active", true)
         .order("sort_order", { ascending: true });
 
-      if (settingsError || holidaysError || ratesError || !ratesData?.length) {
+      if (settingsError || holidaysError || windowsError || ratesError || !ratesData?.length) {
         console.error("Failed to load config from Supabase:", {
           settingsError,
           holidaysError,
+          windowsError,
           ratesError,
           rateRows: ratesData?.length ?? 0,
         });
@@ -75,6 +86,7 @@ export function useAppConfig() {
           date: row.holiday_date,
           label: row.name,
         })),
+        doublePenaltyWindows: (windowsData || []).map(mapDoublePenaltyWindowRow),
         rates: ratesData.map((row: any) => mapRateCardRow(row, row.rate_card_sets.code)),
       });
 

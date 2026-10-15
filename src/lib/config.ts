@@ -121,6 +121,8 @@ export const defaultConfig: AppConfig = {
   { date: "2026-12-25", label: "Christmas Day" },
   { date: "2026-12-26", label: "Boxing Day" },
 ],
+  // Never defaulted: a load failure must not invent windows.
+  doublePenaltyWindows: [],
   quoteText: {
     termsAndConditions: TERMS_AND_CONDITIONS_TEXT,
   },
