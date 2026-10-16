@@ -123,6 +123,7 @@ export const defaultConfig: AppConfig = {
 ],
   // Never defaulted: a load failure must not invent windows.
   doublePenaltyWindows: [],
+  rateItems: [],
   quoteText: {
     termsAndConditions: TERMS_AND_CONDITIONS_TEXT,
   },

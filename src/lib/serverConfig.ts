@@ -4,8 +4,10 @@ import { STANDARD_SET_CODE, STANDARD_SET_ID, type AppConfig } from "./types";
 import {
   DOUBLE_PENALTY_WINDOW_COLUMNS,
   RATE_CARD_COLUMNS,
+  RATE_ITEM_COLUMNS,
   mapDoublePenaltyWindowRow,
   mapRateCardRow,
+  mapRateItemRow,
 } from "./rateCards";
 
 /**
@@ -26,7 +28,7 @@ import {
  * pricing even if that policy changes.
  */
 export async function loadAppConfigServer(): Promise<AppConfig | null> {
-  const [settingsRes, holidaysRes, windowsRes, ratesRes] = await Promise.all([
+  const [settingsRes, holidaysRes, windowsRes, ratesRes, itemsRes] = await Promise.all([
     supabaseData
       .from("app_settings")
       .select("value")
@@ -47,7 +49,18 @@ export async function loadAppConfigServer(): Promise<AppConfig | null> {
       .eq("is_active", true)
       .eq("set_id", STANDARD_SET_ID)
       .order("sort_order", { ascending: true }),
+    // Standard items only, as for rates (anon RLS also limits it to these).
+    supabaseData
+      .from("rate_items")
+      .select(RATE_ITEM_COLUMNS)
+      .eq("is_active", true)
+      .eq("set_id", STANDARD_SET_ID)
+      .order("sort_order", { ascending: true }),
   ]);
+
+  // Items don't price labour, so a failed read is logged, not fatal (same
+  // rule as useAppConfig): rateItems is null and nothing offers them.
+  if (itemsRes.error) console.error("loadAppConfigServer: rate_items read failed", itemsRes.error);
 
   if (settingsRes.error || holidaysRes.error || windowsRes.error || ratesRes.error) {
     console.error("loadAppConfigServer: Supabase read failed", {
@@ -76,5 +89,8 @@ export async function loadAppConfigServer(): Promise<AppConfig | null> {
     })),
     doublePenaltyWindows: (windowsRes.data || []).map(mapDoublePenaltyWindowRow),
     rates: ratesRes.data.map((row: any) => mapRateCardRow(row, STANDARD_SET_CODE)),
+    rateItems: itemsRes.error
+      ? null
+      : (itemsRes.data || []).map((row: any) => mapRateItemRow(row, STANDARD_SET_CODE)),
   };
 }

@@ -51,6 +51,7 @@ const CONFIG: AppConfig = {
   rates: RATES,
   publicHolidays: [],
   doublePenaltyWindows: [],
+  rateItems: [],
   quoteText: { termsAndConditions: "" },
 };
 

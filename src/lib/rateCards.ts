@@ -6,6 +6,7 @@ import {
   type AppConfig,
   type DoublePenaltyWindow,
   type QuoteRateCard,
+  type RateItem,
   type RateRow,
 } from "./types";
 
@@ -59,6 +60,60 @@ export function mapDoublePenaltyWindowRow(row: any): DoublePenaltyWindow {
     endTime: row.end_time,
     multiplier: Number(row.multiplier),
   };
+}
+
+/**
+ * rate_items columns both loaders read (active rows only). The set code is
+ * added per loader, as for rates: signed-in loaders embed rate_card_sets;
+ * the anon server loader filters to Standard (anon RLS sees only those).
+ */
+export const RATE_ITEM_COLUMNS =
+  "code, name, kind, charge_ex_gst, unit_label, effective_from, sort_order";
+
+export function mapRateItemRow(row: any, setCode: string): RateItem {
+  return {
+    setCode,
+    code: row.code,
+    name: row.name,
+    kind: row.kind,
+    // null = at cost, never 0 (see rateOrNull).
+    chargeExGst: rateOrNull(row.charge_ex_gst),
+    unitLabel: row.unit_label,
+    effectiveFrom: row.effective_from,
+    sortOrder: Number(row.sort_order) || 0,
+  };
+}
+
+/**
+ * The items a quote's "Add from list" offers (§6.2): flat and
+ * per-person-per-event items of Standard plus the quote's card, the version
+ * in effect on `onDate` (YYYY-MM-DD). Travel isn't offered: it needs
+ * per-venue durations only THE GOAT has. Standard first, then the card's,
+ * each by sort_order. Returns null while the card isn't priceable or when
+ * the items couldn't be loaded.
+ */
+export function itemsForQuote(
+  config: AppConfig,
+  rateCard: QuoteRateCard | null | undefined,
+  onDate: string
+): RateItem[] | null {
+  const code = rateCardSetCode(rateCard);
+  if (code === null || config.rateItems === null) return null;
+
+  const latest = new Map<string, RateItem>();
+  for (const item of config.rateItems) {
+    if (item.setCode !== STANDARD_SET_CODE && item.setCode !== code) continue;
+    if (item.kind === "travel_per_hour") continue;
+    if (item.effectiveFrom > onDate) continue;
+    const key = `${item.setCode}::${item.code}`;
+    const seen = latest.get(key);
+    if (!seen || item.effectiveFrom > seen.effectiveFrom) latest.set(key, item);
+  }
+
+  const setRank = (s: string) => (s === STANDARD_SET_CODE ? 0 : 1);
+  return Array.from(latest.values()).sort(
+    (a, b) => setRank(a.setCode) - setRank(b.setCode) || a.sortOrder - b.sortOrder
+  );
 }
 
 /**

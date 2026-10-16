@@ -267,6 +267,21 @@ export type DoublePenaltyWindow = {
   multiplier: number;
 };
 
+/**
+ * A non-hourly charge item (D25), from rate_items. Charge only. A null
+ * chargeExGst means "at cost": the user enters the amount (tolls).
+ */
+export type RateItem = {
+  setCode: string;
+  code: string;
+  name: string;
+  kind: "per_person_per_event" | "travel_per_hour" | "flat_item";
+  chargeExGst: number | null;
+  unitLabel: string;
+  effectiveFrom: string;
+  sortOrder: number;
+};
+
 export type AppConfig = {
   currency: string;
   gstRate: number;
@@ -280,6 +295,9 @@ export type AppConfig = {
   }[];
   // Active windows only. Empty means no window pricing (never invented).
   doublePenaltyWindows: DoublePenaltyWindow[];
+  // Active items of every set the loader can see. null = the read failed:
+  // the picker says so, nothing else depends on it (items aren't hourly).
+  rateItems: RateItem[] | null;
   quoteText: {
     termsAndConditions: string;
   };

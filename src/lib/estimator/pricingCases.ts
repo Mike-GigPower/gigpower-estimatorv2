@@ -117,6 +117,7 @@ export function configForCase(input: PricingCaseInput): AppConfig {
     ],
     publicHolidays: input.publicHolidays.map((date) => ({ date, label: "" })),
     doublePenaltyWindows: input.doublePenaltyWindows,
+    rateItems: [],
     quoteText: { termsAndConditions: "" },
   };
 }

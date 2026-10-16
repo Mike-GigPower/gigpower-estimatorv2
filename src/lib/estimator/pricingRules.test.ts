@@ -41,6 +41,7 @@ function config(windows: DoublePenaltyWindow[]): AppConfig {
       label: "",
     })),
     doublePenaltyWindows: windows,
+    rateItems: [],
     quoteText: { termsAndConditions: "" },
   };
 }

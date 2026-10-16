@@ -8,8 +8,10 @@ import type { AppConfig } from "./types";
 import {
   DOUBLE_PENALTY_WINDOW_COLUMNS,
   RATE_CARD_COLUMNS,
+  RATE_ITEM_COLUMNS,
   mapDoublePenaltyWindowRow,
   mapRateCardRow,
+  mapRateItemRow,
 } from "./rateCards";
  
 /**
@@ -66,6 +68,16 @@ export function useAppConfig() {
         .eq("rate_card_sets.is_active", true)
         .order("sort_order", { ascending: true });
 
+      // Items of every active set, like the rates. A failure here doesn't
+      // block pricing (items aren't hourly); the picker says it's unavailable.
+      const { data: itemsData, error: itemsError } = await authClient
+        .from("rate_items")
+        .select(`${RATE_ITEM_COLUMNS}, rate_card_sets!inner(code, is_active)`)
+        .eq("is_active", true)
+        .eq("rate_card_sets.is_active", true)
+        .order("sort_order", { ascending: true });
+      if (itemsError) console.error("Failed to load rate items:", itemsError);
+
       if (settingsError || holidaysError || windowsError || ratesError || !ratesData?.length) {
         console.error("Failed to load config from Supabase:", {
           settingsError,
@@ -88,6 +100,9 @@ export function useAppConfig() {
         })),
         doublePenaltyWindows: (windowsData || []).map(mapDoublePenaltyWindowRow),
         rates: ratesData.map((row: any) => mapRateCardRow(row, row.rate_card_sets.code)),
+        rateItems: itemsError
+          ? null
+          : (itemsData || []).map((row: any) => mapRateItemRow(row, row.rate_card_sets.code)),
       });
 
       setReady(true);

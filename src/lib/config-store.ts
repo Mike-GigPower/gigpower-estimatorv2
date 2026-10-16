@@ -17,7 +17,7 @@ export function loadAppConfig(): AppConfig {
     if (!validated.success) return defaultConfig;
 
     // Windows are never cached locally; only the live loaders supply them.
-    return { ...validated.data, doublePenaltyWindows: [] };
+    return { ...validated.data, doublePenaltyWindows: [], rateItems: [] };
   } catch {
     return defaultConfig;
   }
