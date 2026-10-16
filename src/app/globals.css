@@ -962,6 +962,19 @@ th {
   justify-content: space-between;
 }
 
+.non-labour-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.non-labour-add select {
+  width: auto;
+  max-width: 100%;
+}
+
 .non-labour-table-wrap {
   overflow-x: auto;
   margin-top: 10px;

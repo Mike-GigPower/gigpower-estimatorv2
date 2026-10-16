@@ -50,11 +50,17 @@ import type {
   QuoteResult,
 } from "@/src/lib/estimator/types";
 
-import { STANDARD_SET_CODE, roleForCallName, type QuoteRateCard } from "@/src/lib/types";
+import {
+  STANDARD_SET_CODE,
+  roleForCallName,
+  type QuoteRateCard,
+  type RateItem,
+} from "@/src/lib/types";
 import {
   callNameNotOnCardMessage,
   cardCallNames,
   isCallNameOnCard,
+  itemsForQuote,
   rateCardLabel,
   ratesForQuote,
 } from "@/src/lib/rateCards";
@@ -139,6 +145,22 @@ function emptyNonLabourLine(): NonLabourLine {
     qty: 1,
     amountExGst: 0,
   };
+}
+
+/** Same rule NonLabourRow uses to treat a row as blank. */
+function isBlankNonLabourLine(line: NonLabourLine): boolean {
+  return (
+    (line.title || "").trim() === "" &&
+    (line.description || "").trim() === "" &&
+    line.amountExGst === 0 &&
+    line.qty === 1
+  );
+}
+
+/** Today as a local YYYY-MM-DD (toISOString is UTC, a day off in the morning here). */
+function localTodayIso(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function downloadPdf() {
@@ -462,6 +484,21 @@ const todayIso = today.toISOString().slice(0, 10);
 
 
   /**
+   * Items the "Add from list" picker offers for this quote's card (§6.2), or
+   * null while the card isn't chosen or the items didn't load.
+   */
+  const nonLabourItemOptions = useMemo(
+    () => itemsForQuote(config, input.rateCard, localTodayIso()),
+    [config, input.rateCard]
+  );
+  const nonLabourItemNote =
+    config.rateItems === null
+      ? "The item list couldn't be loaded. Type items in as usual."
+      : nonLabourItemOptions === null
+        ? "Answer the rate card questions to use the list."
+        : undefined;
+
+  /**
    * Build role dropdown options from configured rates.
    */
   const roleOptions = useMemo(
@@ -671,6 +708,29 @@ const todayIso = today.toISOString().slice(0, 10);
   function addNonLabour() {
     const next = { ...input, nonLabour: [...input.nonLabour, emptyNonLabourLine()] };
     recalc(next);
+  }
+
+  /**
+   * Add a non-labour line from the item list (§6.2): fills the first blank
+   * row, else adds one. Title and amount come from the item; an "at cost"
+   * item (null charge) leaves the amount for the user. The unit label goes
+   * in the description so the quote says what qty counts (people, for a
+   * per-person item). Nothing links the line back to the item: it's then an
+   * ordinary line, like a typed one.
+   */
+  function addNonLabourFromList(item: RateItem) {
+    const filled = {
+      title: item.name,
+      description: item.unitLabel,
+      qty: 1,
+      amountExGst: item.chargeExGst ?? 0,
+    };
+    const blankIndex = input.nonLabour.findIndex(isBlankNonLabourLine);
+    const nonLabour =
+      blankIndex >= 0
+        ? input.nonLabour.map((l, i) => (i === blankIndex ? { ...l, ...filled } : l))
+        : [...input.nonLabour, { ...emptyNonLabourLine(), ...filled }];
+    recalc({ ...input, nonLabour });
   }
 
   /**
@@ -1858,6 +1918,9 @@ setStatus={(value: "Draft" | "Sent" | "Approved" | "Declined" | "Exported to Ope
     }
     hasNonLabourData={hasNonLabourData}
     addNonLabour={addNonLabour}
+    itemOptions={nonLabourItemOptions}
+    itemNote={nonLabourItemNote}
+    addNonLabourFromList={addNonLabourFromList}
     updateNonLabour={updateNonLabour}
     removeNonLabour={removeNonLabour}
     money={moneyFmt}
