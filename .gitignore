@@ -7,3 +7,5 @@ node_modules/
 .env.local 
 outputs/
 tsconfig.tsbuildinfo
+# Supabase CLI cache (linked project, version stamp)
+supabase/.temp/
