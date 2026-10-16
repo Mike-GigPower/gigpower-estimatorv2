@@ -96,17 +96,6 @@ export const defaultConfig: AppConfig = {
       setCode: STANDARD_SET_CODE,
       callNames: [],
     },
-    {
-      role: "Broadcast Rate",
-      day: 252.7,
-      night: 252.7,
-      sunday: 252.7,
-      publicHoliday: 252.7,
-      over8: 252.7,
-      over10: 252.7,
-      setCode: STANDARD_SET_CODE,
-      callNames: [],
-    },
   ],
   publicHolidays: [
   { date: "2026-01-01", label: "New Year's Day" },
