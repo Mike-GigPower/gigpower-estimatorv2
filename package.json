@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --import ./scripts/test-resolve.mjs --test \"src/**/*.test.ts\"",
+    "test": "node --import ./scripts/test-resolve.mjs --test \"src/**/*.test.ts\" \"supabase/functions/**/*.test.ts\"",
     "test:pricing": "tsx scripts/pricing-tests.ts"
   },
   "dependencies": {
