@@ -765,8 +765,10 @@ th {
 .labour-cost-tip {
   position: fixed;
   z-index: 1000;
+  /* Sized to its rows (amounts never wrap), within the viewport. */
+  width: max-content;
   min-width: 320px;
-  max-width: 380px;
+  max-width: calc(100vw - 32px);
   padding: 12px 14px;
   text-align: left;
   background: #14181f;
@@ -787,19 +789,29 @@ th {
   margin-bottom: 8px;
 }
 
+/* One grid for every row, so columns line up and size to their widest cell.
+   Rows are display: contents; their spans are the grid's cells. */
 .labour-cost-tip-table {
-  display: block;
+  display: grid;
+  grid-template-columns: repeat(6, auto);
+  column-gap: 10px;
+  row-gap: 6px;
+  align-items: baseline;
 }
 
 .labour-cost-tip-row {
-  display: grid;
-  grid-template-columns: minmax(64px, auto) minmax(56px, auto) 40px 44px 64px 1fr;
-  gap: 8px;
-  align-items: baseline;
+  display: contents;
   font-size: 12.5px;
   font-family: ui-monospace, "JetBrains Mono", monospace;
   color: #e8eef8;
-  padding: 3px 0;
+}
+
+/* The tip sits inside a td, whose word-break: break-word would otherwise
+   split amounts mid-number ("$12 / 6.0 / 0"). */
+.labour-cost-tip-row > span {
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .labour-cost-tip-row .lc-date {
@@ -824,7 +836,9 @@ th {
 /* D31 window label ("Christmas ×2"), on its own line under the segment. */
 .labour-cost-tip-row .lc-window {
   grid-column: 2 / -1;
-  margin-top: -2px;
+  margin-top: -4px;
+  /* Doesn't widen the columns it spans. */
+  contain: inline-size;
   font-size: 11.5px;
   color: #f59e0b;
 }
